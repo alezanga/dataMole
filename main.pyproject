@@ -1,5 +1,0 @@
-main.pyproject
-main.py
-tests/test_Frame.py
-tests/test_decorator.py
-tests/__init__.py

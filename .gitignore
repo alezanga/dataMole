@@ -125,6 +125,8 @@ modules.xml
 .idea/
 *.ipr
 
+venv/
+
 # Sonarlint plugin
 .idea/sonarlint
 
