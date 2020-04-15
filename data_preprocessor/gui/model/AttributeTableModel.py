@@ -8,8 +8,8 @@ from data_preprocessor.data import Shape
 class AttributeTableModel(QAbstractTableModel):
     def __init__(self, parent: QWidget = None, shape: Shape = None, checkable: bool = False,
                  editable: bool = False):
-        """
-        Creates a tablemodel to hold attributes list
+        """ Creates a tablemodel to hold attributes list
+
         :param parent: parent widget
         :param shape: a Shape object
         :param checkable: whether an additional column with checkbox must be added

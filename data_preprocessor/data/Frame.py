@@ -31,25 +31,25 @@ class Frame:
     def __delitem__(self, key):
         self.__df.__delitem__(key)
 
-    def load(self, filename: str, header: int = 1, separator: str = ',', nan_values: List[str] = None,
-             keep_def_nan: bool = True, decimal: str = '.'):
-        self.__df = pd.read_csv(filename, sep=separator, header=header, na_values=nan_values,
-                                keep_default_na=keep_def_nan, decimal=decimal)
-
-    def save(self, filename: str, separator: str, extension: str):
-        """
-        Save a Frame to file
-        :param filename:
-        :param separator:
-        :param extension:
-        :return:
-        """
-        if extension == 'csv':
-            self.__df.to_csv(filename, sep=separator)
-        elif extension == 'arff':
-            frame_to_arff(self.__df, **locals())
-        else:
-            raise ValueError('Format {} not accepted'.format(extension))
+    # def load(self, filename: str, header: int = 1, separator: str = ',', nan_values: List[str] = None,
+    #          keep_def_nan: bool = True, decimal: str = '.'):
+    #     self.__df = pd.read_csv(filename, sep=separator, header=header, na_values=nan_values,
+    #                             keep_default_na=keep_def_nan, decimal=decimal)
+    #
+    # def save(self, filename: str, separator: str, extension: str):
+    #     """
+    #     Save a Frame to file
+    #     :param filename:
+    #     :param separator:
+    #     :param extension:
+    #     :return:
+    #     """
+    #     if extension == 'csv':
+    #         self.__df.to_csv(filename, sep=separator)
+    #     elif extension == 'arff':
+    #         frame_to_arff(self.__df, **locals())
+    #     else:
+    #         raise ValueError('Format {} not accepted'.format(extension))
 
     @property
     def columns(self) -> List[Union[str, int]]:

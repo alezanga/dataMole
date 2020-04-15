@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Union
 
 from data_preprocessor import data
-from data_preprocessor.gui import AbsStepEditor
+from data_preprocessor.gui import AbsOperationEditor
 
 
 # TODO: see https://realpython.com/python-interface/#using-metaclasses
@@ -43,7 +43,7 @@ class Operation(ABC):
         pass
 
     @abstractmethod
-    def getEditor(self) -> AbsStepEditor:
+    def getEditor(self) -> AbsOperationEditor:
         """
         Return the editor panel to configure the step
         :return: The widget editor

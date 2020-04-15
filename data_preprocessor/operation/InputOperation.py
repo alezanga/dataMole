@@ -1,5 +1,5 @@
 from data_preprocessor.operation import Operation
-from typing import Union, final
+from typing import Union
 import data_preprocessor.data as data
 
 
@@ -9,12 +9,12 @@ class InputOperation(Operation):
     These operations must not change the shape
     """
 
-    @final
+    # @final
     def getOutputShape(self) -> Union[data.Shape, None]:
         return self._shape
 
+    # @final
     @staticmethod
-    @final
     def isOutputShapeKnown() -> bool:
         return True
 

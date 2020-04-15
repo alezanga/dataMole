@@ -3,27 +3,28 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Documentation for dataPreprocessor
+dataPreprocessor documentation
 ============================================
+
+************
+Introduction
+************
+This package should be used to prepare datasets for machine learning.
+
+
+************
+Requirements
+************
+- One
+- Two
+
+********
+Contents
+********
 
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
-
-Data
-=====================
-.. automodule:: data_preprocessor.data
-   :members:
-
-Operation
-=================
-.. automodule:: data_preprocessor.operation
-   :members:
-
-Gui
-===================
-.. automodule:: data_preprocessor.gui
-   :members:
 
 Indices and tables
 ==================

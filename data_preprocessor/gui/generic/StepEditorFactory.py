@@ -2,7 +2,7 @@ from PySide2.QtCore import QAbstractItemModel, QSize, Qt, Slot
 from PySide2.QtWidgets import QLabel, QLineEdit, QComboBox, QGridLayout, QHBoxLayout, QCheckBox, \
     QVBoxLayout, QPushButton, QDialog
 from PySide2.QtGui import QValidator
-from data_preprocessor.gui.generic.AbsStepEditor import AbsStepEditor
+from data_preprocessor.gui.generic.AbsOperationEditor import AbsOperationEditor
 from typing import Dict, List, Callable
 from data_preprocessor.decorators.generic import singleton
 import PySide2.QtGui
@@ -13,7 +13,7 @@ class StepEditorFactory:
     def __init__(self):
         self.__mainLayout: QVBoxLayout = None
         self.__layout: QGridLayout = None
-        self.__editor: AbsStepEditor = None
+        self.__editor: AbsOperationEditor = None
         self.__optionsGetter: List[Callable] = list()
 
     def initEditor(self, title: str = '') -> None:
@@ -22,7 +22,7 @@ class StepEditorFactory:
         You should call this method every time you need to generate a new editor.
         """
 
-        class ConcreteStep(AbsStepEditor):
+        class ConcreteStep(AbsOperationEditor):
             def getOptions(self) -> Dict:
                 pass
 
@@ -71,7 +71,7 @@ class StepEditorFactory:
     def setSizeHint(self, width: int, height: int):
         self.__editor.sizeHint = lambda: QSize(width, height)
 
-    def getEditor(self) -> AbsStepEditor:
+    def getEditor(self) -> AbsOperationEditor:
         def getter() -> List:
             return [f() for f in self.__optionsGetter]
 

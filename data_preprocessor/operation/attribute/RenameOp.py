@@ -1,7 +1,7 @@
 from typing import Union, Iterable, Dict
 
 from data_preprocessor import data
-from data_preprocessor.gui.generic.AbsStepEditor import AbsStepEditor
+from data_preprocessor.gui.generic.AbsOperationEditor import AbsOperationEditor
 from data_preprocessor.operation import AttributeOperation
 
 
@@ -18,7 +18,7 @@ class RenameOp(AttributeOperation):
     def setOptions(self, names: Dict[int, str]) -> None:
         self.__names = names
 
-    def getEditor(self) -> AbsStepEditor:
+    def getEditor(self) -> AbsOperationEditor:
         # TODO
         pass
 
