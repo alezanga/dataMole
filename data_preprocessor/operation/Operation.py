@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Union
+from typing import Union, Any
 
 from data_preprocessor import data
 from data_preprocessor.gui import AbsOperationEditor
@@ -13,8 +13,14 @@ class Operation(ABC):
     Base interface of every operation
     """
 
-    # Holds the shape of the working frame
-    _shape: data.Shape
+    @abstractmethod
+    def __init__(self, shape: data.Shape):
+        """
+        Build an operation as a command
+        :param shape: the input shape of the frame given in input
+        """
+        # Holds the shape of the working frame
+        self._shape: data.Shape = shape
 
     @abstractmethod
     def execute(self, df: data.Frame) -> data.Frame:
@@ -28,6 +34,7 @@ class Operation(ABC):
         """
         pass
 
+    @abstractmethod
     def info(self) -> str:
         """
         Provide some information to show for a step
@@ -35,10 +42,20 @@ class Operation(ABC):
         pass
 
     @abstractmethod
-    def setOptions(self, **kwargs) -> None:
+    def setOptions(self, *args, **kwargs) -> None:
         """
         Called to configure a step with the required data.
         Typically must be called after the user set parameters in the configuration dialog
+        """
+        pass
+
+    @abstractmethod
+    def getOptions(self) -> Any:
+        """
+        Called to get current options for the operation. Typically called to get the
+        existing configuration when an editor is opended
+
+        :return: the configuration object
         """
         pass
 

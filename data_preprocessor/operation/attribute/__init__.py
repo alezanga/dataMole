@@ -1,1 +1,1 @@
-from data_preprocessor.operation.attribute import RenameOp
+from data_preprocessor.operation.attribute.RenameOp import RenameOp

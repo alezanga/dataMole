@@ -1,13 +1,17 @@
-from typing import Union, Iterable, Dict
+from typing import Union, Dict
+import copy
 
 from data_preprocessor import data
+from data_preprocessor.gui.editor.RenameEditor import RenameEditor
 from data_preprocessor.gui.generic.AbsOperationEditor import AbsOperationEditor
 from data_preprocessor.operation import AttributeOperation
 
 
 class RenameOp(AttributeOperation):
-    # Dict with format {pos: new_name}
-    __names: Dict[int, str] = None
+    def __init__(self, shape: data.Shape):
+        super().__init__(shape)
+        # Dict with format {pos: new_name}
+        self.__names: Dict[int, str] = dict()
 
     def execute(self, df: data.Frame) -> data.Frame:
         pass
@@ -15,12 +19,17 @@ class RenameOp(AttributeOperation):
     def name(self) -> str:
         return 'Rename operation'
 
+    def info(self) -> str:
+        return 'This operation can rename the attributes'
+
+    def getOptions(self) -> (Dict[int, str], data.Shape):
+        return copy.copy(self.__names), copy.copy(self._shape)
+
     def setOptions(self, names: Dict[int, str]) -> None:
         self.__names = names
 
     def getEditor(self) -> AbsOperationEditor:
-        # TODO
-        pass
+        return RenameEditor()
 
     def getOutputShape(self) -> Union[data.Shape, None]:
         if not self.__names:

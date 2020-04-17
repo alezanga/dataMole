@@ -1,4 +1,5 @@
 from typing import Union, Any, List, Dict
+
 from PySide2.QtCore import QAbstractTableModel, QModelIndex, Qt
 from PySide2.QtWidgets import QWidget
 
@@ -37,23 +38,19 @@ class AttributeTableModel(QAbstractTableModel):
 
     @property
     def _type_pos(self) -> int:
-        """
-        Return the column index for type
-        """
-        if self._checkable:
-            return 1
-        else:
-            return 0
-
-    @property
-    def _name_pos(self) -> int:
-        """
-        Return the column index for name
-        """
+        """ Return the column index for type """
         if self._checkable:
             return 2
         else:
             return 1
+
+    @property
+    def _name_pos(self) -> int:
+        """ Return the column index for name """
+        if self._checkable:
+            return 1
+        else:
+            return 0
 
     def checkedAttributes(self) -> List[int]:
         """ Get selected rows if the model is checkable """
@@ -61,12 +58,30 @@ class AttributeTableModel(QAbstractTableModel):
 
     def editedAttributes(self) -> Dict[int, str]:
         """ Get attributes that were edited, or None if the list is not editable  """
-        return self._edits if self._editable else None
+        return self._edits.copy() if self._editable else None
+
+    def setCheckedAttributes(self, c: List[int]) -> None:
+        """ Set the checked attributes in the model and update the view """
+        if self._checkable:
+            self.beginResetModel()
+            self._checked = [(a in c) for a in range(0, len(self._checked))]
+            self.endResetModel()
+
+    def setEditedAttributes(self, e: (Dict[int, str], Shape)) -> None:
+        """ Set the edited attributes in the model and update the view """
+        self.beginResetModel()
+        self._edits = e[0]
+        self._shape = e[1]
+        self.endResetModel()
 
     def rowCount(self, parent: QModelIndex = ...) -> int:
+        if parent.isValid():
+            return 0
         return len(self._shape.col_names) if self._shape else 0
 
     def columnCount(self, parent: QModelIndex = ...) -> int:
+        if parent.isValid():
+            return 0
         return 3 if self._checkable else 2
 
     def data(self, index: QModelIndex, role: int = ...) -> Any:
@@ -106,10 +121,16 @@ class AttributeTableModel(QAbstractTableModel):
         return None
 
     def setData(self, index: QModelIndex, value: Any, role: int = ...) -> bool:
-        if index.isValid() and role == Qt.EditRole:
-            # TODO: add regex validator
-            self._edits[index.row()] = value
-            # TOCHECK Emit data changed
+        if index.isValid():
+            if role == Qt.EditRole and index.column() == self._name_pos and value != index.data(
+                    Qt.DisplayRole):
+                # TODO: add regex validator
+                self._edits[index.row()] = value
+            elif role == Qt.CheckStateRole and index.column() == self._checkbox_pos:
+                i: int = index.row()
+                self._checked[i] = not self._checked[i]
+            else:
+                return False
             self.dataChanged.emit(index, index)
             return True
         return False
