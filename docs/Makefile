@@ -20,4 +20,4 @@ help:
 	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 
 pdf:
-	sphinx-build -b rinoh source _build/rinoh
+	@$(SPHINXBUILD) -b rinoh "$(SOURCEDIR)" _build/rinoh

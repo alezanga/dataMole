@@ -1,3 +1,2 @@
 # TODO
-- Step editor for Rename
-- setData in Model for Attribute list
+- gestire cambio tipo con proxy

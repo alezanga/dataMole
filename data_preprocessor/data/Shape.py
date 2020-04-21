@@ -5,11 +5,13 @@ class Shape:
     """
     Representation of the shape of a Frame
     """
-    col_names: List[str] = None
-    col_types: List[str] = None
-    n_columns: int = None
-    n_rows: int = None
-    index: Union[str, int] = None
+    def __init__(self):
+        self.col_names: List[str] = None
+        self.col_types: List[str] = None
+        # self.numeric_types: List[int] = None
+        self.n_columns: int = None
+        self.n_rows: int = None
+        self.index: str = None
 
     # Note: in Pandas the index col is not a column of the frame
 
