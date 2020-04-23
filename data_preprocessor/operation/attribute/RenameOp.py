@@ -8,8 +8,8 @@ from data_preprocessor.operation import AttributeOperation
 
 
 class RenameOp(AttributeOperation):
-    def __init__(self, shape: data.Shape):
-        super().__init__(shape)
+    def __init__(self):
+        super().__init__()
         # Dict with format {pos: new_name}
         self.__names: Dict[int, str] = dict()
 
@@ -22,7 +22,7 @@ class RenameOp(AttributeOperation):
     def info(self) -> str:
         return 'This operation can rename the attributes'
 
-    def getOptions(self) -> (Dict[int, str], data.Shape):
+    def getOptions(self) -> (Dict[int, str], data.Frame):
         return copy.copy(self.__names), copy.copy(self._shape)
 
     def setOptions(self, names: Dict[int, str]) -> None:
@@ -31,7 +31,7 @@ class RenameOp(AttributeOperation):
     def getEditor(self) -> AbsOperationEditor:
         return RenameEditor()
 
-    def getOutputShape(self) -> Union[data.Shape, None]:
+    def getOutputShape(self) -> Union[data.Frame, None]:
         if not self.__names:
             raise ValueError('Method {}.getOutputShape must be called with non null arguments, '
                              'instead \'names\' is None'.format(self.__class__.__name__))
@@ -39,7 +39,7 @@ class RenameOp(AttributeOperation):
         # Shape is the same as before with name changed
         s = self._shape
         for index, name in self.__names.items():
-            s.col_names[index] = name
+            s.shape.col_names[index] = name
 
         return s
 

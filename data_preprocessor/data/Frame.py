@@ -246,7 +246,7 @@ class Frame:
         """ Replace one or more values in the whole dataframe
 
         :param replacing: a single value, a list of values or a dictionary saying what to replace for
-        each value
+            each value
         :param new_value: the value to substitute. If 'replacing' is a dictionary it must be None
         :return: the new frame with replaced values
         :raise ValueError: if the supplied parameters are not valid
@@ -265,7 +265,7 @@ class Frame:
         """ Replace a string pattern in the whole dataframe. Works only on values of type string
 
         :param regex: a single regex, a list of regex or a dictionary saying what to replace for each
-        regex
+            regex
         :param new_value: the value to substitute. If 'regex' is a dictionary it must be None
         :return: the new frame with replaced values
         :raise ValueError: if the supplied parameters are not valid

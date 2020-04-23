@@ -14,17 +14,21 @@ class Operation(ABC):
     """
 
     @abstractmethod
-    def __init__(self, shape: data.Shape):
+    def __init__(self):
         """
         Build an operation as a command
+
         :param shape: the input shape of the frame given in input
         """
         # Holds the shape of the working frame
-        self._shape: data.Shape = shape
+        self._shape: data.Frame = None
+        # self._result: data.Frame = None
+
+    # def compute(self) -> None:
+    #     self._result = self.execute()
 
     @abstractmethod
     def execute(self, df: data.Frame) -> data.Frame:
-        # raise NotImplementedError("Class %s doesn't implement execute()" % self.__class__.__name__)
         pass
 
     @abstractmethod
@@ -40,6 +44,9 @@ class Operation(ABC):
         Provide some information to show for a step
         """
         pass
+
+    def setInputShape(self, shape: data.Frame) -> None:
+        self._shape = shape
 
     @abstractmethod
     def setOptions(self, *args, **kwargs) -> None:
@@ -63,6 +70,7 @@ class Operation(ABC):
     def getEditor(self) -> AbsOperationEditor:
         """
         Return the editor panel to configure the step
+
         :return: The widget editor
         """
         pass
@@ -89,6 +97,7 @@ class Operation(ABC):
     def isInputOperation() -> bool:
         """
         Tell if the operation can be used as the first one
+
         :return: true iff can be used as the first one
         """
         return False

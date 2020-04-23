@@ -9,8 +9,15 @@ class InputOperation(Operation):
     These operations must not change the shape
     """
 
+    def __init__(self):
+        super().__init__()
+        self._workbench = None
+
+    def setWorkbench(self, workbench) -> None:
+        self._workbench = workbench
+
     # @final
-    def getOutputShape(self) -> Union[data.Shape, None]:
+    def getOutputShape(self) -> Union[data.Frame, None]:
         return self._shape
 
     # @final
