@@ -37,7 +37,7 @@ class OperationDelegate(QStyledItemDelegate):
         if not index.isValid():
             return None
         if index.column() == 0:
-            editor.setOptions(index.data().getOptions())
+            editor.setOptions(*index.data().getOptions())
 
     def setModelData(self, editor: AbsOperationEditor, model: QAbstractItemModel,
                      index: QModelIndex) -> None:

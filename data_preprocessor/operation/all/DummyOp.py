@@ -1,22 +1,35 @@
-from typing import Union, List
+from typing import Union, Any, List
 
-import data_preprocessor.data as data
+from data_preprocessor import data
 from data_preprocessor.data.types import Types, ALL_TYPES
+from data_preprocessor.gui.generic.AbsOperationEditor import AbsOperationEditor
 from data_preprocessor.operation import Operation
 
 
-class InputOperation(Operation):
-    """
-    Base class for operations to be used to provide input
-    These operations must not change the shape
-    """
-
+class DummyOp(Operation):
     def __init__(self):
         super().__init__()
-        self._workbench = None
+
+    def execute(self) -> None:
+        return None
+
+    def name(self) -> str:
+        return 'Dummy operation'
+
+    def info(self) -> str:
+        return 'This operation does nothing and returns None'
 
     def acceptedTypes(self) -> List[Types]:
         return ALL_TYPES
+
+    def setOptions(self, *args, **kwargs) -> None:
+        pass
+
+    def getOptions(self) -> Any:
+        pass
+
+    def getEditor(self) -> AbsOperationEditor:
+        pass
 
     def getOutputShape(self) -> Union[data.Shape, None]:
         return self._shape

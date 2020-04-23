@@ -1,20 +1,31 @@
-from typing import Union, Dict
 import copy
+from typing import Union, Dict, List
 
 from data_preprocessor import data
+from data_preprocessor.data.types import Types, ALL_TYPES
 from data_preprocessor.gui.editor.RenameEditor import RenameEditor
 from data_preprocessor.gui.generic.AbsOperationEditor import AbsOperationEditor
-from data_preprocessor.operation import AttributeOperation
+from data_preprocessor.operation import Operation
 
 
-class RenameOp(AttributeOperation):
+class RenameOp(Operation):
     def __init__(self):
         super().__init__()
         # Dict with format {pos: new_name}
         self.__names: Dict[int, str] = dict()
 
     def execute(self, df: data.Frame) -> data.Frame:
-        pass
+        """ Set new names for columns """
+
+        if not self.__names:
+            return df
+
+        names: List[str] = df.colnames
+        for k, v in self.__names.items():
+            names[k] = v
+        new_df = df.getRawFrame().copy(deep=False)
+        new_df.columns = names
+        return data.Frame(new_df)
 
     def name(self) -> str:
         return 'Rename operation'
@@ -31,18 +42,37 @@ class RenameOp(AttributeOperation):
     def getEditor(self) -> AbsOperationEditor:
         return RenameEditor()
 
-    def getOutputShape(self) -> Union[data.Frame, None]:
+    def getOutputShape(self) -> Union[data.Shape, None]:
         if not self.__names:
             raise ValueError('Method {}.getOutputShape must be called with non null arguments, '
                              'instead \'names\' is None'.format(self.__class__.__name__))
 
         # Shape is the same as before with name changed
-        s = self._shape
+        s = copy.copy(self._shape)
         for index, name in self.__names.items():
-            s.shape.col_names[index] = name
+            s.col_names[index] = name
 
         return s
 
     @staticmethod
     def isOutputShapeKnown() -> bool:
         return True
+
+    def acceptedTypes(self) -> List[Types]:
+        return ALL_TYPES
+
+    @staticmethod
+    def minInputNumber() -> int:
+        return 1
+
+    @staticmethod
+    def maxInputNumber() -> int:
+        return 1
+
+    @staticmethod
+    def minOutputNumber() -> int:
+        return 1
+
+    @staticmethod
+    def maxOutputNumber() -> int:
+        return -1

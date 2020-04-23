@@ -1,14 +1,16 @@
-from typing import List, Union
+from typing import List
+
+from data_preprocessor.data.types import Types
 
 
 class Shape:
     """
     Representation of the shape of a Frame
     """
+
     def __init__(self):
         self.col_names: List[str] = None
-        self.col_types: List[str] = None
-        # self.numeric_types: List[int] = None
+        self.col_types: List[Types] = None
         self.n_columns: int = None
         self.n_rows: int = None
         self.index: str = None

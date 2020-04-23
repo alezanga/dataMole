@@ -4,6 +4,7 @@ from numpy import int64
 import numpy as np
 
 from data_preprocessor.data import Frame, Shape
+from data_preprocessor.data.types import Types
 
 
 def test_apply():
@@ -422,7 +423,7 @@ def test_shape():
     s.n_columns = 3
     s.index = None
     s.col_names = ['col1', 'col2', 'col3']
-    s.col_types = ['numeric', 'numeric', 'str']
+    s.col_types = [Types.Numeric, Types.Numeric, Types.String]
 
     assert f.shape == s
 
@@ -446,7 +447,7 @@ def test_shape_index():
     s.n_columns = 3
     s.index = 'col3'
     s.col_names = ['col1', 'col2', 'col3']
-    s.col_types = ['numeric', 'numeric', 'str']
+    s.col_types = [Types.Numeric, Types.Numeric, Types.String]
 
     assert f.shape == s
 
@@ -461,9 +462,9 @@ def test_fromShape():
     g = Frame.fromShape(f.shape)
 
     s = Shape()
-    s.n_rows = 1
+    s.n_rows = 0
     s.n_columns = 4
     s.index = 'col3'
     s.col_names = ['col1', 'col2', 'col3', 'cold']
-    s.col_types = ['numeric', 'numeric', 'str', 'date']
+    s.col_types = [Types.Numeric, Types.Numeric, Types.String, Types.Datetime]
     assert g.shape == s

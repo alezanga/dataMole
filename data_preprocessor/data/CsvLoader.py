@@ -1,5 +1,5 @@
 import pandas as pd
-from data_preprocessor.data import Loader
+from data_preprocessor.data import Loader, Frame
 
 
 class CsvLoader(Loader):

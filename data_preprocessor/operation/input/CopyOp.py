@@ -6,15 +6,19 @@ from data_preprocessor.operation import InputOperation
 
 
 class CopyOp(InputOperation):
+    def __init__(self):
+        super().__init__()
+        self._worbench_id: int = None
 
-    def execute(self, df: data.Frame) -> data.Frame:
-        pass
+    def execute(self, input) -> data.Frame:
+        """ Get selected dataframe from workbench """
+        return self._workbench.get(self._worbench_id)
 
     def name(self) -> str:
-        pass
+        return 'Copy operation'
 
     def info(self) -> str:
-        pass
+        return 'Copy existing dataframe. Should be used as first operation in a pipeline'
 
     def setOptions(self, *args, **kwargs) -> None:
         pass
