@@ -2,4 +2,3 @@ from data_preprocessor.operation.Operation import Operation
 from data_preprocessor.operation.InputOperation import InputOperation
 from data_preprocessor.operation.OutputOperation import OutputOperation
 from data_preprocessor.operation.Pipeline import Pipeline
-from data_preprocessor.operation.OperationUid import OperationUid

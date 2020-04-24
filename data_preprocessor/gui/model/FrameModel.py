@@ -41,9 +41,10 @@ class FrameModel(QAbstractTableModel):
     def headerData(self, section: int, orientation: Qt.Orientation, role: int = Qt.DisplayRole) -> Any:
         if orientation == Qt.Horizontal:
             if role == Qt.DisplayRole:
-                return self._frame.shape.col_names[section] + '\n' + self._frame.shape.col_types[section]
+                return self._frame.shape.col_names[section] + '\n' + self._frame.shape.col_types[
+                    section].value
             elif role == FrameModel.DataRole:
-                return self._frame.shape.col_names[section], self._frame.shape.col_types[section]
+                return self._frame.shape.col_names[section], self._frame.shape.col_types[section].value
         elif orientation == Qt.Vertical and role == Qt.DisplayRole:
             if self._frame.shape.has_index():
                 return self._frame.index[section]

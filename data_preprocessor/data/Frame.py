@@ -1,9 +1,9 @@
-from typing import List, Union, Callable, Iterable, Dict, Any, Optional
+from typing import List, Union, Callable, Iterable, Dict, Any, Optional, Tuple
 
 import pandas as pd
 
 from data_preprocessor.data.Shape import Shape
-from data_preprocessor.data.type_dict import type_dict, inv_type_dict
+from data_preprocessor.data.types import type_dict, inv_type_dict
 
 
 class Frame:
@@ -20,6 +20,9 @@ class Frame:
         else:
             self.__df: pd.DataFrame = pd.DataFrame(data)
         self.__empty: bool = True if data is None else empty
+
+    def getRawFrame(self) -> pd.DataFrame:
+        return self.__df
 
     def isEmpty(self) -> bool:
         """ Whether the Frame is to be considered empty (no rows) """
@@ -40,7 +43,7 @@ class Frame:
         df.index.name = s.index
         return Frame(df, empty=True)
 
-    def at(self, e: tuple) -> Any:
+    def at(self, e: Tuple[int, int]) -> Any:
         """ Get value of element at specified index
 
         :param e: tuple with exactly two element, the row and column index
@@ -214,8 +217,8 @@ class Frame:
     def drop_nan(self, axis: int):
         return Frame(self.__df.dropna(axis=axis))
 
-    def head(self, n: int = 10) -> 'Frame':
-        return Frame(self.__df.head(n))
+    def head(self, n: int = 10) -> pd.DataFrame:
+        return self.__df.head(n)
 
     def dropCols(self, cols: Union[int, str, List[int], List[str]]) -> 'Frame':
         """ Remove columns from a dataframe

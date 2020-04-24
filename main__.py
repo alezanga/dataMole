@@ -1,87 +1,65 @@
-from abc import ABC, abstractmethod
+from typing import Any
 
-from anytree import NodeMixin, RenderTree
-from anytree.iterators import LevelOrderIter
+import networkx as nx
+
+from data_preprocessor import data
+from data_preprocessor.data import Frame
+from data_preprocessor.data.types import Types
+from data_preprocessor.flow import OperationHandler, OperationNode
+from data_preprocessor.gui.generic.AbsOperationEditor import AbsOperationEditor
+from data_preprocessor.operation import InputOperation
+from data_preprocessor.operation.all import RenameOp
+from data_preprocessor.operation.all.TypeOp import TypeOp
+from data_preprocessor.operation.output.PrintOp import PrintOp
 
 
-class Operation(ABC, NodeMixin):
-    def __init__(self):
-        self.result = None
+class FakeInput(InputOperation):
+    def __init__(self, input):
+        super().__init__()
+        self.input = input
 
-    def compute(self, input: str) -> None:
-        self.result = self.execute(input)
+    def execute(self, *df: data.Frame) -> data.Frame:
+        return self.input
 
-    @abstractmethod
-    def execute(self, input: str) -> str:
+    def name(self) -> str:
         pass
 
-    def getOutput(self) -> str:
-        return self.result
-
-
-class AddId(Operation):
-    def execute(self, input: str) -> str:
-        return input + '_ID_'
-
-class OutOp(Operation):
-    def execute(self, input: str) -> None:
-        print(input)
-
-
-class AddNumber(Operation):
-    def execute(self, input: str) -> str:
-        return input + '_9_'
-
-
-class OperationTree:
-    def __init__(self):
-        self.root: Operation = None
-
-    def add(self, new: Operation, parent: Operation = None):
-        if parent:
-            new.parent = parent
-        else:
-            self.root = new
-
-    def remove(self, op: Operation):
-        for child in op.children:
-            child.parent = op.parent
-        if op == self.root:
-            self.root = op.children[0] if op.children else None
-        op.parent = None
-
-
-class OperationHandler:
-    def __init__(self, tree: OperationTree):
-        self.tree: OperationTree = tree
-
-    def notify(self, operation):
+    def info(self) -> str:
         pass
 
-    def execute(self, input: str):
-        for op in LevelOrderIter(self.tree.root):
-            op.compute(op.parent.getOutput() if op.parent else input)
-        # if self.tree:
-        #     self.__rec_execute(self.tree, input)
+    def setOptions(self, *args, **kwargs) -> None:
+        pass
 
-    # @staticmethod
-    # def __rec_execute(op: Operation, input):
-    #     out = op.execute(input)
-    #     for child_op in op.children:
-    #         OperationHandler.__rec_execute(child_op, out)
+    def getOptions(self) -> Any:
+        pass
+
+    def getEditor(self) -> AbsOperationEditor:
+        pass
 
 
 if __name__ == "__main__":
-    tree = OperationTree()
-    add1 = AddId()
-    add2 = AddNumber()
-    add3 = AddNumber()
-    tree.add(add1)
-    tree.add(add2, add1)
-    tree.add(add3, add2)
-    tree.add(OutOp(), add3)
-    tree.add(OutOp(), add2)
-    print(RenderTree(add1))
-    handler = OperationHandler(tree)
-    handler.execute('I')
+    d = {'col1': [1, 2, 0.5, 4, 10], 'col2': [3, 4, 5, 6, 0]}
+    f = Frame(d)
+    op0 = FakeInput(f)
+    op1 = RenameOp()
+    op1.setOptions(names={0: 'newcol1'})
+    op2 = TypeOp()
+    op2.setOptions(new_types={0: Types.String})
+    op3 = PrintOp()
 
+    tree = nx.DiGraph()
+    node0 = OperationNode(op0)
+    node1 = OperationNode(op1)
+    node2 = OperationNode(op2)
+    node3 = OperationNode(op3)
+    tree.add_node(node0)
+    tree.add_node(node1)
+    tree.add_node(node2)
+    tree.add_node(node3)
+    tree.add_edge(node0, node1)
+    tree.add_edge(node1, node2)
+    tree.add_edge(node2, node3)
+    tree.add_edge(node1, node3)
+
+    handler = OperationHandler(tree)
+    handler.execute()

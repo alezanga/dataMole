@@ -4,8 +4,9 @@ from typing import Union, Any, List, Optional
 from data_preprocessor import data
 from data_preprocessor.data.types import Types
 from data_preprocessor.gui import AbsOperationEditor
+
+
 # TODO: see https://realpython.com/python-interface/#using-metaclasses
-from data_preprocessor.operation import OperationUid
 
 
 class Operation(ABC):
@@ -23,19 +24,17 @@ class Operation(ABC):
         # Holds the shape of the working frame
         self._shape: data.Shape = None
         # Will hold the result when computation is done
-        self._result: data.Frame = None
-        # Keeps a unique identifier for an operation
-        self.connectionObj = OperationUid()
+        # self._result: data.Frame = None
 
-    def result(self) -> data.Frame:
-        return self._result
+    # def result(self) -> data.Frame:
+    #     return self._result
 
-    def compute(self, *input_df: data.Frame) -> None:
+    def compute(self, *input_df: data.Frame) -> data.Frame:
         """
         Private method used to run every operation. Should not be redefined.
         """
         # Check if input is set
-        if not input_df or self.maxInputNumber() < len(input_df) < self.minInputNumber():
+        if self.maxInputNumber() < len(input_df) < self.minInputNumber():
             raise ValueError(
                 '{}.compute(input=...), input argument not correctly set'.format(
                     self.__class__.__name__))
@@ -46,7 +45,7 @@ class Operation(ABC):
             raise ValueError('{}.compute(input=...), options check failed with message: {}'.format(
                 self.__class__.__name__, msg))
 
-        self._result = self.execute(*input_df)
+        return self.execute(*input_df)
 
     @abstractmethod
     def execute(self, *df: data.Frame) -> data.Frame:
