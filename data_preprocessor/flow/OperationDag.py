@@ -37,7 +37,7 @@ class OperationDag:
         if node.operation.maxInputNumber() == 0 and not node.operation.needsOptions():
             # Then it's an input operation and the shape can be
             in_op: InputOperation = node.operation
-            in_op.setInputShape()
+            in_op.inferInputShape()
             self.__update_descendants(node)
 
     def addConnection(self, _from: OperationNode, _to: OperationNode, slot: int) -> bool:

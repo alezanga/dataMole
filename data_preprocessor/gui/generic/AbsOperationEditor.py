@@ -12,6 +12,7 @@ class AbsOperationEditor(QWidget):
     acceptAndClose = Signal()
     rejectAndClose = Signal()
 
+    @abc.abstractmethod
     def __init__(self, parent: QWidget):
         super().__init__(parent)
         self.__id: str = uuid.uuid4().hex
