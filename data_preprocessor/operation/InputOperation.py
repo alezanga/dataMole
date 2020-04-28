@@ -1,8 +1,9 @@
+from abc import abstractmethod
 from typing import Union, List
 
 import data_preprocessor.data as data
 from data_preprocessor.data.types import Types, ALL_TYPES
-from data_preprocessor.operation import Operation
+from data_preprocessor.operation.Operation import Operation
 
 
 class InputOperation(Operation):
@@ -15,11 +16,19 @@ class InputOperation(Operation):
         super().__init__()
         self._workbench = None
 
+    @abstractmethod
+    def setInputShape(self) -> None:
+        """ This method must be reimplemented to set the input shape after the options have been set """
+        pass
+
     def acceptedTypes(self) -> List[Types]:
         return ALL_TYPES
 
     def getOutputShape(self) -> Union[data.Shape, None]:
         return self._shape
+
+    def unsetOptions(self) -> None:
+        pass
 
     @staticmethod
     def isOutputShapeKnown() -> bool:

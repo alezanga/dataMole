@@ -9,6 +9,8 @@ from data_preprocessor.operation import Operation
 
 
 class RenameOp(Operation):
+
+
     def __init__(self):
         super().__init__()
         # Dict with format {pos: new_name}
@@ -33,22 +35,29 @@ class RenameOp(Operation):
     def info(self) -> str:
         return 'This operation can rename the attributes'
 
-    def getOptions(self) -> (Dict[int, str], data.Frame):
-        return copy.copy(self.__names), copy.copy(self._shape)
+    def getOptions(self) -> (Dict[int, str], data.Shape):
+        return copy.deepcopy(self.__names), copy.deepcopy(self._shape[0])
 
     def setOptions(self, names: Dict[int, str]) -> None:
         self.__names = names
+
+    def unsetOptions(self) -> None:
+        self.__names = dict()
+
+    def needsOptions(self) -> bool:
+        return True
 
     def getEditor(self) -> AbsOperationEditor:
         return RenameEditor()
 
     def getOutputShape(self) -> Union[data.Shape, None]:
         if not self.__names:
-            raise ValueError('Method {}.getOutputShape must be called with non null arguments, '
-                             'instead \'names\' is None'.format(self.__class__.__name__))
+            # raise ValueError('Method {}.getOutputShape must be called with non null arguments, '
+            #                  'instead \'names\' is None'.format(self.__class__.__name__))
+            return copy.deepcopy(self._shape[0]) # No rename, so shape unchanged
 
         # Shape is the same as before with name changed
-        s = copy.copy(self._shape)
+        s = copy.deepcopy(self._shape[0])
         for index, name in self.__names.items():
             s.col_names[index] = name
 

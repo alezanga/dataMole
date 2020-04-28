@@ -3,7 +3,7 @@ from enum import Enum, unique
 
 @unique
 class Types(Enum):
-    Categorical = 'categorical'
+    Categorical = 'category'
     Numeric = 'numeric'
     String = 'string'
     Datetime = 'datetime'
@@ -15,11 +15,13 @@ type_dict = {
     'int64': Types.Numeric,
     'float64': Types.Numeric,
     'datetime64[ns]': Types.Datetime,
-    'object': Types.String
+    'object': Types.String,
+    'category': Types.Categorical
 }
 
 inv_type_dict = {
     Types.Numeric: float,
     Types.Datetime: 'datetime64[ns]',
-    Types.String: str
+    Types.String: str,
+    Types.Categorical: 'category'
 }

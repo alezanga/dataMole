@@ -1,7 +1,6 @@
 import pandas as pd
 import pytest
 from numpy import int64
-import numpy as np
 
 from data_preprocessor.data import Frame, Shape
 from data_preprocessor.data.types import Types
@@ -464,7 +463,8 @@ def test_fromShape():
     s = Shape()
     s.n_rows = 0
     s.n_columns = 4
-    s.index = 'col3'
+    # fromShape does not preserve index
+    s.index = None
     s.col_names = ['col1', 'col2', 'col3', 'cold']
     s.col_types = [Types.Numeric, Types.Numeric, Types.String, Types.Datetime]
     assert g.shape == s

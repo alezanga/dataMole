@@ -32,15 +32,15 @@ class Frame:
     def fromShape(s: Shape) -> 'Frame':
         columns = s.col_names
         types = s.col_types
-        index = [s.index] if s.has_index() else None
+        # index = [s.index] if s.has_index() else None
 
         data = dict()
         for n, t in zip(columns, types):
             data[n] = pd.Series([], dtype=inv_type_dict[t])
 
-        df = pd.DataFrame(data, index=index)
+        df = pd.DataFrame(data)
         # Set name because pandas does not do it
-        df.index.name = s.index
+        # df.index.name = s.index
         return Frame(df, empty=True)
 
     def at(self, e: Tuple[int, int]) -> Any:
@@ -188,15 +188,22 @@ class Frame:
         return self.__df.index.tolist()
 
     def setIndex(self, col: Union[str, int]) -> 'Frame':
-        """ Sets index of the dataframe
+        """
+        Sets index of the dataframe
 
-        @:param col: the column number or name
-        @:return: a new frame with the new index
+        :param col: the column number or name
+        :return: a new frame with the new index
         """
         if isinstance(col, int):
-            return Frame(self.__df.set_index(self.__df.columns[col], drop=False, inplace=False))
+            d = self.__df.set_index(self.__df.columns[col], drop=False, inplace=False)
+            d.index.name = self.__df.columns[col]
+            return Frame(d)
         else:
-            return Frame(self.__df.set_index(col, drop=False, inplace=False))
+            d = self.__df.set_index(col, drop=False, inplace=False)
+            d.index.name = col
+            return Frame(d)
+
+    # def addRow(self):
 
     def apply(self, fn: Callable) -> 'Frame':
         """ Apply a function to each row of the dataset

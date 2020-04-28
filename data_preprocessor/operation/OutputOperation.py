@@ -2,7 +2,7 @@ from typing import List, Union
 
 from data_preprocessor import data
 from data_preprocessor.data.types import Types, ALL_TYPES
-from data_preprocessor.operation import Operation
+from data_preprocessor.operation.Operation import Operation
 
 
 class OutputOperation(Operation):
@@ -19,7 +19,10 @@ class OutputOperation(Operation):
         return ALL_TYPES
 
     def getOutputShape(self) -> Union[data.Shape, None]:
-        return self._shape
+        return self._shape[0]
+
+    def unsetOptions(self) -> None:
+        pass
 
     @staticmethod
     def isOutputShapeKnown() -> bool:
@@ -27,16 +30,16 @@ class OutputOperation(Operation):
 
     @staticmethod
     def minInputNumber() -> int:
-        return 0
-
-    @staticmethod
-    def maxInputNumber() -> int:
-        return 0
-
-    @staticmethod
-    def minOutputNumber() -> int:
         return 1
 
     @staticmethod
+    def maxInputNumber() -> int:
+        return 1
+
+    @staticmethod
+    def minOutputNumber() -> int:
+        return 0
+
+    @staticmethod
     def maxOutputNumber() -> int:
-        return -1
+        return 0

@@ -3,7 +3,7 @@ from typing import Union, Any, List, Optional
 
 from data_preprocessor import data
 from data_preprocessor.data.types import Types
-from data_preprocessor.gui import AbsOperationEditor
+from data_preprocessor.gui.generic.AbsOperationEditor import AbsOperationEditor
 
 
 # TODO: see https://realpython.com/python-interface/#using-metaclasses
@@ -22,7 +22,7 @@ class Operation(ABC):
         :param shape: the input shape of the frame given in input
         """
         # Holds the shape of the working frame
-        self._shape: data.Shape = None
+        self._shape: List[Optional[data.Shape]] = [None] * self.maxInputNumber()
         # Will hold the result when computation is done
         # self._result: data.Frame = None
 
@@ -78,15 +78,50 @@ class Operation(ABC):
         """ Return the column types that this operation accepts """
         pass
 
-    def setInputShape(self, shape: data.Shape) -> None:
-        """ Setter method for the concrete input """
-        self._shape = shape
+    def addInputShape(self, shape: data.Shape, pos: int) -> None:
+        """ Setter method for the shape input
+
+        :param shape: the shape to add
+        :param pos: an integer index being the position to add the shape at. A negative number means
+            that position does not matter
+        """
+        if pos >= 0:
+            self._shape[pos] = shape
+        else:
+            raise ValueError('Argument \'pos\' must be a non negative integer')
+
+    def removeInputShape(self, pos: int) -> None:
+        """ Remove the input shape at given position, replacing it with None """
+        self._shape[pos] = None
 
     @abstractmethod
     def setOptions(self, *args, **kwargs) -> None:
         """
         Called to configure a step with the required data.
         Typically must be called after the user set parameters in the configuration dialog
+        """
+        pass
+
+    @abstractmethod
+    def unsetOptions(self) -> None:
+        """
+        Called when graph is modified and input shape(s) are removed. After this steps this function
+        is called. Should be overridden to unset every option that depends on the input shape(s).
+        If no options depend on the input shape it should do nothing.
+        """
+        pass
+
+    @abstractmethod
+    def needsOptions(self) -> bool:
+        """
+        Returns whether the operation needs to be configured with an editor. If this method
+        returns False, then the following methods will be ignored (but must be redefined all the same):
+
+            - :func:`~data_preprocessor.operation.Operation.getEditor`
+            - :func:`~data_preprocessor.operation.Operation.getOptions`
+            - :func:`~data_preprocessor.operation.Operation.setOptions`
+
+        :return a boolean value, True if the operation needs to be configured, False otherwise
         """
         pass
 
@@ -113,6 +148,7 @@ class Operation(ABC):
     def getOutputShape(self) -> Union[data.Shape, None]:
         """
         Computes what will the frame shape be after execution of the step.
+        Be careful with references. This function should not be modify the input shape.
         If the shape cannot be predicted (for every column) it must return
         None. Additionally 'isOutputShapeKnown' should be overridden accordingly. See
         :func:`~data_preprocessor.operation.Operation.isOutputShapeKnown`
@@ -125,7 +161,7 @@ class Operation(ABC):
         """
         Must return true iff the number of columns and their types can be inferred with
         'getOutputShape'. Thus if this function returns false
-        :func:`~data_preprocessor.operation.Operation.getOutputShape` must return None
+        :func:`~data_preprocessor.operation.Operation.getOutputShape` must always return None
         """
         pass
 

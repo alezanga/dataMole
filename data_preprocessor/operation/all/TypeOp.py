@@ -1,4 +1,4 @@
-from copy import copy
+import copy
 from typing import Union, Any, List, Dict
 
 from data_preprocessor import data
@@ -35,16 +35,22 @@ class TypeOp(Operation):
     def setOptions(self, new_types: Dict[int, Types]) -> None:
         self.__types = new_types
 
+    def unsetOptions(self) -> None:
+        self.__types = dict()
+
     def getOptions(self) -> Any:
-        pass
+        return copy.deepcopy(self.__types), copy.deepcopy(self._shape[0])
+
+    def needsOptions(self) -> bool:
+        return True
 
     def getEditor(self) -> AbsOperationEditor:
         pass
 
     def getOutputShape(self) -> Union[data.Shape, None]:
         if not self.__types:
-            return None
-        s = copy(self._shape)
+            return copy.deepcopy(self._shape[0])
+        s = copy.deepcopy(self._shape[0])
         for k, v in self.__types.items():
             s.col_types[k] = v
         return s

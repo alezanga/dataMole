@@ -32,7 +32,13 @@ class DummyOp(Operation):
         pass
 
     def getOutputShape(self) -> Union[data.Shape, None]:
-        return self._shape
+        return self._shape[0]
+
+    def unsetOptions(self) -> None:
+        pass
+
+    def needsOptions(self) -> bool:
+        pass
 
     @staticmethod
     def isOutputShapeKnown() -> bool:

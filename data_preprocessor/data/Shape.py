@@ -26,6 +26,9 @@ class Shape:
     def __ne__(self, other):
         return not self.__eq__(other)
 
+    def __str__(self):
+        return str(self.__dict__)
+
     def has_index(self) -> bool:
         """
         Return whether index is set
