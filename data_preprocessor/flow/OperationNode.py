@@ -1,8 +1,8 @@
 from typing import Any, Dict, List
 
 from data_preprocessor.data import Frame, Shape
-from .OperationUid import OperationUid, OperationUidFactory
 from data_preprocessor.operation import Operation
+from .OperationUid import OperationUid, OperationUidFactory
 
 
 class OperationNode:
@@ -30,15 +30,19 @@ class OperationNode:
     def __ne__(self, other):
         return not self.__eq__(other)
 
-    def setOperationInputPosition(self, op_id: int, pos: int) -> None:
-        """ Call this method to ensure that the output of one parent operation is always passed at a
-        specified position when the execute method is called
+    def setSourceOperationInputPosition(self, op_id: int, pos: int) -> None:
+        """ Call this method to ensure that the output of one parent (source) operation is always passed
+        at a specified position when the execute method is called
 
         :param op_id: the unique id of the operation
         :param pos: the position, which means that input is passed as the argument at position 'pos'
         to 'execute' method. Must be non-negative
         """
         self.__input_order[op_id] = pos
+
+    def unsetSourceOperationInputPosition(self, op_id: int) -> None:
+        """ Delete the entry for specified operation in the input mapper """
+        del self.__input_order[op_id]
 
     def addInputArgument(self, arg: Any, op_id: int) -> None:
         """ Add the input argument of an operation to the existing inputs

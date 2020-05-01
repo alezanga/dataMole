@@ -153,16 +153,16 @@ def test_doubleInputInner():
 
     op3 = OperationNode(joino)
     graph.addNode(op3)
-    graph.addConnection(op1, op3, 0)
-    graph.addConnection(op2, op3, 1)
+    graph.addConnection(op1.uid, op3.uid, 0)
+    graph.addConnection(op2.uid, op3.uid, 1)
 
     output: Dict[int, data.Frame] = {1: data.Frame()}
 
     nodeo = OperationNode(GiveOutOp())
     graph.addNode(nodeo)
-    graph.updateNodeOptions(nodeo, output)
+    graph.updateNodeOptions(nodeo.uid, output)
 
-    graph.addConnection(op3, nodeo, 0)
+    graph.addConnection(op3.uid, nodeo.uid, 0)
 
     handler = OperationHandler(graph)
     # nx.draw(graph.getNxGraph())
@@ -203,16 +203,16 @@ def test_JoinLR():
 
     op3 = OperationNode(joino)
     graph.addNode(op3)
-    graph.addConnection(op1, op3, slot=0)
-    graph.addConnection(op2, op3, slot=1)
+    graph.addConnection(op1.uid, op3.uid, slot=0)
+    graph.addConnection(op2.uid, op3.uid, slot=1)
 
     output: Dict[int, data.Frame] = {1: data.Frame()}
 
     nodeo = OperationNode(GiveOutOp())
     graph.addNode(nodeo)
-    graph.updateNodeOptions(nodeo, output)
+    graph.updateNodeOptions(nodeo.uid, output)
 
-    graph.addConnection(op3, nodeo, 0)
+    graph.addConnection(op3.uid, nodeo.uid, 0)
 
     handler = OperationHandler(graph)
     handler.execute()
@@ -238,10 +238,10 @@ def test_add_remove_exc():
 
     dag.addNode(n2)
     with pytest.raises(ValueError):
-        dag.addConnection(n1, n2, 0)
+        dag.addConnection(n1.uid, n2.uid, 0)
 
     with pytest.raises(ValueError):
-        dag.removeConnection(n1, n2)
+        dag.removeConnection(n1.uid, n2.uid)
 
 
 def test_GraphAdd():
@@ -265,23 +265,23 @@ def test_GraphAdd():
     dag.addNode(node3)
 
     # Rename -> Type
-    assert dag.addConnection(node1, node2, 0) is True
+    assert dag.addConnection(node1.uid, node2.uid, 0) is True
     assert op2._shape == [None]
     assert op1._shape == [None]
 
     # Input -> Rename
-    assert dag.addConnection(node0, node1, 0) is True
+    assert dag.addConnection(node0.uid, node1.uid, 0) is True
     assert op1._shape == [f.shape]
     assert op2._shape == [f.shape]
     assert op3._shape == [None]
 
-    assert dag.addConnection(node2, node3, 0) is True
+    assert dag.addConnection(node2.uid, node3.uid, 0) is True
     assert op3._shape == [f.shape]
-    assert dag.addConnection(node2, node1, 0) is False
-    assert dag.addConnection(node1, node3, 1) is False
+    assert dag.addConnection(node2.uid, node1.uid, 0) is False
+    assert dag.addConnection(node1.uid, node3.uid, 1) is False
 
     # Rename
-    dag.updateNodeOptions(node1, {1: 'name_test'})
+    dag.updateNodeOptions(node1.uid, {1: 'name_test'})
     assert op1._shape == [f.shape]
     new_shape = copy.deepcopy(f.shape)
     new_shape.col_names = ['col1', 'name_test']
@@ -289,10 +289,10 @@ def test_GraphAdd():
     assert op3._shape == [new_shape]
 
     output2 = {1: data.Frame()}
-    dag.updateNodeOptions(node3, output2)
+    dag.updateNodeOptions(node3.uid, output2)
 
     # Type
-    dag.updateNodeOptions(node2, {1: Types.String, 0: Types.Numeric})
+    dag.updateNodeOptions(node2.uid, {1: Types.String, 0: Types.Numeric})
     new_shape1 = copy.deepcopy(new_shape)
     new_shape1.col_types[1] = Types.String
     assert op2._shape == [new_shape] and op2._shape != [new_shape1]
@@ -302,9 +302,9 @@ def test_GraphAdd():
     op4 = GiveOutOp()
     node4 = OperationNode(op4)
     dag.addNode(node4)
-    dag.addConnection(node1, node4, 0)
+    dag.addConnection(node1.uid, node4.uid, 0)
     assert [op1.getOutputShape()] == node4.operation._shape
-    dag.updateNodeOptions(node4, output1)
+    dag.updateNodeOptions(node4.uid, output1)
 
     handler = OperationHandler(dag)
     handler.execute()
@@ -323,3 +323,54 @@ def test_GraphAdd():
 
     assert output1[1].shape == ns1
     assert output2[1].shape == ns2
+
+
+def test_removeNode():
+    d = {'col1': [1, 2, 0.5, 4, 10], 'col2': [3, 4, 5, 6, 0]}
+    f = data.Frame(d)
+    dag = OperationDag()
+
+    op0 = FakeInput(f)
+    op1 = RenameOp()
+    op2 = TypeOp()
+    op3 = GiveOutOp()
+
+    node0 = OperationNode(op0)
+    node1 = OperationNode(op1)
+    node2 = OperationNode(op2)
+    node3 = OperationNode(op3)
+
+    dag.addNode(node0)
+    dag.addNode(node1)
+    dag.addNode(node2)
+    dag.addNode(node3)
+
+    assert dag.addConnection(node1.uid, node2.uid, 0) is True
+    assert dag.addConnection(node2.uid, node3.uid, 0) is True
+    assert dag.addConnection(node0.uid, node1.uid, 0) is True
+    node3_is = copy.deepcopy(node3.operation._shape)
+    node2_is = copy.deepcopy(node2.operation._shape)
+    node1_is = copy.deepcopy(node1.operation._shape)
+    node0_is = copy.deepcopy(node0.operation._shape)
+    node0_os = copy.deepcopy(node0.operation.getOutputShape())
+    node1_os = copy.deepcopy(node1.operation.getOutputShape())
+    node2_os = copy.deepcopy(node2.operation.getOutputShape())
+    node3_os = copy.deepcopy(node3.operation.getOutputShape())
+    assert node3_os == node0_os == node2_os
+    # Remove a node
+    dag.removeNode(node1.uid)
+    assert node3.operation.getOutputShape() == node2.operation.getOutputShape() != node0.operation.getOutputShape()
+    # Reinsert the same node and its connections
+    assert dag.addNode(node1) is True
+    assert dag.addNode(node1) is False
+    assert dag.addConnection(node0.uid, node1.uid, 0) is True
+    assert dag.addConnection(node1.uid, node2.uid, 0) is True
+    # See if everything is as before
+    assert node0.operation._shape == node0_is
+    assert node1.operation._shape == node1_is
+    assert node2.operation._shape == node2_is
+    assert node3.operation._shape == node3_is
+    assert node0.operation.getOutputShape() == node0_os
+    assert node1.operation.getOutputShape() == node1_os
+    assert node2.operation.getOutputShape() == node2_os
+    assert node3.operation.getOutputShape() == node3_os

@@ -132,3 +132,4 @@ venv/
 .idea/sonarlint
 
 # End of https://www.gitignore.io/api/pycharm+all
+/data_preprocessor/gui/__graph2/

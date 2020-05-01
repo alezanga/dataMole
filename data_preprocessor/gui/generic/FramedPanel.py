@@ -10,9 +10,11 @@ class FramedPanel(QFrame):
 
         # Setup style
         self.setContentsMargins(15, 15, 15, 15)
-        self.setFrameShape(QFrame.StyledPanel)
-        self.setFrameShadow(QFrame.Plain)
-        self.setFrameStyle(QFrame.Plain)
+        # self.setFrameShape(QFrame.StyledPanel)
+        # self.setFrameShadow(QFrame.Plain)
+        # self.setFrameStyle(QFrame.Panel)
+        self.setStyleSheet('QFrame { border: 1px solid black; border-radius: 10px; padding: 10px; '
+                           'margin: 10px; }')
 
 
 def frameDecorator(fun: Callable[..., QWidget]) -> Callable[..., QWidget]:

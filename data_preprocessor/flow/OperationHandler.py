@@ -1,12 +1,11 @@
 import networkx as nx
 from networkx.algorithms.dag import topological_sort
 
-
-# from joblib import Memory
-
-
 # FIXME: Eventualmente memorizzare con joblib
 from data_preprocessor.flow.OperationDag import OperationDag
+
+
+# from joblib import Memory
 
 
 class OperationHandler:
@@ -19,14 +18,18 @@ class OperationHandler:
     def execute(self):
         import data_preprocessor.flow as flow
 
-        node: flow.OperationNode
-        for node in topological_sort(self.graph):
+        node_id: int
+        child: int
+        for node_id in topological_sort(self.graph):
+            # Get node by id
+            node: flow.OperationNode = self.graph.nodes[node_id]['op']
             # Compute result (with input)
             result = node.compute()
             # Clear eventual input, since now I have result
             node.clearInputArgument()
             # Add result as input to children
-            for child in self.graph.successors(node):
-                child.addInputArgument(result, op_id=node.uid)
+            for child_id in self.graph.successors(node_id):
+                child: flow.OperationNode = self.graph.nodes[child_id]['op']
+                child.addInputArgument(result, op_id=node_id)
             # Delete result (will live only in children)
             del result
