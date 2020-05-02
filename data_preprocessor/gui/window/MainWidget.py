@@ -10,7 +10,6 @@ from data_preprocessor.gui.graph.scene import Scene
 from data_preprocessor.gui.graph.view import View
 from data_preprocessor.gui.model.WorkbenchModel import WorkbenchModel
 from data_preprocessor.gui.widget.OperationMenu import OperationMenu
-from data_preprocessor.operation.all import RenameOp, TypeOp
 
 
 class MainWidget(QWidget):
@@ -48,9 +47,9 @@ class MainWidget(QWidget):
         scene = Scene(self)
         flowTab = View(scene)
         controller = GraphController(self.graph, scene, flowTab, self)
-        controller.addNode(RenameOp())
-        controller.addNode(TypeOp())
-        controller.addNode(TypeOp())
+        # controller.addNode(RenameOp())
+        # controller.addNode(TypeOp())
+        # controller.addNode(TypeOp())
 
         tabs.addTab(attributeTab, 'Attribute')
         tabs.addTab(chartsTab, 'Visualise')

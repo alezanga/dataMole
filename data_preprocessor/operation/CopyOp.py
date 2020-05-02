@@ -5,7 +5,7 @@ from PySide2.QtWidgets import QComboBox
 from data_preprocessor import data
 from data_preprocessor.data.Workbench import Workbench
 from data_preprocessor.gui.generic.AbsOperationEditor import AbsOperationEditor
-from data_preprocessor.operation.interface.InputOperation import InputOperation
+from .interface import InputOperation
 
 
 class CopyOp(InputOperation):
@@ -17,7 +17,8 @@ class CopyOp(InputOperation):
         """ Get selected dataframe from workbench """
         return self._workbench[self._frame_name]
 
-    def name(self) -> str:
+    @staticmethod
+    def name() -> str:
         return 'Copy operation'
 
     def info(self) -> str:

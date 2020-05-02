@@ -97,6 +97,7 @@ class View(QtWidgets.QGraphicsView):
 
         # Init scene
         self.setInteractive(True)
+        self.setAcceptDrops(True)
 
     def fit_view(self, selected=False, padding=50):
         """Set view transform in order to fit all/selected nodes in scene.

@@ -1,7 +1,7 @@
 import copy
 
 from data_preprocessor.data import Frame
-from data_preprocessor.operation.all import RenameOp
+from data_preprocessor.operation.RenameOp import RenameOp
 
 
 def test_rename():

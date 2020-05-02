@@ -5,11 +5,10 @@ from data_preprocessor import data
 from data_preprocessor.data.types import Types, ALL_TYPES
 from data_preprocessor.gui.editor.RenameEditor import RenameEditor
 from data_preprocessor.gui.generic.AbsOperationEditor import AbsOperationEditor
-from data_preprocessor.operation.interface.Operation import Operation
+from .interface import Operation
 
 
 class RenameOp(Operation):
-
 
     def __init__(self):
         super().__init__()
@@ -29,7 +28,8 @@ class RenameOp(Operation):
         new_df.columns = names
         return data.Frame(new_df)
 
-    def name(self) -> str:
+    @staticmethod
+    def name() -> str:
         return 'Rename operation'
 
     def info(self) -> str:
@@ -54,7 +54,7 @@ class RenameOp(Operation):
         if not self.__names:
             # raise ValueError('Method {}.getOutputShape must be called with non null arguments, '
             #                  'instead \'names\' is None'.format(self.__class__.__name__))
-            return copy.deepcopy(self._shape[0]) # No rename, so shape unchanged
+            return copy.deepcopy(self._shape[0])  # No rename, so shape unchanged
 
         # Shape is the same as before with name changed
         s = copy.deepcopy(self._shape[0])

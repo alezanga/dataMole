@@ -2,11 +2,9 @@ from abc import ABC, abstractmethod
 from typing import Union, Any, List, Optional
 
 from data_preprocessor import data
-from data_preprocessor.data.types import Types
+from data_preprocessor.data.Workbench import Workbench
+from data_preprocessor.data.types import Types, ALL_TYPES
 from data_preprocessor.gui.generic.AbsOperationEditor import AbsOperationEditor
-
-
-# TODO: see https://realpython.com/python-interface/#using-metaclasses
 
 
 class Operation(ABC):
@@ -59,8 +57,9 @@ class Operation(ABC):
         """
         pass
 
+    @staticmethod
     @abstractmethod
-    def name(self) -> str:
+    def name() -> str:
         """
         The name of the step
         """
@@ -214,3 +213,92 @@ class Operation(ABC):
             to None
         """
         return None
+
+
+class InputOperation(Operation):
+    """
+    Base class for operations to be used to provide input
+    These operations must not change the shape
+    """
+
+    def __init__(self, w: Workbench = None):
+        super().__init__()
+        self._workbench = w
+
+    @abstractmethod
+    def inferInputShape(self) -> None:
+        """ This method must be reimplemented to set the input shape after the options have been set """
+        pass
+
+    def addInputShape(self, shape: data.Shape, pos: int) -> None:
+        # This method should do nothing for input operations
+        pass
+
+    def acceptedTypes(self) -> List[Types]:
+        return ALL_TYPES
+
+    def getOutputShape(self) -> Union[data.Shape, None]:
+        return self._shape[0]
+
+    def unsetOptions(self) -> None:
+        pass
+
+    @staticmethod
+    def isOutputShapeKnown() -> bool:
+        return True
+
+    @staticmethod
+    def minInputNumber() -> int:
+        return 0
+
+    @staticmethod
+    def maxInputNumber() -> int:
+        return 0
+
+    @staticmethod
+    def minOutputNumber() -> int:
+        return 1
+
+    @staticmethod
+    def maxOutputNumber() -> int:
+        return -1
+
+
+class OutputOperation(Operation):
+    """
+    Base class for operations that persist the output of a pipeline.
+    These operations must not change the shape
+    """
+
+    def __init__(self):
+        super().__init__()
+        self._workbench = None
+
+    def acceptedTypes(self) -> List[Types]:
+        return ALL_TYPES
+
+    def getOutputShape(self) -> Union[data.Shape, None]:
+        return self._shape[0]
+
+    def unsetOptions(self) -> None:
+        pass
+
+    @staticmethod
+    def isOutputShapeKnown() -> bool:
+        return True
+
+    @staticmethod
+    def minInputNumber() -> int:
+        return 1
+
+    @staticmethod
+    def maxInputNumber() -> int:
+        return 1
+
+    @staticmethod
+    def minOutputNumber() -> int:
+        return 0
+
+    @staticmethod
+    def maxOutputNumber() -> int:
+        return 0

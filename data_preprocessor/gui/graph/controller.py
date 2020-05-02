@@ -8,7 +8,7 @@ from .scene import Scene
 from .view import View
 from ...flow import OperationNode
 from ...flow.OperationDag import OperationDag
-from ...operation.interface.Operation import Operation
+from ...operation.interface import Operation
 
 
 class GraphController(QWidget):
@@ -21,7 +21,9 @@ class GraphController(QWidget):
         self._scene.editModeEnabled.connect(self.editNode)
         self._view.deleteSelected.connect(self.removeItems)
         self._scene.createNewEdge.connect(self.addEdge)
+        self._scene.dropNewNode.connect(self.addNode)
 
+    @Slot(Operation)
     def addNode(self, op: Operation):
         node = OperationNode(op)
         if self._operation_dag.addNode(node):

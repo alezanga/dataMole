@@ -24,7 +24,7 @@ from PySide2 import QtCore, QtGui, QtWidgets
 from .constant import DEBUG
 
 
-class Node(QtWidgets.QGraphicsObject):
+class Node(QtWidgets.QGraphicsItem):
     """
     Base class for node graphic item
 
@@ -41,7 +41,7 @@ class Node(QtWidgets.QGraphicsObject):
         if inputs is None:
             inputs = list()
         # self._name = name
-        self._name = str(id)
+        self._name = name
         self._id = id
         self._width = 160
         self._height = 130

@@ -2,7 +2,7 @@ from typing import Any
 
 from data_preprocessor import data
 from data_preprocessor.gui.generic.AbsOperationEditor import AbsOperationEditor
-from data_preprocessor.operation import OutputOperation
+from .interface import OutputOperation
 
 
 class PrintOp(OutputOperation):
@@ -11,7 +11,8 @@ class PrintOp(OutputOperation):
             print(f.head())
             print(f.head().dtypes)
 
-    def name(self) -> str:
+    @staticmethod
+    def name() -> str:
         return 'Print operation'
 
     def info(self) -> str:
@@ -24,4 +25,7 @@ class PrintOp(OutputOperation):
         pass
 
     def getEditor(self) -> AbsOperationEditor:
+        pass
+
+    def needsOptions(self) -> bool:
         pass

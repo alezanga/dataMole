@@ -2,7 +2,7 @@
 import pytest
 
 from data_preprocessor.data import Frame
-from data_preprocessor.operation.all import TypeOp
+from data_preprocessor.operation.TypeOp import TypeOp
 from .DummyOp import DummyOp
 
 

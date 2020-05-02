@@ -4,7 +4,7 @@ from typing import Union, Any, List, Dict
 from data_preprocessor import data
 from data_preprocessor.data.types import Types, ALL_TYPES, inv_type_dict
 from data_preprocessor.gui.generic.AbsOperationEditor import AbsOperationEditor
-from data_preprocessor.operation.interface.Operation import Operation
+from .interface import Operation
 
 
 class TypeOp(Operation):
@@ -23,7 +23,8 @@ class TypeOp(Operation):
                                                              errors='raise')
         return data.Frame(raw_df)
 
-    def name(self) -> str:
+    @staticmethod
+    def name() -> str:
         return 'Change column type'
 
     def info(self) -> str:

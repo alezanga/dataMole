@@ -1,6 +1,6 @@
 from data_preprocessor.data import Frame, Shape
 from data_preprocessor.data.Workbench import Workbench
-from data_preprocessor.operation.input.CopyOp import CopyOp
+from data_preprocessor.operation.CopyOp import CopyOp
 
 
 def test_copy():

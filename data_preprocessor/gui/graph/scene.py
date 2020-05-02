@@ -15,12 +15,15 @@
 from typing import Set, List
 
 from PySide2 import QtCore, QtGui, QtWidgets
+from PySide2.QtCore import QPointF
+from PySide2.QtWidgets import QGraphicsSceneDragDropEvent
 
 from .constant import SCENE_WIDTH, SCENE_HEIGHT
 from .edge import Edge, InteractiveEdge
 from .node import Node, NodeSlot
 from .rubberband import RubberBand
 from ...flow.OperationDag import OperationDag
+from ...operation.interface import Operation
 
 
 class Scene(QtWidgets.QGraphicsScene):
@@ -31,6 +34,7 @@ class Scene(QtWidgets.QGraphicsScene):
 
     editModeEnabled = QtCore.Signal(int)
     createNewEdge = QtCore.Signal(NodeSlot, NodeSlot)
+    dropNewNode = QtCore.Signal(Operation)
 
     def __init__(self, parent=None, nodegraph_widget=None):
         """Create an instance of this class
@@ -71,6 +75,7 @@ class Scene(QtWidgets.QGraphicsScene):
         self.selectionChanged.connect(self._onSelectionChanged)
 
         self.__operation_dag = OperationDag()
+        self.__dropPosition: QPointF = None
 
     @property
     def nodes(self):
@@ -116,6 +121,9 @@ class Scene(QtWidgets.QGraphicsScene):
         node = Node(name, id=id, inputs=inputs, parent=parent)
         self._nodes.append(node)
         self.addItem(node)
+        if self.__dropPosition:
+            node.setPos(self.__dropPosition)
+            self.__dropPosition = None
         return node
 
     def create_edge(self, source: NodeSlot, target: NodeSlot) -> Edge:
@@ -460,3 +468,18 @@ class Scene(QtWidgets.QGraphicsScene):
             max_x + max_x_node.boundingRect().bottomRight().x(),
             max_y + max_y_node.boundingRect().bottomRight().y())
         return QtCore.QRectF(top_left, bottom_right)
+
+    def dragEnterEvent(self, event: QGraphicsSceneDragDropEvent):
+        md = event.mimeData()
+        if md.hasText() and md.text() == 'operation':
+            print('YYYEES')
+            event.acceptProposedAction()
+
+    def dragMoveEvent(self, event: QGraphicsSceneDragDropEvent):
+        self.dragEnterEvent(event)
+
+    def dropEvent(self, event: QGraphicsSceneDragDropEvent):
+        print('dropEvent')
+        tree_w = event.source()
+        self.__dropPosition = event.scenePos()
+        self.dropNewNode.emit(tree_w.getDropData())
