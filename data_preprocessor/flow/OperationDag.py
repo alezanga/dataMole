@@ -3,7 +3,6 @@ from typing import Any
 import networkx as nx
 
 from data_preprocessor.flow import OperationNode
-from data_preprocessor.operation import InputOperation
 
 
 class OperationDag:
@@ -41,7 +40,7 @@ class OperationDag:
         self.__G.add_node(node.uid, op=node)
         if node.operation.maxInputNumber() == 0 and not node.operation.needsOptions():
             # Then it's an input operation and the shape can be inferred
-            in_op: InputOperation = node.operation
+            in_op: 'InputOperation' = node.operation
             in_op.inferInputShape()
             self.__update_descendants(node.uid)
         return True

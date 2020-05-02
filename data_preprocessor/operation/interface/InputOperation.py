@@ -4,7 +4,7 @@ from typing import Union, List
 import data_preprocessor.data as data
 from data_preprocessor.data.Workbench import Workbench
 from data_preprocessor.data.types import Types, ALL_TYPES
-from data_preprocessor.operation.Operation import Operation
+from data_preprocessor.operation.interface.Operation import Operation
 
 
 class InputOperation(Operation):

@@ -2,7 +2,7 @@ from typing import List, Union
 
 from data_preprocessor import data
 from data_preprocessor.data.types import Types, ALL_TYPES
-from data_preprocessor.operation.Operation import Operation
+from data_preprocessor.operation.interface.Operation import Operation
 
 
 class OutputOperation(Operation):

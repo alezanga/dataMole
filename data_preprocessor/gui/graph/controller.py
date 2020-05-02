@@ -8,7 +8,7 @@ from .scene import Scene
 from .view import View
 from ...flow import OperationNode
 from ...flow.OperationDag import OperationDag
-from ...operation import Operation
+from ...operation.interface.Operation import Operation
 
 
 class GraphController(QWidget):

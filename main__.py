@@ -6,9 +6,9 @@ from data_preprocessor import data
 from data_preprocessor.data import Frame
 from data_preprocessor.data.types import Types
 from data_preprocessor.flow.OperationHandler import OperationHandler
-from  data_preprocessor.flow.OperationNode import OperationNode
+from data_preprocessor.flow.OperationNode import OperationNode
 from data_preprocessor.gui.generic.AbsOperationEditor import AbsOperationEditor
-from data_preprocessor.operation import InputOperation
+from data_preprocessor.operation.interface.InputOperation import InputOperation
 from data_preprocessor.operation.all import RenameOp
 from data_preprocessor.operation.all.TypeOp import TypeOp
 from data_preprocessor.operation.output.PrintOp import PrintOp

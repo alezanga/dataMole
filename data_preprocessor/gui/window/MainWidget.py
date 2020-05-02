@@ -1,9 +1,16 @@
+from PySide2.QtCore import Slot
 from PySide2.QtGui import QKeyEvent, Qt
 from PySide2.QtWidgets import QTreeView, QListView, QTabWidget, QWidget, QVBoxLayout, \
     QHBoxLayout
 
 from data_preprocessor.data.Workbench import Workbench
+from data_preprocessor.flow.OperationDag import OperationDag
+from data_preprocessor.gui.graph.controller import GraphController
+from data_preprocessor.gui.graph.scene import Scene
+from data_preprocessor.gui.graph.view import View
 from data_preprocessor.gui.model.WorkbenchModel import WorkbenchModel
+from data_preprocessor.gui.widget.OperationMenu import OperationMenu
+from data_preprocessor.operation.all import RenameOp, TypeOp
 
 
 class MainWidget(QWidget):
@@ -12,6 +19,7 @@ class MainWidget(QWidget):
 
         self._workbench = Workbench()
         self.workbench_model = WorkbenchModel(self, self._workbench)
+        self.graph = OperationDag()
 
         class WorkbenchView(QListView):
             def keyPressEvent(self, event: QKeyEvent) -> None:
@@ -21,7 +29,8 @@ class MainWidget(QWidget):
                 else:
                     super().keyPressEvent(event)
 
-        genericView = QTreeView()
+        self.__genericView = QTreeView()
+        self.__operationMenu = OperationMenu()
         workbenchView = WorkbenchView()
         workbenchView.setModel(self.workbench_model)
         workbenchView.setSelectionMode(QListView.SingleSelection)
@@ -30,20 +39,41 @@ class MainWidget(QWidget):
 
         tabs = QTabWidget(self)
 
+        # from data_preprocessor.gui.graph2.GraphScene import GraphScene
+        # from data_preprocessor.gui.graph2.GraphView import GraphView
         attributeTab = QWidget()
         chartsTab = QWidget()
-        flowTab = QWidget()
+        # scene = GraphScene(self.graph, self)
+        # flowTab = GraphView(self)
+        scene = Scene(self)
+        flowTab = View(scene)
+        controller = GraphController(self.graph, scene, flowTab, self)
+        controller.addNode(RenameOp())
+        controller.addNode(TypeOp())
+        controller.addNode(TypeOp())
 
         tabs.addTab(attributeTab, 'Attribute')
         tabs.addTab(chartsTab, 'Visualise')
         tabs.addTab(flowTab, 'Flow')
+        self.__curr_tab = tabs.currentIndex()
 
-        leftSide = QVBoxLayout()
-        leftSide.addWidget(genericView, 0)
-        leftSide.addWidget(workbenchView, 0)
+        self.__leftSide = QVBoxLayout()
+        self.__leftSide.addWidget(self.__genericView, 0)
+        self.__leftSide.addWidget(workbenchView, 0)
 
         layout = QHBoxLayout()
-        layout.addLayout(leftSide, 2)
+        layout.addLayout(self.__leftSide, 3)
         layout.addWidget(tabs, 7)
 
+        tabs.currentChanged.connect(self.switch_view)
+
         self.setLayout(layout)
+
+    @Slot(int)
+    def switch_view(self, tab_index: int) -> None:
+        if tab_index == 2:
+            self.__leftSide.replaceWidget(self.__genericView, self.__operationMenu)
+            self.__curr_tab = 2
+        elif self.__curr_tab == 2 and tab_index != 2:
+            self.__leftSide.replaceWidget(self.__operationMenu, self.__genericView)
+            self.__curr_tab = tab_index
