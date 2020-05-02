@@ -10,12 +10,12 @@ from data_preprocessor.flow.OperationDag import OperationDag
 from data_preprocessor.flow.OperationHandler import OperationHandler
 from data_preprocessor.flow.OperationNode import OperationNode
 from data_preprocessor.gui.generic.AbsOperationEditor import AbsOperationEditor
-from data_preprocessor.operation import Operation, OutputOperation, InputOperation
+from data_preprocessor.operation.interface import Operation, OutputOperation, InputOperation
 from data_preprocessor.operation.all.RenameOp import RenameOp
 from data_preprocessor.operation.all.TypeOp import TypeOp
 
 
-class FakeInput(InputOperation):
+class FakeInput(InputOperation.InputOperation):
     def __init__(self, input):
         super().__init__()
         self.input = input
@@ -45,7 +45,7 @@ class FakeInput(InputOperation):
         pass
 
 
-class Join(Operation):
+class Join(Operation.Operation):
     def __init__(self):
         super().__init__()
         self.__lprefix: str = 'l'
@@ -108,7 +108,7 @@ class Join(Operation):
         return -1
 
 
-class GiveOutOp(OutputOperation):
+class GiveOutOp(OutputOperation.OutputOperation):
 
     def needsOptions(self) -> bool:
         return True

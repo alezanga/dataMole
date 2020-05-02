@@ -5,7 +5,7 @@ from PySide2.QtWidgets import QComboBox
 from data_preprocessor import data
 from data_preprocessor.data.Workbench import Workbench
 from data_preprocessor.gui.generic.AbsOperationEditor import AbsOperationEditor
-from data_preprocessor.operation import InputOperation
+from data_preprocessor.operation.interface.InputOperation import InputOperation
 
 
 class CopyOp(InputOperation):
