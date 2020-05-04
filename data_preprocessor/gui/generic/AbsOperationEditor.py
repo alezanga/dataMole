@@ -1,6 +1,6 @@
 import abc
 import uuid
-from typing import Any
+from typing import Iterable
 
 from PySide2.QtCore import Signal
 from PySide2.QtGui import QCloseEvent
@@ -27,10 +27,10 @@ class AbsOperationEditor(QWidget):
         return self.__id
 
     @abc.abstractmethod
-    def getOptions(self) -> Any:
+    def getOptions(self) -> Iterable:
         """
         Return the arguments read by the editor.
-        Can be any type of object as required by the Operation
+        Must be an iterable and parameters are passed in the same order
 
         :return: the options currently set by the user in the editor
         """

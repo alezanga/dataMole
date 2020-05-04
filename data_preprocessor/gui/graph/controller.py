@@ -6,6 +6,7 @@ from PySide2.QtWidgets import QWidget
 from .node import NodeSlot, Node
 from .scene import Scene
 from .view import View
+from ..generic.AbsOperationEditor import AbsOperationEditor
 from ...flow import OperationNode
 from ...flow.OperationDag import OperationDag
 from ...operation.interface import Operation
@@ -17,8 +18,12 @@ class GraphController(QWidget):
         self._scene: Scene = scene
         self._view: View = view
         self._operation_dag: OperationDag = operation_dag
+        # Current active editor
+        self.__editor_widget: AbsOperationEditor = None
+        # Current node being edited
+        self.__editor_node_id: int = None
         # Connections
-        self._scene.editModeEnabled.connect(self.editNode)
+        self._scene.editModeEnabled.connect(self.startEditNode)
         self._view.deleteSelected.connect(self.removeItems)
         self._scene.createNewEdge.connect(self.addEdge)
         self._scene.dropNewNode.connect(self.addNode)
@@ -52,10 +57,42 @@ class GraphController(QWidget):
         self._scene.delete_selected()
 
     @Slot(int)
-    def editNode(self, node_id: int):
+    def startEditNode(self, node_id: int):
         node: OperationNode = self._operation_dag[node_id]
-        assert node.uid == node_id
-        # Show editor
-        node.operation.getEditor().show()
-        pass
-        # Connect editor signals to a slot which calls DAg's update operation
+        if not self.__editor_widget:
+            # Set up editor
+            self.__editor_widget = node.operation.getEditor()
+            self.__editor_node_id = node.uid
+            self.__editor_widget.setOptions(*node.operation.getOptions())
+            # Connect editor signals to slots which handle accept/reject
+            self.__editor_widget.acceptAndClose.connect(self.onEditAccept)
+            self.__editor_widget.rejectAndClose.connect(self.cleanupEditor)
+            # Show the editor in new window
+            self.__editor_widget.setParent(None)
+            self.__editor_widget.move(self._view.rect().center())
+            self.__editor_widget.show()
+        else:
+            self.__editor_widget.activateWindow()
+            self.__editor_widget.raise_()
+
+    @Slot()
+    def onEditAccept(self) -> None:
+        options = self.__editor_widget.getOptions()
+        if self._operation_dag.updateNodeOptions(self.__editor_node_id, *options):
+            # Delete editor
+            self.cleanupEditor()
+            # Update view
+            pass
+            print('Edited!')
+        else:
+            # Signal something in view?
+            pass
+
+    @Slot()
+    def cleanupEditor(self) -> None:
+        # Do not call close() here, since this function is called after a closeEvent
+        self.__editor_widget.disconnect(self)
+        self.__editor_widget.deleteLater()
+        # TOCHECK: What actually happens here?
+        self.__editor_node_id = None
+        self.__editor_widget = None
