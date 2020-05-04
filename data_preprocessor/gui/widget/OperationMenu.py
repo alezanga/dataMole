@@ -1,10 +1,9 @@
 import importlib
+from typing import Callable
 
 from PySide2.QtCore import Qt, QPoint, QMimeData
 from PySide2.QtGui import QMouseEvent, QDrag
 from PySide2.QtWidgets import QWidget, QTreeWidget, QTreeWidgetItem, QApplication
-
-from data_preprocessor.operation.interface import Operation
 
 
 def build_item(name: str, data=None):
@@ -58,7 +57,8 @@ class OperationMenu(QTreeWidget):
         if not event.buttons() and Qt.LeftButton:
             return
         # Test if item is drag enabled
-        if not bool(self.itemAt(self.__dragStartPosition).flags() & Qt.ItemIsDragEnabled):
+        clicked_item = self.itemAt(self.__dragStartPosition)
+        if clicked_item and not bool(clicked_item.flags() & Qt.ItemIsDragEnabled):
             return
         if (event.pos() - self.__dragStartPosition).manhattanLength() < QApplication.startDragDistance():
             return
@@ -70,7 +70,7 @@ class OperationMenu(QTreeWidget):
         drag.setMimeData(mimeData)
         drag.exec_()
 
-    def getDropData(self) -> Operation:
-        op = self.itemAt(self.__dragStartPosition).data(1, Qt.UserRole)()
+    def getDropData(self) -> Callable:
+        op = self.itemAt(self.__dragStartPosition).data(1, Qt.UserRole)
         self.__dragStartPosition = None
         return op

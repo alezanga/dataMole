@@ -1,23 +1,25 @@
-from typing import List
+from typing import List, Callable
 
 from PySide2.QtCore import Slot
 from PySide2.QtWidgets import QWidget
 
+from data_preprocessor.gui.editor.AbsOperationEditor import AbsOperationEditor
 from .node import NodeSlot, Node
 from .scene import Scene
 from .view import View
-from ..generic.AbsOperationEditor import AbsOperationEditor
+from ..model.WorkbenchModel import WorkbenchModel
 from ...flow import OperationNode
 from ...flow.OperationDag import OperationDag
-from ...operation.interface import Operation
 
 
 class GraphController(QWidget):
-    def __init__(self, operation_dag: OperationDag, scene: Scene, view: View, parent: QWidget = None):
+    def __init__(self, operation_dag: OperationDag, scene: Scene, view: View,
+                 workbench_mod: WorkbenchModel, parent: QWidget = None):
         super().__init__(parent)
         self._scene: Scene = scene
         self._view: View = view
         self._operation_dag: OperationDag = operation_dag
+        self._workbench_model: WorkbenchModel = workbench_mod
         # Current active editor
         self.__editor_widget: AbsOperationEditor = None
         # Current node being edited
@@ -28,8 +30,14 @@ class GraphController(QWidget):
         self._scene.createNewEdge.connect(self.addEdge)
         self._scene.dropNewNode.connect(self.addNode)
 
-    @Slot(Operation)
-    def addNode(self, op: Operation):
+    @Slot(object)
+    def addNode(self, op_class: Callable):
+        op_input: bool = getattr(op_class, 'maxInputNumber')() == 0
+        op_output: bool = getattr(op_class, 'minOutputNumber')() == 0
+        if op_output or op_input:
+            op = op_class(self._workbench_model)
+        else:
+            op = op_class()
         node = OperationNode(op)
         if self._operation_dag.addNode(node):
             inputs = ['in {}'.format(i) for i in range(op.maxInputNumber())]
@@ -79,14 +87,14 @@ class GraphController(QWidget):
     def onEditAccept(self) -> None:
         options = self.__editor_widget.getOptions()
         if self._operation_dag.updateNodeOptions(self.__editor_node_id, *options):
-            # Delete editor
-            self.cleanupEditor()
             # Update view
             pass
             print('Edited!')
         else:
             # Signal something in view?
             pass
+        # Delete editor
+        self.cleanupEditor()
 
     @Slot()
     def cleanupEditor(self) -> None:

@@ -37,10 +37,14 @@ class OperationDag:
         :raise ValueError: if the node is not in the graph
         """
         if node_id not in self.__G:
-            raise ValueError('Cannot update a node which does not belong to the graph')
+            print('Cannot update a node which does not belong to the graph')
+            return False
         # Set options for operation
         node: OperationNode = self[node_id]
         node.operation.setOptions(*options, **kwoptions)
+        # If options are not valid
+        if node.operation.checkOptions():
+            return False
         if node.operation.maxInputNumber() == 0:  # if it's an input op
             node.operation.inferInputShape()
         # Update every connected node

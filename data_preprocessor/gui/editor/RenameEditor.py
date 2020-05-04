@@ -1,10 +1,10 @@
 from typing import Dict, Any, List
 
 from PySide2.QtCore import Qt, QModelIndex
-from PySide2.QtWidgets import QTableView, QHeaderView, QPushButton, QHBoxLayout, QVBoxLayout, QWidget
+from PySide2.QtWidgets import QTableView, QHeaderView, QWidget
 
 from data_preprocessor import data
-from data_preprocessor.gui.generic.AbsOperationEditor import AbsOperationEditor
+from data_preprocessor.gui.editor.AbsOperationEditor import AbsOperationEditor
 from data_preprocessor.gui.model import AttributeTableModel
 from data_preprocessor.gui.model.FrameModel import FrameModel
 
@@ -58,31 +58,6 @@ class EditableAttributeTable(AttributeTableModel):
 
 
 class RenameEditor(AbsOperationEditor):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setWindowTitle('Rename operation editor')
-        self.__model = EditableAttributeTable(self)
-        self.__view = QTableView()
-        # self.__view.setModel(self.__model)
-        header = self.__view.horizontalHeader()
-        header.setSectionResizeMode(QHeaderView.Stretch)
-        self.__view.setHorizontalHeader(header)
-
-        butOk = QPushButton('Ok')
-        butCancel = QPushButton('Cancel')
-        butLayout = QHBoxLayout()
-        butLayout.addWidget(butCancel, alignment=Qt.AlignLeft)
-        butLayout.addWidget(butOk, alignment=Qt.AlignRight)
-
-        layout = QVBoxLayout()
-        layout.addWidget(self.__view)
-        layout.addLayout(butLayout)
-        self.setLayout(layout)
-        self.setFocusPolicy(Qt.StrongFocus)
-
-        butOk.pressed.connect(self.acceptAndClose)
-        butCancel.pressed.connect(self.rejectAndClose)
-
     def getOptions(self) -> List[Dict[int, str]]:
         return [self.__model.editedAttributes()]
 
@@ -91,3 +66,12 @@ class RenameEditor(AbsOperationEditor):
         self.__model.setSourceModel(FrameModel(self, frame))
         self.__model.setEditedAttributes(option)
         self.__view.setModel(self.__model)
+
+    def editorBody(self) -> QWidget:
+        self.setWindowTitle('Rename operation editor')
+        self.__model = EditableAttributeTable(self)
+        self.__view = QTableView()
+        header = self.__view.horizontalHeader()
+        header.setSectionResizeMode(QHeaderView.Stretch)
+        self.__view.setHorizontalHeader(header)
+        return self.__view

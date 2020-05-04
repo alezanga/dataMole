@@ -3,6 +3,7 @@ from typing import Any, List
 from PySide2.QtCore import QAbstractListModel, QObject, QModelIndex, Qt, Slot, Signal
 
 from data_preprocessor.data.Workbench import Workbench
+import data_preprocessor.data as d
 
 
 class WorkbenchModel(QAbstractListModel):
@@ -71,11 +72,14 @@ class WorkbenchModel(QAbstractListModel):
         self.endRemoveRows()
         return True
 
+    def getVariable(self, name: str) -> d.Frame:
+        return self._workbench[name]
+
     @Slot()
     def appendRow(self) -> bool:
         self.beginInsertRows(QModelIndex(), self.rowCount(), self.rowCount())
         # Create a dummy entry
-        self._workbench[' '] = None
+        self._workbench[' '] = d.Frame()
         # Add to the end of the list
         self._index_list.append(' ')
         self.endInsertRows()

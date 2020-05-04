@@ -46,7 +46,7 @@ class MainWidget(QWidget):
         # flowTab = GraphView(self)
         scene = Scene(self)
         flowTab = View(scene)
-        controller = GraphController(self.graph, scene, flowTab, self)
+        controller = GraphController(self.graph, scene, flowTab, self.workbench_model, self)
         # controller.addNode(RenameOp())
         # controller.addNode(TypeOp())
         # controller.addNode(TypeOp())

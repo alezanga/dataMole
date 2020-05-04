@@ -4,7 +4,8 @@ from typing import Union, Any, List, Optional
 from data_preprocessor import data
 from data_preprocessor.data.Workbench import Workbench
 from data_preprocessor.data.types import Types, ALL_TYPES
-from data_preprocessor.gui.generic.AbsOperationEditor import AbsOperationEditor
+from data_preprocessor.gui.editor.AbsOperationEditor import AbsOperationEditor
+from data_preprocessor.gui.model.WorkbenchModel import WorkbenchModel
 
 
 class Operation(ABC):
@@ -209,13 +210,13 @@ class InputOperation(Operation):
     variables to use as input
     """
 
-    def __init__(self, w: Workbench = None):
+    def __init__(self, w: WorkbenchModel = None):
         """ Sets the workbench of the input operation
 
         :param w: a workbench
         """
         super().__init__()
-        self._workbench: Workbench = w
+        self._workbench: WorkbenchModel = w
 
     @abstractmethod
     def inferInputShape(self) -> None:
@@ -282,13 +283,13 @@ class OutputOperation(Operation):
     variables
     """
 
-    def __init__(self, w: Workbench = None):
+    def __init__(self, w: WorkbenchModel = None):
         """ Sets the workbench of the output operation
 
         :param w: a workbench
         """
         super().__init__()
-        self._workbench: Workbench = w
+        self._workbench: WorkbenchModel = w
 
     def acceptedTypes(self) -> List[Types]:
         """ Accepts all types """

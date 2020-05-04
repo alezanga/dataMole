@@ -12,7 +12,7 @@
 """Node graph scene manager based on QGraphicsScene
 
 """
-from typing import Set, List
+from typing import Set, List, Callable
 
 from PySide2 import QtCore, QtGui, QtWidgets
 from PySide2.QtCore import QPointF
@@ -34,7 +34,7 @@ class Scene(QtWidgets.QGraphicsScene):
 
     editModeEnabled = QtCore.Signal(int)
     createNewEdge = QtCore.Signal(NodeSlot, NodeSlot)
-    dropNewNode = QtCore.Signal(Operation)
+    dropNewNode = QtCore.Signal(object)
 
     def __init__(self, parent=None, nodegraph_widget=None):
         """Create an instance of this class

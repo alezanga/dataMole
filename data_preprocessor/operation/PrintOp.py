@@ -1,7 +1,7 @@
 from typing import Any
 
 from data_preprocessor import data
-from data_preprocessor.gui.generic.AbsOperationEditor import AbsOperationEditor
+from data_preprocessor.gui.editor.AbsOperationEditor import AbsOperationEditor
 from .interface import OutputOperation
 
 
