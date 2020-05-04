@@ -57,6 +57,9 @@ class OperationMenu(QTreeWidget):
     def mouseMoveEvent(self, event: QMouseEvent):
         if not event.buttons() and Qt.LeftButton:
             return
+        # Test if item is drag enabled
+        if not bool(self.itemAt(self.__dragStartPosition).flags() & Qt.ItemIsDragEnabled):
+            return
         if (event.pos() - self.__dragStartPosition).manhattanLength() < QApplication.startDragDistance():
             return
 
@@ -65,7 +68,7 @@ class OperationMenu(QTreeWidget):
         mimeData.setText('operation')
 
         drag.setMimeData(mimeData)
-        dropAction: Qt.MoveAction = drag.exec_()
+        drag.exec_()
 
     def getDropData(self) -> Operation:
         op = self.itemAt(self.__dragStartPosition).data(1, Qt.UserRole)()

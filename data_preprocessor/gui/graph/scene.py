@@ -387,9 +387,9 @@ class Scene(QtWidgets.QGraphicsScene):
         """
         selected = self.items(event.scenePos())
 
-        if len(selected) == 1 and isinstance(selected, Node):
-            Scene.editModeEnabled.emit(selected._id)
-            print("Edit Node %s" % selected[0]._name)
+        if len(selected) == 1 and isinstance(selected[0], Node):
+            self.editModeEnabled.emit(selected[0].id)
+            print("Edit Node %s" % selected[0].id)
 
     def _onSelectionChanged(self):
         """Re-inplements selection changed event

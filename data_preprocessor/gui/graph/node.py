@@ -30,8 +30,13 @@ class Node(QtWidgets.QGraphicsItem):
 
     As much as possible, everything is drawn in the node paint function for
     performance reasons
-
     """
+
+    @staticmethod
+    def __headerSize(text: str, font: QtGui.QFont) -> QtCore.QSize:
+        """ Returns the proper header size with respect to a given string and font """
+        metrics = QtGui.QFontMetrics(font)
+        return metrics.size(QtCore.Qt.TextSingleLine, text + '      ')
 
     def __init__(self, name: str, id: int, inputs=None, parent: QtWidgets.QGraphicsItem = None):
         """Create an instance of this class
@@ -40,10 +45,12 @@ class Node(QtWidgets.QGraphicsItem):
         super().__init__(parent)
         if inputs is None:
             inputs = list()
-        # self._name = name
         self._name = name
         self._id = id
-        self._width = 160
+        # Set font used for label (operation name)
+        self._title_font = QtGui.QFont("Arial", 14)
+        # Compute size of label to display
+        self._width = Node.__headerSize(self._name, self._title_font).width()
         self._height = 130
         self._outline = 6
         self._slot_radius = 10
@@ -71,7 +78,7 @@ class Node(QtWidgets.QGraphicsItem):
 
     @property
     def name(self):
-        """Return the family of the slot
+        """Returns the name of the node
 
         """
         return self._name
@@ -172,7 +179,7 @@ class Node(QtWidgets.QGraphicsItem):
 
         # Draw text
         if lod >= 0.4:
-            font = QtGui.QFont("Arial", 14)
+            font = self._title_font
             font.setStyleStrategy(QtGui.QFont.ForceOutline)
             painter.setFont(font)
             painter.setPen(QtGui.QPen(text_brush, 1))
@@ -437,7 +444,7 @@ class NodeSlot(object):
 
     @property
     def edge(self):
-        """Return hash id of connedcted edge or None
+        """Return hash id of connected edge or None
 
         :rtype: list
 
