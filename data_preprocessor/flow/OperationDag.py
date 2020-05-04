@@ -6,11 +6,16 @@ from data_preprocessor.flow import OperationNode
 
 
 class OperationDag:
+    """ Provides adding and removing functionality over a NetworkX directed graph intended to store
+    nodes of computation. In particular it takes care to update descendants whenever some ancestor node
+    is deleted or updated and removes in/out edges when a node is deleted. It also checks if
+    connections can be added with respect to the operation settings. """
+
     def __init__(self):
         self.__G = nx.DiGraph()
 
     def getNxGraph(self) -> nx.DiGraph:
-        """ Returns a reference to the networkx graph """
+        """ Returns a reference to the NetworkX graph """
         return self.__G
 
     def __update_descendants(self, parent_id: int, unset_options: bool = False) -> None:
@@ -23,6 +28,14 @@ class OperationDag:
             self.__update_descendants(child_id)
 
     def updateNodeOptions(self, node_id: int, *options: Any, **kwoptions: Any) -> bool:
+        """ Set/updates the options of a node.
+
+        :param node_id: the id of the node to update
+        :param options, kwoptions: any argument to pass to
+            :func:`~data_preprocessor.operation.interface.Operation.setOptions`
+        :return True if the options were set, False otherwise
+        :raise ValueError: if the node is not in the graph
+        """
         if node_id not in self.__G:
             raise ValueError('Cannot update a node which does not belong to the graph')
         # Set options for operation
@@ -35,6 +48,11 @@ class OperationDag:
         return True
 
     def addNode(self, node: OperationNode) -> bool:
+        """ Adds a node to the graph. Must not be already in the graph
+
+        :param node: the node to add
+        :return: True if the node was inserted, False if not (e.g. if it was already in the graph)
+        """
         if node.uid in self.__G:
             return False
         self.__G.add_node(node.uid, op=node)
@@ -78,13 +96,21 @@ class OperationDag:
         return True
 
     def removeConnection(self, source_id: int, target_id: int) -> bool:
+        """ Removes a single edge 'source -> target'
+
+        :param source_id: id of the source node
+        :param target_id: id of the target node
+        :return: True if the edge was removed, False otherwise
+        :raise ValueError: if the edge is nonexistent
+        """
         if not self.__G.has_edge(source_id, target_id):
             raise ValueError('Removing non existent edge')
         self.__G.remove_edge(source_id, target_id)
         target_node = self[target_id]
+        # Removes source' input shape from target node
         target_node.removeInputShape(source_id)
+        # Clean input mapper for target node
         target_node.unsetSourceOperationInputPosition(source_id)
-        # TOCHECK
         # Unset options which depends on the input shape
         target_node.operation.unsetOptions()
         # Updates (remove) input shapes (and options) in descendants
@@ -92,6 +118,11 @@ class OperationDag:
         return True
 
     def removeNode(self, op_id: int) -> bool:
+        """ Removes a node from the graph, also all its edges
+
+        :param op_id: the id of the node to remove
+        :return: True if the node was removed, False otherwise
+        """
         # TOCHECK
         # Remove all incoming edges
         for u in list(self.__G.predecessors(op_id)):

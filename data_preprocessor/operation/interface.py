@@ -14,36 +14,9 @@ class Operation(ABC):
 
     @abstractmethod
     def __init__(self):
-        """
-        Build an operation as a command
-
-        :param shape: the input shape of the frame given in input
-        """
-        # Holds the shape of the working frame
+        """ Initialises an operation """
+        # Holds the input shapes
         self._shape: List[Optional[data.Shape]] = [None] * self.maxInputNumber()
-        # Will hold the result when computation is done
-        # self._result: data.Frame = None
-
-    # def result(self) -> data.Frame:
-    #     return self._result
-
-    def compute(self, *input_df: data.Frame) -> data.Frame:
-        """
-        Private method used to run every operation. Should not be redefined.
-        """
-        # Check if input is set
-        if self.maxInputNumber() < len(input_df) < self.minInputNumber():
-            raise ValueError(
-                '{}.compute(input=...), input argument not correctly set'.format(
-                    self.__class__.__name__))
-
-        # Check if options are set and correct
-        msg: Optional[str] = self.checkOptions()
-        if msg:
-            raise ValueError('{}.compute(input=...), options check failed with message: {}'.format(
-                self.__class__.__name__, msg))
-
-        return self.execute(*input_df)
 
     @abstractmethod
     def execute(self, *df: data.Frame) -> data.Frame:
@@ -81,16 +54,23 @@ class Operation(ABC):
         """ Setter method for the shape input
 
         :param shape: the shape to add
-        :param pos: an integer index being the position to add the shape at. A negative number means
-            that position does not matter
+        :param pos: an integer index being the position to add the shape at. Must be non-negative and
+            consistent with :func:`~data_preprocessor.operation.interface.Operation.maxInputNumber`
+        :raise ValueError: if 'pos' is negative
         """
-        if pos >= 0:
-            self._shape[pos] = shape
-        else:
-            raise ValueError('Argument \'pos\' must be a non negative integer')
+        if pos < 0:
+            raise ValueError('Position must be non-negative')
+        self._shape[pos] = shape
 
     def removeInputShape(self, pos: int) -> None:
-        """ Remove the input shape at given position, replacing it with None """
+        """ Remove the input shape at given position, replacing it with None
+
+        :param pos: index of the shape to remove. Must be non-negative and consistent with
+            :func:`~data_preprocessor.operation.interface.Operation.maxInputNumber`
+        :raise ValueError: if 'pos' is negative
+        """
+        if pos < 0:
+            raise ValueError('Position must be non-negative')
         self._shape[pos] = None
 
     @abstractmethod
@@ -104,21 +84,23 @@ class Operation(ABC):
     @abstractmethod
     def unsetOptions(self) -> None:
         """
-        Called when graph is modified and input shape(s) are removed. After this steps this function
-        is called. Should be overridden to unset every option that depends on the input shape(s).
-        If no options depend on the input shape it should do nothing.
+        Unset every option that depends on the input shape(s). If no options depend on the input shape
+            it should do nothing.
+
+        Some context: this method is called after some input shapes are removed from an ancestor of an
+        operation
         """
         pass
 
     @abstractmethod
     def needsOptions(self) -> bool:
         """
-        Returns whether the operation needs to be configured with an editor. If this method
+        Returns whether the operation needs to be configured with options. If this method
         returns False, then the following methods will be ignored (but must be redefined all the same):
 
-            - :func:`~data_preprocessor.operation.Operation.getEditor`
-            - :func:`~data_preprocessor.operation.Operation.getOptions`
-            - :func:`~data_preprocessor.operation.Operation.setOptions`
+            - :func:`~data_preprocessor.operation.interface.Operation.getEditor`
+            - :func:`~data_preprocessor.operation.interface.Operation.getOptions`
+            - :func:`~data_preprocessor.operation.interface.Operation.setOptions`
 
         :return a boolean value, True if the operation needs to be configured, False otherwise
         """
@@ -127,10 +109,10 @@ class Operation(ABC):
     @abstractmethod
     def getOptions(self) -> Any:
         """
-        Called to get current options for the operation. Typically called to get the
+        Called to get current options set for the operation. Typically called to get the
         existing configuration when an editor is opended
 
-        :return: the configuration object
+        :return: the configuration object, including everything needed by the editor
         """
         pass
 
@@ -139,7 +121,7 @@ class Operation(ABC):
         """
         Return the editor panel to configure the step
 
-        :return: The widget editor
+        :return: the widget to be used as editor
         """
         pass
 
@@ -149,8 +131,8 @@ class Operation(ABC):
         Computes what will the frame shape be after execution of the step.
         Be careful with references. This function should not be modify the input shape.
         If the shape cannot be predicted (for every column) it must return
-        None. Additionally 'isOutputShapeKnown' should be overridden accordingly. See
-        :func:`~data_preprocessor.operation.Operation.isOutputShapeKnown`
+        None. Additionally 'isOutputShapeKnown' should be overridden accordingly.
+        See :func:`~data_preprocessor.operation.interface.Operation.isOutputShapeKnown`
         """
         pass
 
@@ -159,8 +141,8 @@ class Operation(ABC):
     def isOutputShapeKnown() -> bool:
         """
         Must return true iff the number of columns and their types can be inferred with
-        'getOutputShape'. Thus if this function returns false
-        :func:`~data_preprocessor.operation.Operation.getOutputShape` must always return None
+        'getOutputShape'. Thus if this function returns false, then
+        :func:`~data_preprocessor.operation.interface.Operation.getOutputShape` must always return None
         """
         pass
 
@@ -204,10 +186,14 @@ class Operation(ABC):
 
     def checkOptions(self) -> Optional[str]:
         """
-        This function is called before executing the operation in order to provide a method to
-        check option set. Default implementation does nothing and returns None, i.e. options are ok.
-        If anything else than None is returned, the 'compute' function will raise an exception showing
-        the object returned (which should be an informative message).
+        This function is an optional hook that may be redefined to add some checks on the options set
+        before execution, and is only relevant when using the operation with the computational graph.
+        But it may be used in any other context by manually calling it before the
+        :func:`~data_preprocessor.operation.Operation.execute` method. Note that a call to this function
+        should not placed inside the 'execute' method, otherwise the graph will run this function twice.
+        Default implementation does nothing and returns None, i.e. options are ok.
+        If anything else than None is returned, the graph handler will raise an exception
+        showing the object returned (which should be an informative message).
 
         :return: None if computation can continue, or an error message to raise an exception. Defaults
             to None
@@ -217,88 +203,126 @@ class Operation(ABC):
 
 class InputOperation(Operation):
     """
-    Base class for operations to be used to provide input
-    These operations must not change the shape
+    Base class for operations to be used to provide input.
+    These operations have no input, an unbounded number of outputs and do not modify the input shape.
+    Additionally every InputOperation has access to the workbench, in order to be able to access
+    variables to use as input
     """
 
     def __init__(self, w: Workbench = None):
+        """ Sets the workbench of the input operation
+
+        :param w: a workbench
+        """
         super().__init__()
-        self._workbench = w
+        self._workbench: Workbench = w
 
     @abstractmethod
     def inferInputShape(self) -> None:
-        """ This method must be reimplemented to set the input shape after the options have been set """
+        """ This method must be reimplemented to set the input shape after the options have been set.
+        If the input shape cannot be inferred it should set it to None.
+        It replaces :func:`~data_preprocessor.operation.interface.InputOperation.addInputShape`,
+        which instead should not be used in InputOperation
+        """
         pass
 
     def addInputShape(self, shape: data.Shape, pos: int) -> None:
-        # This method should do nothing for input operations
+        """ It intentionally is a no-op, because input-operations has no input argument. Instead the
+        input shape should be inferred using method
+        :func:`~data_preprocessor.operation.interface.InputOperation.inferInputShape`
+        """
         pass
 
     def acceptedTypes(self) -> List[Types]:
+        """ Accepts all types """
+        # Input operations are not concerned with types
         return ALL_TYPES
 
     def getOutputShape(self) -> Union[data.Shape, None]:
+        """ Returns the single input shape unchanged """
+        # Input operation has only one input, and it does not change input shape
         return self._shape[0]
 
     def unsetOptions(self) -> None:
+        """ Reimplements base operation and does nothing, since no options depends on the input shape """
         pass
 
     @staticmethod
     def isOutputShapeKnown() -> bool:
+        """ Returns True, since InputOperations are always able to know the output shape """
         return True
 
     @staticmethod
     def minInputNumber() -> int:
+        """ Returns 0 """
         return 0
 
     @staticmethod
     def maxInputNumber() -> int:
+        """ Returns 0 """
         return 0
 
     @staticmethod
     def minOutputNumber() -> int:
+        """ Returns 1 """
         return 1
 
     @staticmethod
     def maxOutputNumber() -> int:
+        """ Returns -1 """
         return -1
 
 
 class OutputOperation(Operation):
     """
-    Base class for operations that persist the output of a pipeline.
-    These operations must not change the shape
+    Base class for operations to be used to persist output.
+    These operations have exactly one input, no outputs and do not modify the input
+    shape.
+    Additionally every OutputOperation has access to the workbench, in order to be able write new
+    variables
     """
 
-    def __init__(self):
+    def __init__(self, w: Workbench = None):
+        """ Sets the workbench of the output operation
+
+        :param w: a workbench
+        """
         super().__init__()
-        self._workbench = None
+        self._workbench: Workbench = w
 
     def acceptedTypes(self) -> List[Types]:
+        """ Accepts all types """
         return ALL_TYPES
 
     def getOutputShape(self) -> Union[data.Shape, None]:
+        """ Returns the single input shape unchanged """
         return self._shape[0]
 
     def unsetOptions(self) -> None:
+        """ Does nothing by default, but may be overridden if options depends on the input shape """
         pass
 
     @staticmethod
     def isOutputShapeKnown() -> bool:
+        """ Returns True """
         return True
 
     @staticmethod
     def minInputNumber() -> int:
+        """ Returns 1 """
         return 1
 
     @staticmethod
     def maxInputNumber() -> int:
+        """ Returns 1 """
         return 1
 
     @staticmethod
     def minOutputNumber() -> int:
+        """ Returns 0 """
         return 0
 
     @staticmethod
     def maxOutputNumber() -> int:
+        """ Returns 0 """
         return 0
