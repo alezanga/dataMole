@@ -12,7 +12,7 @@
 """Node graph scene manager based on QGraphicsScene
 
 """
-from typing import Set, List, Callable
+from typing import Set, List
 
 from PySide2 import QtCore, QtGui, QtWidgets
 from PySide2.QtCore import QPointF
@@ -23,7 +23,6 @@ from .edge import Edge, InteractiveEdge
 from .node import Node, NodeSlot
 from .rubberband import RubberBand
 from ...flow.OperationDag import OperationDag
-from ...operation.interface import Operation
 
 
 class Scene(QtWidgets.QGraphicsScene):
@@ -114,11 +113,11 @@ class Scene(QtWidgets.QGraphicsScene):
                 edges.append(item)
         return edges
 
-    def create_node(self, name: str, id: int, inputs=None, parent=None) -> Node:
+    def create_node(self, name: str, id: int, inputs=None, output: bool = True, parent=None) -> Node:
         """Create a new node
 
         """
-        node = Node(name, id=id, inputs=inputs, parent=parent)
+        node = Node(name, id=id, inputs=inputs, output=output, parent=parent)
         self._nodes.append(node)
         self.addItem(node)
         if self.__dropPosition:
@@ -156,6 +155,7 @@ class Scene(QtWidgets.QGraphicsScene):
         and the slot given by connect_to
 
         """
+        # TODO: validation part is a bit messy
         self._is_interactive_edge = False
         if connect_to:
             eh = self._edges_by_hash  # shortcut
@@ -174,7 +174,10 @@ class Scene(QtWidgets.QGraphicsScene):
                             break
                 else:
                     connect_to = connect_to._output
-                    found = True
+                    if connect_to:
+                        found = True
+                    # else it could be a node without output slots
+            # else it's a slot so ok
 
             # Resolve direction
             target = connect_to
@@ -188,9 +191,6 @@ class Scene(QtWidgets.QGraphicsScene):
                     source.family != target.family and
                     source.parent != target.parent and
                     not [h for h in eh if eh[h]._target_slot == source]):
-
-                # print("Create edge from %s to %s" %
-                #       (source._name, target._name))
                 # edge = self.create_edge(target, source)
                 self.createNewEdge.emit(target, source)
             else:

@@ -17,7 +17,6 @@ Edge definition including:
 
 """
 import hashlib
-from typing import List
 
 from PySide2 import QtCore, QtGui, QtWidgets
 
@@ -36,7 +35,7 @@ class Edge(QtWidgets.QGraphicsItem):
     ARROW_STANDARD = 1
     ARROW_SLIM = 2
 
-    def __init__(self, source_slot, target_slot, outline=2, arrow=None):
+    def __init__(self, source_slot: NodeSlot, target_slot: NodeSlot, outline=2, arrow=None):
         """Creates an instance of this class
 
         :param source: Source slot (should be a output one)
@@ -65,17 +64,18 @@ class Edge(QtWidgets.QGraphicsItem):
         self._outline = outline
         self._arrow = arrow
         self._lod = 1
-        self._hash = ("%s.%s >> %s.%s" %
-                      (source_slot.parent._name, source_slot._name,
-                       target_slot.parent._name, target_slot._name))
         self._shape = None
         self._line = None
+        string_hash = ('{}.{} >> {}.{}'.format(source_slot.parentNode.id,
+                                               source_slot.parentNode.name,
+                                               target_slot.parentNode.id,
+                                               target_slot.parentNode.name))
 
         # Set tooltip
-        self.setToolTip(self._hash)
+        self.setToolTip(string_hash)
 
-        # Hash the hash
-        self._hash = hashlib.sha1(self._hash.encode()).hexdigest()
+        # Hash the string
+        self._hash = hashlib.sha1(string_hash.encode()).hexdigest()
 
         # Reference hash in nodes slot
         source_slot.add_edge(self._hash)

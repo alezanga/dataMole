@@ -38,7 +38,8 @@ class Node(QtWidgets.QGraphicsItem):
         metrics = QtGui.QFontMetrics(font)
         return metrics.size(QtCore.Qt.TextSingleLine, text + '      ')
 
-    def __init__(self, name: str, id: int, inputs=None, parent: QtWidgets.QGraphicsItem = None):
+    def __init__(self, name: str, id: int, inputs=None, parent: QtWidgets.QGraphicsItem = None,
+                 output: bool = True):
         """Create an instance of this class
 
         """
@@ -65,7 +66,7 @@ class Node(QtWidgets.QGraphicsItem):
         self.setAcceptHoverEvents(False)
 
         # Build output slot
-        self._output = NodeSlot(name="out", parent=self, family=NodeSlot.OUTPUT)
+        self._output = NodeSlot(name="out", parent=self, family=NodeSlot.OUTPUT) if output else None
 
         # Build input slots
         self._inputs = []
@@ -92,13 +93,13 @@ class Node(QtWidgets.QGraphicsItem):
         """Return all hashes of connected edges
 
         """
-        outputs = self._output.edge
+        outputs = self._output.edge if self._output else []
         inputs = list(set([e for i in self._inputs for e in i.edge]))
         return set(outputs + inputs)
 
     @property
     def slots(self) -> List['NodeSlot']:
-        return self._inputs + [self._output]
+        return self._inputs + ([self._output] if self._output else [])
 
     def _update(self):
         """Update slots internal properties
@@ -113,9 +114,10 @@ class Node(QtWidgets.QGraphicsItem):
                                         self._slot_radius * 2,
                                         self._slot_radius * 2)
         # Update output
-        init_y = base_y - slot_height / 2
-        self._output.rect = QtCore.QRectF(self._draw_slot).translated(
-            self._width - self._slot_radius, init_y)
+        if self._output:
+            init_y = base_y - slot_height / 2
+            self._output.rect = QtCore.QRectF(self._draw_slot).translated(
+                self._width - self._slot_radius, init_y)
 
         # Update inputs
         init_y = base_y - slot_height * len(self._inputs) / 2
@@ -197,10 +199,11 @@ class Node(QtWidgets.QGraphicsItem):
 
             if lod >= 0.35:
                 # Draw output (Ellipse)
-                if self._hover_slot == self._output:
-                    # Hover color should be driven by slot type
-                    painter.setBrush(hover_color)
-                painter.drawEllipse(self._output._rect)
+                if self._output:
+                    if self._hover_slot == self._output:
+                        # Hover color should be driven by slot type
+                        painter.setBrush(hover_color)
+                    painter.drawEllipse(self._output._rect)
 
                 # Draw input (Ellipse)
                 for aninput in self._inputs:
@@ -211,9 +214,10 @@ class Node(QtWidgets.QGraphicsItem):
                     painter.drawEllipse(aninput.rect)
             else:
                 # Draw output (Rectangle)
-                if self._hover_slot == self._output:
-                    painter.setBrush(hover_color)
-                painter.drawRect(self._output._rect)
+                if self._output:
+                    if self._hover_slot == self._output:
+                        painter.setBrush(hover_color)
+                    painter.drawRect(self._output._rect)
 
                 # Drae input (Rectangle)
                 for aninput in self._inputs:
@@ -236,14 +240,15 @@ class Node(QtWidgets.QGraphicsItem):
             height = self._slot_radius * 2
 
             # Output
-            alignment = QtCore.Qt.AlignVCenter | QtCore.Qt.AlignRight
-            rect = QtCore.QRectF(self._width / 2,
-                                 self._output._rect.top(),
-                                 width,
-                                 height)
-            painter.drawText(rect, alignment, "out")
-            # painter.setBrush(QtCore.Qt.NoBrush)
-            # painter.drawRect(rect)
+            if self._output:
+                alignment = QtCore.Qt.AlignVCenter | QtCore.Qt.AlignRight
+                rect = QtCore.QRectF(self._width / 2,
+                                     self._output._rect.top(),
+                                     width,
+                                     height)
+                painter.drawText(rect, alignment, "out")
+                # painter.setBrush(QtCore.Qt.NoBrush)
+                # painter.drawRect(rect)
 
             # Input
             alignment = QtCore.Qt.AlignVCenter | QtCore.Qt.AlignLeft
@@ -273,7 +278,7 @@ class Node(QtWidgets.QGraphicsItem):
         """
         # print("NODE %s hover move" % self._name)
         his = [i for i in self._inputs if i._rect.contains(event.pos())]
-        if self._output._rect.contains(event.pos()):
+        if self._output and self._output._rect.contains(event.pos()):
             self._update_hover_slot(self._output)
         elif his:
             self._update_hover_slot(his[0])
@@ -310,7 +315,7 @@ class Node(QtWidgets.QGraphicsItem):
         # modifiers = event.modifiers()
 
         if buttons == QtCore.Qt.LeftButton:
-            if self._output._rect.contains(event.pos()):
+            if self._output and self._output._rect.contains(event.pos()):
                 mouse_pos = self.mapToScene(event.pos())
                 self.scene().start_interactive_edge(self._output, mouse_pos)
                 event.accept()

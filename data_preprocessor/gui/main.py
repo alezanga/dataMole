@@ -19,8 +19,8 @@ class MainWidget(QWidget):
         self.__operationMenu = OperationMenu()
         workbenchView = WorkbenchView()
         workbenchView.setModel(self.workbench_model)
-        self.workbench_model.rowAppended.connect(workbenchView.edit)
-        self.workbench_model.rowAppended.connect(workbenchView.setCurrentIndex)
+        self.workbench_model.emptyRowInserted.connect(workbenchView.edit)
+        self.workbench_model.emptyRowInserted.connect(workbenchView.setCurrentIndex)
 
         tabs = QTabWidget(self)
 
@@ -51,9 +51,13 @@ class MainWidget(QWidget):
     def switch_view(self, tab_index: int) -> None:
         if tab_index == 2:
             self.__leftSide.replaceWidget(self.__genericView, self.__operationMenu)
+            self.__genericView.hide()
+            self.__operationMenu.show()
             self.__curr_tab = 2
         elif self.__curr_tab == 2 and tab_index != 2:
             self.__leftSide.replaceWidget(self.__operationMenu, self.__genericView)
+            self.__operationMenu.hide()
+            self.__genericView.show()
             self.__curr_tab = tab_index
 
 
@@ -67,7 +71,7 @@ class MainWindow(QMainWindow):
         menu_bar_file = menu_bar.addMenu('File')
         add_action = QAction('Add frame', menu_bar_file)
         add_action.setStatusTip('Create an empty dataframe in the workbench')
-        add_action.triggered.connect(central_w.workbench_model.appendRow)
+        add_action.triggered.connect(central_w.workbench_model.appendEmptyRow)
         menu_bar_file.addAction(add_action)
         menu_bar_file.show()
 

@@ -1,12 +1,12 @@
 import importlib
-from typing import Callable
+from typing import Callable, List
 
 from PySide2.QtCore import Qt, QPoint, QMimeData
 from PySide2.QtGui import QMouseEvent, QDrag
 from PySide2.QtWidgets import QWidget, QTreeWidget, QTreeWidgetItem, QApplication
 
 
-def build_item(name: str, data=None):
+def _build_item(name: str, data=None) -> QTreeWidgetItem:
     """
     Build a tree item with a display name, and sets its data
 
@@ -21,6 +21,18 @@ def build_item(name: str, data=None):
     return item
 
 
+def _addChildren(parents: List[QTreeWidgetItem], op_class: Callable) -> None:
+    op_name = getattr(op_class, 'name')()
+    op_input: bool = getattr(op_class, 'maxInputNumber')() == 0
+    op_output: bool = getattr(op_class, 'minOutputNumber')() == 0
+    if op_input:
+        parents[0].addChild(_build_item(op_name, data=op_class))
+    elif op_output:
+        parents[1].addChild(_build_item(op_name, data=op_class))
+    else:
+        parents[2].addChild(_build_item(op_name, data=op_class))
+
+
 class OperationMenu(QTreeWidget):
     def __init__(self, parent: QWidget = None):
         super().__init__(parent)
@@ -29,7 +41,7 @@ class OperationMenu(QTreeWidget):
         self.setDragEnabled(True)
         self.setDropIndicatorShown(True)
         # Parent items (categories)
-        top_items = list(map(build_item, ['Input', 'Output', 'All']))
+        top_items = list(map(_build_item, ['Input', 'Output', 'All']))
         self.addTopLevelItems(top_items)
         # Import everything in operations directory
         from data_preprocessor.operation import __all__
@@ -39,15 +51,11 @@ class OperationMenu(QTreeWidget):
             if not hasattr(module, var_export):
                 continue
             op_class = getattr(module, var_export)
-            op_name = getattr(op_class, 'name')()
-            op_input: bool = getattr(op_class, 'maxInputNumber')() == 0
-            op_output: bool = getattr(op_class, 'minOutputNumber')() == 0
-            if op_input:
-                top_items[0].addChild(build_item(op_name, data=op_class))
-            elif op_output:
-                top_items[1].addChild(build_item(op_name, data=op_class))
+            if isinstance(op_class, list):
+                for c in op_class:
+                    _addChildren(top_items, c)
             else:
-                top_items[2].addChild(build_item(op_name, data=op_class))
+                _addChildren(top_items, op_class)
 
     def mousePressEvent(self, event: QMouseEvent):
         if event.button() == Qt.LeftButton:

@@ -2,7 +2,7 @@ from PySide2.QtCore import QModelIndex
 
 from data_preprocessor.data import Frame, Shape
 from data_preprocessor.gui.workbench import WorkbenchModel
-from data_preprocessor.operation.CopyOp import CopyOp
+from data_preprocessor.operation.input import CopyOp
 
 
 def test_copy():
@@ -13,7 +13,7 @@ def test_copy():
 
     work = WorkbenchModel()
     # Add empty frame
-    work.appendRow()
+    work.appendEmptyRow()
     qi = work.index(0, 0, QModelIndex())
     # Set frame name
     work.setData(qi, 'var')
@@ -21,7 +21,7 @@ def test_copy():
     work.setDataframeByIndex(qi, f)
 
     op = CopyOp(work)
-    op.setOptions(selected_frame=0)
+    op.setOptions(selected_frame='var')
     op.inferInputShape()
     op.addInputShape(Shape(), pos=0)  # this does nothing
 

@@ -41,7 +41,7 @@ class GraphController(QWidget):
         node = OperationNode(op)
         if self._operation_dag.addNode(node):
             inputs = ['in {}'.format(i) for i in range(op.maxInputNumber())]
-            self._scene.create_node(name=op.name(), id=node.uid, inputs=inputs)
+            self._scene.create_node(name=op.name(), id=node.uid, inputs=inputs, output=not op_output)
 
     @Slot(NodeSlot, NodeSlot)
     def addEdge(self, source_slot: NodeSlot, target_slot: NodeSlot):

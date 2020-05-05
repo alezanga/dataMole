@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Union, Any, List, Optional
+from typing import Union, List, Optional, Iterable
 
 from data_preprocessor import data
 from data_preprocessor.data.types import Types, ALL_TYPES
@@ -107,12 +107,13 @@ class Operation(ABC):
         pass
 
     @abstractmethod
-    def getOptions(self) -> Any:
+    def getOptions(self) -> Iterable:
         """
         Called to get current options set for the operation. Typically called to get the
         existing configuration when an editor is opended
 
-        :return: the configuration object, including everything needed by the editor
+        :return: a list or tuple containing all the objects needed by the editor, which will be passed
+            in the same order
         """
         pass
 

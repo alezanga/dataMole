@@ -23,11 +23,11 @@ class AbsOperationEditor(QWidget):
         super().__init__(parent)
 
         self.__id: str = uuid.uuid4().hex
-        butOk = QPushButton('Ok')
+        self.__butOk = QPushButton('Ok')
         butCancel = QPushButton('Cancel')
         butLayout = QHBoxLayout()
         butLayout.addWidget(butCancel, alignment=Qt.AlignLeft)
-        butLayout.addWidget(butOk, alignment=Qt.AlignRight)
+        butLayout.addWidget(self.__butOk, alignment=Qt.AlignRight)
 
         self._custom_widget = self.editorBody()
         layout = QVBoxLayout()
@@ -36,7 +36,7 @@ class AbsOperationEditor(QWidget):
         self.setLayout(layout)
         self.setFocusPolicy(Qt.StrongFocus)
 
-        butOk.pressed.connect(self.acceptAndClose)
+        self.__butOk.pressed.connect(self.acceptAndClose)
         butCancel.pressed.connect(self.rejectAndClose)
 
     @property
@@ -79,6 +79,15 @@ class AbsOperationEditor(QWidget):
         :param kwargs: any keyword argument
         """
         pass
+
+    def disableOkButton(self) -> None:
+        """ Makes the accept button unclickable.
+            Useful to prevent user from saving invalid changes """
+        self.__butOk.setDisabled(True)
+
+    def enableOkButton(self) -> None:
+        """ Enable the accept button """
+        self.__butOk.setEnabled(True)
 
     def closeEvent(self, event: QCloseEvent) -> None:
         """"""
