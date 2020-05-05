@@ -31,10 +31,10 @@ class CopyOp(InputOperation):
     def getOptions(self) -> Tuple[Optional[str], wb.WorkbenchModel]:
         return self._frame_name, self._workbench
 
-    def checkOptions(self) -> Optional[str]:
-        if self._frame_name is None:
-            return None
-        return 'Selection is not valid'
+    # def checkOptions(self) -> Optional[str]:
+    #     if self._frame_name is None:
+    #         return None
+    #     return 'Selection is not valid'
 
     def inferInputShape(self) -> None:
         if self._frame_name is None:
