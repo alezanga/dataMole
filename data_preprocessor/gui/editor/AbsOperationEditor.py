@@ -62,7 +62,8 @@ class AbsOperationEditor(QWidget):
     def getOptions(self) -> Iterable:
         """
         Return the arguments read by the editor.
-        Must be an iterable and parameters are passed in the same order
+        Must be an iterable and parameters are passed in the same order. If
+        no options are set return a list with None values
 
         :return: the options currently set by the user in the editor
         """
@@ -73,7 +74,6 @@ class AbsOperationEditor(QWidget):
         """
         Set the data to be visualized in the editor.
         Useful to show an existing configuration.
-        Index contains information on the Operation object which may be accessed
 
         :param args: any positional argument
         :param kwargs: any keyword argument

@@ -2,10 +2,9 @@ from abc import ABC, abstractmethod
 from typing import Union, Any, List, Optional
 
 from data_preprocessor import data
-from data_preprocessor.data.Workbench import Workbench
 from data_preprocessor.data.types import Types, ALL_TYPES
 from data_preprocessor.gui.editor.AbsOperationEditor import AbsOperationEditor
-from data_preprocessor.gui.model.WorkbenchModel import WorkbenchModel
+from data_preprocessor.gui.workbench import WorkbenchModel
 
 
 class Operation(ABC):

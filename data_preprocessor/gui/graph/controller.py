@@ -7,7 +7,7 @@ from data_preprocessor.gui.editor.AbsOperationEditor import AbsOperationEditor
 from .node import NodeSlot, Node
 from .scene import Scene
 from .view import View
-from ..model.WorkbenchModel import WorkbenchModel
+from ..workbench import WorkbenchModel
 from ...flow import OperationNode
 from ...flow.OperationDag import OperationDag
 

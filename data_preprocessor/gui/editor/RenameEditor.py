@@ -3,10 +3,9 @@ from typing import Dict, Any, List
 from PySide2.QtCore import Qt, QModelIndex
 from PySide2.QtWidgets import QTableView, QHeaderView, QWidget
 
+from ..frame import AttributeTableModel, FrameModel
 from data_preprocessor import data
-from data_preprocessor.gui.editor.AbsOperationEditor import AbsOperationEditor
-from data_preprocessor.gui.model import AttributeTableModel
-from data_preprocessor.gui.model.FrameModel import FrameModel
+from data_preprocessor.gui.editor import AbsOperationEditor
 
 
 class EditableAttributeTable(AttributeTableModel):

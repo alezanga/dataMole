@@ -1,55 +1,34 @@
 from PySide2.QtCore import Slot
-from PySide2.QtGui import QKeyEvent, Qt
-from PySide2.QtWidgets import QTreeView, QListView, QTabWidget, QWidget, QVBoxLayout, \
-    QHBoxLayout
+from PySide2.QtWidgets import QTreeView, QTabWidget, QWidget, QVBoxLayout, \
+    QHBoxLayout, QMainWindow, QMenuBar, QAction
 
-from data_preprocessor.data.Workbench import Workbench
 from data_preprocessor.flow.OperationDag import OperationDag
 from data_preprocessor.gui.graph.controller import GraphController
 from data_preprocessor.gui.graph.scene import Scene
 from data_preprocessor.gui.graph.view import View
-from data_preprocessor.gui.model.WorkbenchModel import WorkbenchModel
-from data_preprocessor.gui.widget.OperationMenu import OperationMenu
+from data_preprocessor.gui.workbench import WorkbenchModel, WorkbenchView
+from data_preprocessor.gui.operation_list import OperationMenu
 
 
 class MainWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
-
-        self._workbench = Workbench()
-        self.workbench_model = WorkbenchModel(self, self._workbench)
+        self.workbench_model = WorkbenchModel(self)
         self.graph = OperationDag()
-
-        class WorkbenchView(QListView):
-            def keyPressEvent(self, event: QKeyEvent) -> None:
-                if event.key() == Qt.Key_Delete:
-                    for index in self.selectedIndexes():
-                        self.model().removeRow(index.row())
-                else:
-                    super().keyPressEvent(event)
-
         self.__genericView = QTreeView()
         self.__operationMenu = OperationMenu()
         workbenchView = WorkbenchView()
         workbenchView.setModel(self.workbench_model)
-        workbenchView.setSelectionMode(QListView.SingleSelection)
         self.workbench_model.rowAppended.connect(workbenchView.edit)
         self.workbench_model.rowAppended.connect(workbenchView.setCurrentIndex)
 
         tabs = QTabWidget(self)
 
-        # from data_preprocessor.gui.graph2.GraphScene import GraphScene
-        # from data_preprocessor.gui.graph2.GraphView import GraphView
         attributeTab = QWidget()
         chartsTab = QWidget()
-        # scene = GraphScene(self.graph, self)
-        # flowTab = GraphView(self)
         scene = Scene(self)
         flowTab = View(scene)
         controller = GraphController(self.graph, scene, flowTab, self.workbench_model, self)
-        # controller.addNode(RenameOp())
-        # controller.addNode(TypeOp())
-        # controller.addNode(TypeOp())
 
         tabs.addTab(attributeTab, 'Attribute')
         tabs.addTab(chartsTab, 'Visualise')
@@ -76,3 +55,20 @@ class MainWidget(QWidget):
         elif self.__curr_tab == 2 and tab_index != 2:
             self.__leftSide.replaceWidget(self.__operationMenu, self.__genericView)
             self.__curr_tab = tab_index
+
+
+class MainWindow(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        central_w = MainWidget()
+        self.setCentralWidget(central_w)
+
+        menu_bar = QMenuBar()
+        menu_bar_file = menu_bar.addMenu('File')
+        add_action = QAction('Add frame', menu_bar_file)
+        add_action.setStatusTip('Create an empty dataframe in the workbench')
+        add_action.triggered.connect(central_w.workbench_model.appendRow)
+        menu_bar_file.addAction(add_action)
+        menu_bar_file.show()
+
+        self.setMenuBar(menu_bar)
