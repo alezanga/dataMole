@@ -40,6 +40,7 @@ class OperationMenu(QTreeWidget):
         self.setSelectionMode(QTreeWidget.SingleSelection)
         self.setDragEnabled(True)
         self.setDropIndicatorShown(True)
+        self.headerItem().setText(0, 'Operations')
         # Parent items (categories)
         top_items = list(map(_build_item, ['Input', 'Output', 'All']))
         self.addTopLevelItems(top_items)
