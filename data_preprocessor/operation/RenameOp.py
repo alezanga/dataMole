@@ -3,8 +3,8 @@ from typing import Union, Dict, List
 
 from data_preprocessor import data
 from data_preprocessor.data.types import Types, ALL_TYPES
-from data_preprocessor.gui.editor.RenameEditor import RenameEditor
 from data_preprocessor.gui.editor.AbsOperationEditor import AbsOperationEditor
+from data_preprocessor.gui.editor.RenameEditor import RenameEditor
 from .interface import Operation
 
 
@@ -85,3 +85,6 @@ class RenameOp(Operation):
     @staticmethod
     def maxOutputNumber() -> int:
         return -1
+
+
+export = RenameOp

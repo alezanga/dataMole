@@ -33,11 +33,12 @@ class OperationMenu(QTreeWidget):
         self.addTopLevelItems(top_items)
         # Import everything in operations directory
         from data_preprocessor.operation import __all__
+        var_export = 'export'
         for module_name in __all__:
             module = importlib.import_module('.' + module_name, package='data_preprocessor.operation')
-            if not hasattr(module, module_name):
+            if not hasattr(module, var_export):
                 continue
-            op_class = getattr(module, module_name)
+            op_class = getattr(module, var_export)
             op_name = getattr(op_class, 'name')()
             op_input: bool = getattr(op_class, 'maxInputNumber')() == 0
             op_output: bool = getattr(op_class, 'minOutputNumber')() == 0

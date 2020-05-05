@@ -1,11 +1,10 @@
-from PySide2.QtCore import QAbstractItemModel, QSize, Qt, Slot
+from PySide2.QtCore import QAbstractItemModel, QSize, Qt
 from PySide2.QtWidgets import QLabel, QLineEdit, QComboBox, QGridLayout, QHBoxLayout, QCheckBox, \
-    QVBoxLayout, QPushButton, QDialog
+    QVBoxLayout, QPushButton
 from PySide2.QtGui import QValidator
-from data_preprocessor.gui.generic.AbsOperationEditor import AbsOperationEditor
+from data_preprocessor.gui.editor.AbsOperationEditor import AbsOperationEditor
 from typing import Dict, List, Callable
 from data_preprocessor.decorators.generic import singleton
-import PySide2.QtGui
 
 
 @singleton

@@ -75,3 +75,6 @@ class TypeOp(Operation):
     @staticmethod
     def maxOutputNumber() -> int:
         return -1
+
+
+export = TypeOp

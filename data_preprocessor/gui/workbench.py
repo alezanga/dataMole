@@ -2,7 +2,7 @@ from typing import Any, List, Tuple, Optional
 
 from PySide2.QtCore import QAbstractListModel, QObject, QModelIndex, Qt, Slot, Signal
 from PySide2.QtGui import QKeyEvent
-from PySide2.QtWidgets import QListView
+from PySide2.QtWidgets import QListView, QTableView
 
 import data_preprocessor.data as d
 import data_preprocessor.gui.frame as m
@@ -84,7 +84,7 @@ class WorkbenchModel(QAbstractListModel):
     def headerData(self, section: int, orientation: Qt.Orientation, role: int = ...) -> Any:
         if section != 0 or orientation != Qt.Horizontal or role != Qt.DisplayRole:
             return None
-        return 'Dataframes'
+        return 'Workbench'
 
     def flags(self, index: QModelIndex) -> Qt.ItemFlags:
         if not index.isValid():
@@ -95,6 +95,11 @@ class WorkbenchModel(QAbstractListModel):
         if not 0 <= row < self.rowCount():
             return False
         self.beginRemoveRows(parent, row, row)
+        # Update views showing the frame
+        frame_model = self.getDataframeModelByIndex(row)
+        # Reset connected models by showing an empty frame. This also delete their reference
+        frame_model.setFrame(frame=d.Frame())
+        # Now delete row
         del self.__workbench[row]
         self.endRemoveRows()
         # TODO: views showing the Frame should react to this
@@ -113,10 +118,13 @@ class WorkbenchModel(QAbstractListModel):
         self.rowAppended.emit(self.index(first, 0, parent))
 
 
-class WorkbenchView(QListView):
+class WorkbenchView(QTableView):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setSelectionMode(QListView.SingleSelection)
+        hh = self.horizontalHeader()
+        hh.setStretchLastSection(True)
+        self.setHorizontalHeader(hh)
 
     def keyPressEvent(self, event: QKeyEvent) -> None:
         if event.key() == Qt.Key_Delete:
