@@ -31,9 +31,9 @@ class MainWidget(QWidget):
         flowTab = View(scene)
         controller = GraphController(self.graph, scene, flowTab, self.workbench_model, self)
 
-        tabs.addTab(attributeTab, 'Attribute')
-        tabs.addTab(chartsTab, 'Visualise')
-        tabs.addTab(flowTab, 'Flow')
+        tabs.addTab(attributeTab, '&Attribute')
+        tabs.addTab(chartsTab, '&Visualise')
+        tabs.addTab(flowTab, 'F&low')
         self.__curr_tab = tabs.currentIndex()
 
         self.__leftSide = QVBoxLayout()

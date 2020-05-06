@@ -3,6 +3,22 @@
 - [x] Fix tab change with Operation Menu
 - [x] Add output operation
 - [x] Add execution buttons for pipeline
+- [ ] Add method to create Frames with specified types and random rows
+- [ ] Add method to compare options in Operation
 - [ ] Add many operations
+    - [ ] Merge values of one attribute (also to Nan)
+    - [ ] Remove Nan rows (by % or number)
+    - [ ] Set index
+    - [ ] Join
+    - [ ] Append
+    - [ ] Discretize numbers
+    - [ ] Discretize dates
+    - [ ] Remove attribute(s)
+    - [ ] Add instance numbers (1, 2, 3, 4, ...)
+    - [ ] One hot encoding
+    - [ ] Scaling
+    - [ ] Select rows based on condition
+    - [ ] Select attributes based on condition
+    - [ ] Remove selection (two inputs: selection and table)
 - [ ] Add Signal object to communicate operation status to the View
 - [ ] Add methods to launch specific signals in Operation

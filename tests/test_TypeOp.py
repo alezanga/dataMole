@@ -4,7 +4,7 @@ import pandas as pd
 
 from data_preprocessor.data import Frame
 from data_preprocessor.data.types import Types
-from data_preprocessor.operation.TypeOp import TypeOp
+from data_preprocessor.operation.generic import TypeOp
 
 
 def test_rename():
