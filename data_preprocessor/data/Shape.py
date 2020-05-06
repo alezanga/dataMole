@@ -1,3 +1,4 @@
+import copy
 from typing import List
 
 from data_preprocessor.data.types import Types
@@ -12,7 +13,6 @@ class Shape:
         self.col_names: List[str] = None
         self.col_types: List[Types] = None
         self.n_columns: int = None
-        self.n_rows: int = None
         self.index: str = None
 
     # Note: in Pandas the index col is not a column of the frame
@@ -28,6 +28,12 @@ class Shape:
 
     def __str__(self):
         return str(self.__dict__)
+
+    def copy(self, deep: bool = True) -> 'Shape':
+        if deep:
+            return copy.deepcopy(self)
+        else:
+            return copy.copy(self)
 
     def has_index(self) -> bool:
         """

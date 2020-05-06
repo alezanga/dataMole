@@ -418,13 +418,13 @@ def test_shape():
     f = Frame(d)
 
     s = Shape()
-    s.n_rows = 5
     s.n_columns = 3
     s.index = None
     s.col_names = ['col1', 'col2', 'col3']
     s.col_types = [Types.Numeric, Types.Numeric, Types.String]
 
     assert f.shape == s
+    assert f.nRows == 5
 
 
 def test_setIndex():
@@ -442,13 +442,13 @@ def test_shape_index():
 
     # Desired shape obj
     s = Shape()
-    s.n_rows = 5
     s.n_columns = 3
     s.index = 'col3'
     s.col_names = ['col1', 'col2', 'col3']
     s.col_types = [Types.Numeric, Types.Numeric, Types.String]
 
     assert f.shape == s
+    assert f.nRows == 5
 
 
 def test_fromShape():
@@ -461,10 +461,9 @@ def test_fromShape():
     g = Frame.fromShape(f.shape)
 
     s = Shape()
-    s.n_rows = 0
     s.n_columns = 4
-    # fromShape does not preserve index
-    s.index = None
+    # fromShape does preserve index
+    s.index = 'col3'
     s.col_names = ['col1', 'col2', 'col3', 'cold']
     s.col_types = [Types.Numeric, Types.Numeric, Types.String, Types.Datetime]
     assert g.shape == s

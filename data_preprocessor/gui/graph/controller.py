@@ -1,9 +1,9 @@
 from typing import List, Callable
 
 from PySide2.QtCore import Slot
-from PySide2.QtWidgets import QWidget
+from PySide2.QtWidgets import QWidget, QMessageBox
 
-from data_preprocessor.gui.editor.AbsOperationEditor import AbsOperationEditor
+from data_preprocessor.gui.editor.interface import AbsOperationEditor
 from .node import NodeSlot, Node
 from .scene import Scene
 from .view import View
@@ -68,9 +68,20 @@ class GraphController(QWidget):
     def startEditNode(self, node_id: int):
         node: OperationNode = self._operation_dag[node_id]
         if not self.__editor_widget:
+            if not node.operation.needsOptions():
+                msg_noeditor = QMessageBox()
+                msg_noeditor.setWindowTitle(node.operation.name())
+                msg_noeditor.setInformativeText(
+                    'This operations require no options.<hr><b>Operation description</b><br><br>' +
+                    node.operation.info())
+                msg_noeditor.setStandardButtons(QMessageBox.Ok)
+                msg_noeditor.exec_()
+                msg_noeditor.deleteLater()
+                return
             # Set up editor
             self.__editor_widget = node.operation.getEditor()
             self.__editor_node_id = node.uid
+            self.__editor_widget._setTypes(node.operation.acceptedTypes())
             self.__editor_widget.setOptions(*node.operation.getOptions())
             # Connect editor signals to slots which handle accept/reject
             self.__editor_widget.acceptAndClose.connect(self.onEditAccept)

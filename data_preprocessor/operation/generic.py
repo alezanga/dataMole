@@ -3,8 +3,8 @@ from typing import Union, Dict, List, Any
 
 from data_preprocessor import data
 from data_preprocessor.data.types import Types, ALL_TYPES, inv_type_dict
-from data_preprocessor.gui.editor.AbsOperationEditor import AbsOperationEditor
 from data_preprocessor.gui.editor.RenameEditor import RenameEditor
+from data_preprocessor.gui.editor.interface import AbsOperationEditor
 from .interface import Operation
 
 

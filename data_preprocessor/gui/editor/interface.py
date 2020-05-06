@@ -1,10 +1,12 @@
 import abc
 import uuid
-from typing import Iterable
+from typing import Iterable, List
 
 from PySide2.QtCore import Signal
 from PySide2.QtGui import QCloseEvent, Qt
 from PySide2.QtWidgets import QWidget, QPushButton, QHBoxLayout, QVBoxLayout
+
+from data_preprocessor.data.types import Types
 
 
 class AbsOperationEditor(QWidget):
@@ -47,6 +49,9 @@ class AbsOperationEditor(QWidget):
         :return: the identifier as string
         """
         return self.__id
+
+    def _setTypes(self, types: List[Types]) -> None:
+        self._accepted_types: List[Types] = types
 
     @abc.abstractmethod
     def editorBody(self) -> QWidget:

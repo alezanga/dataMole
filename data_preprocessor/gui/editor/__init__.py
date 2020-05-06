@@ -1,2 +1,2 @@
-from .AbsOperationEditor import AbsOperationEditor
+from .interface import AbsOperationEditor
 from .RenameEditor import RenameEditor

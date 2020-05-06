@@ -9,7 +9,7 @@ from data_preprocessor.data.types import Types, ALL_TYPES
 from data_preprocessor.flow.OperationDag import OperationDag
 from data_preprocessor.flow.OperationHandler import OperationHandler
 from data_preprocessor.flow.OperationNode import OperationNode
-from data_preprocessor.gui.editor.AbsOperationEditor import AbsOperationEditor
+from data_preprocessor.gui.editor.interface import AbsOperationEditor
 from data_preprocessor.operation.generic import RenameOp, TypeOp
 from data_preprocessor.operation.interface import Operation, OutputOperation, InputOperation
 
@@ -176,9 +176,9 @@ def test_doubleInputInner():
     s.col_names = ['col1', 'col2_L', 'col11', 'col2_R']
     s.col_types = [Types.Numeric, Types.String, Types.Numeric, Types.String]
     s.n_columns = 4
-    s.n_rows = 3
     s.index = None  # Inner join does not maintain index
     assert output[1].shape == s
+    assert output[1].nRows == 3
 
 
 def test_JoinLR():
@@ -225,9 +225,9 @@ def test_JoinLR():
     s.col_names = ['col1', 'col2_L', 'col11', 'col2_R']
     s.col_types = [Types.Numeric, Types.String, Types.Numeric, Types.String]
     s.n_columns = 4
-    s.n_rows = 4
     s.index = 'col11'
     assert output[1].shape == s
+    assert output[1].nRows == 4
 
 
 def test_add_remove_exc():

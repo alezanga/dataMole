@@ -3,7 +3,7 @@ from typing import Union, List, Optional, Iterable
 
 from data_preprocessor import data
 from data_preprocessor.data.types import Types, ALL_TYPES
-from data_preprocessor.gui.editor.AbsOperationEditor import AbsOperationEditor
+from data_preprocessor.gui.editor.interface import AbsOperationEditor
 from data_preprocessor.gui.workbench import WorkbenchModel
 
 
@@ -132,7 +132,8 @@ class Operation(ABC):
         Computes what will the frame shape be after execution of the step.
         Be careful with references. This function should not be modify the input shape.
         If the shape cannot be predicted (for every column) it must return
-        None. Additionally 'isOutputShapeKnown' should be overridden accordingly.
+        None. This is also the case when not all options are set.
+        Additionally 'isOutputShapeKnown' should be overridden accordingly.
         See :func:`~data_preprocessor.operation.interface.Operation.isOutputShapeKnown`
         """
         pass
@@ -141,8 +142,8 @@ class Operation(ABC):
     @abstractmethod
     def isOutputShapeKnown() -> bool:
         """
-        Must return true iff the number of columns and their types can be inferred with
-        'getOutputShape'. Thus if this function returns false, then
+        Must return True if the number of columns and their types can be inferred with
+        'getOutputShape'. Thus if this function returns False, then
         :func:`~data_preprocessor.operation.interface.Operation.getOutputShape` must always return None
         """
         pass

@@ -1,9 +1,17 @@
 from typing import List, Union, Callable, Iterable, Dict, Any, Optional, Tuple
 
+import numpy as np
 import pandas as pd
 
 from data_preprocessor.data.Shape import Shape
-from data_preprocessor.data.types import type_dict, inv_type_dict
+from data_preprocessor.data.types import type_dict, Types
+
+# Constants
+_date = pd.Series(['05-09-1988', '22-12-1994', '21-11-1995', '22-06-1994', '12-12-2012'],
+                  dtype='datetime64[ns]')
+_category = pd.Categorical([1, 6, 1, 3, 9])
+_mixed = [0.2, 1, 'some', np.nan, 'many']
+_numeric = [0.3, 1, 2, 7, 11.1]
 
 
 class Frame:
@@ -11,37 +19,47 @@ class Frame:
     Interface for common dataframe operations
     """
 
-    def __init__(self, data: Union[pd.DataFrame, pd.Series, Iterable, Dict, None] = None,
-                 empty: bool = False):
+    def __init__(self, data: Union[pd.DataFrame, pd.Series, Iterable, Dict, None] = None):
         if isinstance(data, pd.DataFrame):
             self.__df: pd.DataFrame = data
         elif isinstance(data, pd.Series):
             self.__df: pd.DataFrame = data.to_frame()
         else:
             self.__df: pd.DataFrame = pd.DataFrame(data)
-        self.__empty: bool = True if data is None else empty
 
     def getRawFrame(self) -> pd.DataFrame:
         return self.__df
 
+    @property
+    def nRows(self) -> int:
+        return self.__df.shape[0]
+
     def isEmpty(self) -> bool:
-        """ Whether the Frame is to be considered empty (no rows) """
-        return self.__empty
+        """ Whether the Frame is empty (has rows) """
+        return self.nRows == 0
 
     @staticmethod
     def fromShape(s: Shape) -> 'Frame':
+        """ Produces a "toy" dataframe with a specified shape and 5 rows """
         columns = s.col_names
         types = s.col_types
-        # index = [s.index] if s.has_index() else None
+        index = [s.index] if s.has_index() else None
 
         data = dict()
         for n, t in zip(columns, types):
-            data[n] = pd.Series([], dtype=inv_type_dict[t])
-
+            if t == Types.Categorical:
+                data[n] = _category
+            elif t == Types.Numeric:
+                data[n] = _numeric
+            elif t == Types.String:
+                data[n] = _mixed
+            elif t == Types.Datetime:
+                data[n] = _date
         df = pd.DataFrame(data)
-        # Set name because pandas does not do it
-        # df.index.name = s.index
-        return Frame(df, empty=True)
+        if index:
+            df = df.set_index(index, drop=False, inplace=False)
+        # TODO: complete and test this
+        return Frame(df)
 
     def at(self, e: Tuple[int, int]) -> Any:
         """ Get value of element at specified index
@@ -203,8 +221,6 @@ class Frame:
             d.index.name = col
             return Frame(d)
 
-    # def addRow(self):
-
     def apply(self, fn: Callable) -> 'Frame':
         """ Apply a function to each row of the dataset
 
@@ -331,9 +347,6 @@ class Frame:
 
         # Set number of columns
         s.n_columns = internal_sh[1]
-
-        # Set number of rows
-        s.n_rows = internal_sh[0] if not self.isEmpty() else 0
 
         # Set index column, or None if there is no index set (or the default one)
         s.index = self.__df.index.name if self.__df.index.name else None
