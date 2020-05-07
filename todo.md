@@ -3,13 +3,14 @@
 - [x] Fix tab change with Operation Menu
 - [x] Add output operation
 - [x] Add execution buttons for pipeline
-- [ ] Add method to create Frames with specified types and random rows
+- [x] Add method to create Frames with specified types and random rows
 - [ ] Add method to compare options in Operation
 - [ ] Add many operations
-    - [ ] Merge values of one attribute (also to Nan)
+    - [x] Merge values of one attribute (also to Nan)
     - [ ] Remove Nan rows (by % or number)
     - [ ] Set index
-    - [ ] Join
+    - [x] Join
+        - [ ] Fix merge on "datetime"
     - [ ] Append
     - [ ] Discretize numbers
     - [ ] Discretize dates

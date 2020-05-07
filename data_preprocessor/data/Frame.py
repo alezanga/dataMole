@@ -333,8 +333,8 @@ class Frame:
         """
         pass
 
-    def to_dict(self) -> Dict[str, List]:
-        return self.__df.to_dict(orient='list')
+    def to_dict(self, _list: bool = True) -> Dict[str, List]:
+        return self.__df.to_dict(orient='list' if _list else 'dict')
 
     @property
     def shape(self) -> Shape:

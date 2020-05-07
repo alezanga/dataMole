@@ -29,7 +29,7 @@ class ToVariableOp(OutputOperation):
         self.__var_name = var_name
 
     def needsOptions(self) -> bool:
-        return False
+        return True
 
     def getOptions(self) -> Iterable:
         return [self.__var_name, self._workbench]

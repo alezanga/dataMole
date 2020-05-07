@@ -1,5 +1,5 @@
 import copy
-from typing import List
+from typing import List, Dict
 
 from data_preprocessor.data.types import Types
 
@@ -34,6 +34,10 @@ class Shape:
             return copy.deepcopy(self)
         else:
             return copy.copy(self)
+
+    @property
+    def col_type_dict(self) -> Dict[str, Types]:
+        return dict(zip(self.col_names, self.col_types))
 
     def has_index(self) -> bool:
         """
