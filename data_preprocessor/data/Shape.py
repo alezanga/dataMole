@@ -10,9 +10,9 @@ class Shape:
     """
 
     def __init__(self):
-        self.col_names: List[str] = None
-        self.col_types: List[Types] = None
-        self.n_columns: int = None
+        self.col_names: List[str] = list()
+        self.col_types: List[Types] = list()
+        self.n_columns: int = 0
         self.index: str = None
 
     # Note: in Pandas the index col is not a column of the frame
@@ -48,7 +48,7 @@ class Shape:
         """
         Return whether the name and types of every columns is known
         """
-        if self.n_columns and self.n_columns >= 0 and self.col_names and self.col_types:
+        if self.n_columns is not None and self.n_columns >= 0 and self.col_names and self.col_types:
             return True
         else:
             return False

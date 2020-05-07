@@ -12,7 +12,7 @@ def test_merge():
     f = data.Frame(d)
 
     op = MergeValuesOp()
-    op.setOptions(attribute='col3', values_to_merge=['q', 'x', 2, 'wq'], value=0.02)
+    op.setOptions(attribute=2, values_to_merge=['q', 'x', 2, 'wq'], value=0.02)
 
     op.addInputShape(f.shape, 0)
     s = f.shape.copy()
@@ -33,7 +33,7 @@ def test_merge_nan():
     f = f.setIndex('col3')
 
     op = MergeValuesOp()
-    op.setOptions(attribute='col2', values_to_merge=[3, 0, 'q', 'x', 2, 'wq'], value=np.nan)
+    op.setOptions(attribute=1, values_to_merge=[3, 0, 'q', 'x', 2, 'wq'], value=np.nan)
 
     op.addInputShape(f.shape, 0)
     s = f.shape.copy()
@@ -54,7 +54,7 @@ def test_merge_index_val():
     f = f.setIndex('col2')
 
     op = MergeValuesOp()
-    op.setOptions(attribute='col2', values_to_merge=[3, 0], value=88)
+    op.setOptions(attribute=1, values_to_merge=[3, 0], value=88)
 
     op.addInputShape(f.shape, 0)
     s = f.shape.copy()
@@ -65,3 +65,25 @@ def test_merge_index_val():
     g = op.execute(f)
     assert g.shape == f.shape
     assert g.columnsAt('col2').to_dict() == {'col2': [88, 4, 5, 6, 88]}
+
+
+def test_merge_date():
+    # TEst the no-op
+
+    d = {'cowq': [1, 2, 3, 4.0, 10], 'col2': pd.Categorical([3, 4, 5, 6, 0]),
+         'col3': ['q', '2', 'c', '4', 'x'],
+         'date': pd.Series(['05-09-1988', '22-12-1994', '21-11-1995', '22-06-1994', '12-12-2012'],
+                           dtype='datetime64[ns]')}
+    f = data.Frame(d)
+    f = f.setIndex('col3')
+    op = MergeValuesOp()
+    op.setOptions(attribute=3, values_to_merge=['05-09-1988', '22-12-1994'], value=88)
+
+    op.addInputShape(f.shape, 0)
+    s = f.shape.copy()
+    os = op.getOutputShape()
+    assert f.shape.col_types[3] == Types.Datetime == os.col_types[3]
+    assert os == s
+
+    g = op.execute(f)
+    assert g.shape == os

@@ -246,7 +246,7 @@ class AttributeTableModel(QAbstractTableModel):
 class ShapeAttributeNamesListModel(QAbstractListModel):
     def __init__(self, shape: Shape, parent: QWidget = None):
         super().__init__(parent)
-        self.__shape = shape
+        self.__shape = shape if shape else Shape()
 
     def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:
         if parent.isValid():
