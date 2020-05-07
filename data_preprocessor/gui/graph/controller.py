@@ -81,7 +81,7 @@ class GraphController(QWidget):
             # Set up editor
             self.__editor_widget = node.operation.getEditor()
             self.__editor_node_id = node.uid
-            self.__editor_widget._setTypes(node.operation.acceptedTypes())
+            self.__editor_widget.setTypes(node.operation.acceptedTypes())
             self.__editor_widget.setOptions(*node.operation.getOptions())
             # Connect editor signals to slots which handle accept/reject
             self.__editor_widget.acceptAndClose.connect(self.onEditAccept)

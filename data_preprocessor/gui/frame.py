@@ -1,10 +1,11 @@
 from enum import Enum
-from typing import Any, List, Union
+from typing import Any, List, Union, Optional
 
-from PySide2.QtCore import QAbstractTableModel, QModelIndex, Qt, Slot, QAbstractItemModel
+from PySide2.QtCore import QAbstractTableModel, QModelIndex, Qt, Slot, QAbstractItemModel, \
+    QAbstractListModel
 from PySide2.QtWidgets import QWidget
 
-from data_preprocessor.data import Frame
+from data_preprocessor.data import Frame, Shape
 
 
 # New role to return raw data from header
@@ -240,3 +241,19 @@ class AttributeTableModel(QAbstractTableModel):
         elif self._checkable and index.column() == self._checkbox_pos:
             flags |= Qt.ItemIsUserCheckable
         return flags
+
+
+class ShapeAttributeNamesListModel(QAbstractListModel):
+    def __init__(self, shape: Shape, parent: QWidget = None):
+        super().__init__(parent)
+        self.__shape = shape
+
+    def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:
+        if parent.isValid():
+            return 0
+        return self.__shape.n_columns
+
+    def data(self, index: QModelIndex, role: int = Qt.DisplayRole) -> Optional[str]:
+        if index.isValid():
+            return self.__shape.col_names[index.row()]
+        return None

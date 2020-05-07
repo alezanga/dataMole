@@ -1,11 +1,12 @@
 import abc
 import uuid
-from typing import Iterable, List
+from typing import Iterable, List, Optional
 
 from PySide2.QtCore import Signal
 from PySide2.QtGui import QCloseEvent, Qt
 from PySide2.QtWidgets import QWidget, QPushButton, QHBoxLayout, QVBoxLayout
 
+from data_preprocessor import data
 from data_preprocessor.data.types import Types
 
 
@@ -21,9 +22,20 @@ class AbsOperationEditor(QWidget):
     acceptAndClose = Signal()
     rejectAndClose = Signal()
 
+    # ----------------------------------------------------------------------------
+    # ---------------------- FINAL METHODS (PLS NO OVERRIDE) ---------------------
+    # ----------------------------------------------------------------------------
+
     def __init__(self, parent: QWidget = None):
         super().__init__(parent)
+        # Call hook method
+        self._custom_widget = self.editorBody()
 
+        # Standard options
+        self._accepted_types: List[Types] = list()
+        self._input_shapes: List[Optional[data.Shape]] = list()
+
+        # Set up buttons
         self.__id: str = uuid.uuid4().hex
         self.__butOk = QPushButton('Ok')
         butCancel = QPushButton('Cancel')
@@ -31,7 +43,6 @@ class AbsOperationEditor(QWidget):
         butLayout.addWidget(butCancel, alignment=Qt.AlignLeft)
         butLayout.addWidget(self.__butOk, alignment=Qt.AlignRight)
 
-        self._custom_widget = self.editorBody()
         layout = QVBoxLayout()
         layout.addWidget(self._custom_widget)
         layout.addLayout(butLayout)
@@ -50,8 +61,29 @@ class AbsOperationEditor(QWidget):
         """
         return self.__id
 
-    def _setTypes(self, types: List[Types]) -> None:
+    def setTypes(self, types: List[Types]) -> None:
         self._accepted_types: List[Types] = types
+
+    def disableOkButton(self) -> None:
+        """ Makes the accept button unclickable.
+            Useful to prevent user from saving invalid changes """
+        self.__butOk.setDisabled(True)
+
+    def enableOkButton(self) -> None:
+        """ Enable the accept button """
+        self.__butOk.setEnabled(True)
+
+    def closeEvent(self, event: QCloseEvent) -> None:
+        """"""
+        # Reject changes and close editor if the close button is pressed
+        self.rejectAndClose.emit()
+
+    # def setInputShapes(self, shapes: List[Optional[data.Shape]]) -> None:
+    #     self._input_shapes = shapes
+
+    # ----------------------------------------------------------------------------
+    # --------------------------- PURE VIRTUAL METHODS ---------------------------
+    # ----------------------------------------------------------------------------
 
     @abc.abstractmethod
     def editorBody(self) -> QWidget:
@@ -84,17 +116,3 @@ class AbsOperationEditor(QWidget):
         :param kwargs: any keyword argument
         """
         pass
-
-    def disableOkButton(self) -> None:
-        """ Makes the accept button unclickable.
-            Useful to prevent user from saving invalid changes """
-        self.__butOk.setDisabled(True)
-
-    def enableOkButton(self) -> None:
-        """ Enable the accept button """
-        self.__butOk.setEnabled(True)
-
-    def closeEvent(self, event: QCloseEvent) -> None:
-        """"""
-        # Reject changes and close editor if the close button is pressed
-        self.rejectAndClose.emit()

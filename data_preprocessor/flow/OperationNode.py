@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from data_preprocessor.data import Frame, Shape
 from data_preprocessor.operation.interface import Operation
@@ -85,9 +85,9 @@ class OperationNode:
                 '{}.compute(input=...), input argument not correctly set'.format(
                     self.__class__.__name__))
 
-        # Check if options are set and correct
-        msg: Optional[str] = op.checkOptions()
-        if msg:
+        # Check if options are set
+        msg: bool = op.hasOptions()
+        if not msg:
             raise ValueError('{}.compute(input=...), options check failed with message: {}'.format(
                 self.__class__.__name__, msg))
 

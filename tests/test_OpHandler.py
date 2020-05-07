@@ -10,8 +10,9 @@ from data_preprocessor.flow.OperationDag import OperationDag
 from data_preprocessor.flow.OperationHandler import OperationHandler
 from data_preprocessor.flow.OperationNode import OperationNode
 from data_preprocessor.gui.editor.interface import AbsOperationEditor
-from data_preprocessor.operation.generic import RenameOp, TypeOp
 from data_preprocessor.operation.interface import Operation, OutputOperation, InputOperation
+from data_preprocessor.operation.rename import RenameOp
+from data_preprocessor.operation.type import ToCategoricalOp, ToNumericOp
 
 
 class FakeInput(InputOperation):
@@ -232,7 +233,7 @@ def test_JoinLR():
 
 def test_add_remove_exc():
     n1 = OperationNode(RenameOp())
-    n2 = OperationNode(TypeOp())
+    n2 = OperationNode(ToCategoricalOp())
     dag = OperationDag()
 
     dag.addNode(n2)
@@ -250,7 +251,7 @@ def test_GraphAdd():
 
     op0 = FakeInput(f)
     op1 = RenameOp()
-    op2 = TypeOp()
+    op2 = ToNumericOp()
     op3 = GiveOutOp()
 
     node0 = OperationNode(op0)
@@ -262,6 +263,9 @@ def test_GraphAdd():
     dag.addNode(node1)
     dag.addNode(node2)
     dag.addNode(node3)
+
+    # Node2 needs options otherwise outputShape is always None
+    dag.updateNodeOptions(node2.uid, 1)
 
     # Rename -> Type
     assert dag.addConnection(node1.uid, node2.uid, 0) is True
@@ -291,10 +295,10 @@ def test_GraphAdd():
     dag.updateNodeOptions(node3.uid, output2)
 
     # Type
-    dag.updateNodeOptions(node2.uid, {1: Types.String, 0: Types.Numeric})
+    dag.updateNodeOptions(node2.uid, 0)
     new_shape1 = copy.deepcopy(new_shape)
-    new_shape1.col_types[1] = Types.String
-    assert op2._shape == [new_shape] and op2._shape != [new_shape1]
+    new_shape1.col_types[0] = Types.Numeric
+    assert op2._shape == [new_shape1] # Does nothing since col is already Numeric
     assert op3._shape == [new_shape1]
 
     output1: Dict[int, data.Frame] = {1: data.Frame()}
@@ -308,7 +312,7 @@ def test_GraphAdd():
     handler = OperationHandler(dag)
     handler.execute()
     er1 = {'col1': [1, 2, 0.5, 4, 10], 'name_test': [3, 4, 5, 6, 0]}
-    er2 = {'col1': [1, 2, 0.5, 4, 10], 'name_test': ['3', '4', '5', '6', '0']}
+    er2 = {'col1': [1, 2, 0.5, 4, 10], 'name_test': [3, 4, 5, 6, 0]}
 
     assert output1[1].to_dict() == er1
     assert output2[1].to_dict() == er2
@@ -318,7 +322,7 @@ def test_GraphAdd():
 
     ns2 = copy.deepcopy(ns1)
     ns2.col_types[0] = Types.Numeric
-    ns2.col_types[1] = Types.String
+    ns2.col_types[1] = Types.Numeric
 
     assert output1[1].shape == ns1
     assert output2[1].shape == ns2
@@ -331,7 +335,7 @@ def test_removeNode():
 
     op0 = FakeInput(f)
     op1 = RenameOp()
-    op2 = TypeOp()
+    op2 = ToCategoricalOp()
     op3 = GiveOutOp()
 
     node0 = OperationNode(op0)
@@ -347,6 +351,9 @@ def test_removeNode():
     assert dag.addConnection(node1.uid, node2.uid, 0) is True
     assert dag.addConnection(node2.uid, node3.uid, 0) is True
     assert dag.addConnection(node0.uid, node1.uid, 0) is True
+    dag.updateNodeOptions(node1.uid, {0: 'cola'})
+    dag.updateNodeOptions(node3.uid, {})
+    dag.updateNodeOptions(node2.uid, 1)
     node3_is = copy.deepcopy(node3.operation._shape)
     node2_is = copy.deepcopy(node2.operation._shape)
     node1_is = copy.deepcopy(node1.operation._shape)
@@ -355,7 +362,7 @@ def test_removeNode():
     node1_os = copy.deepcopy(node1.operation.getOutputShape())
     node2_os = copy.deepcopy(node2.operation.getOutputShape())
     node3_os = copy.deepcopy(node3.operation.getOutputShape())
-    assert node3_os == node0_os == node2_os
+    assert node3_os == node2_os != node0_os != node1_os
     # Remove a node
     dag.removeNode(node1.uid)
     assert node3.operation.getOutputShape() == node2.operation.getOutputShape() != node0.operation.getOutputShape()
@@ -364,6 +371,10 @@ def test_removeNode():
     assert dag.addNode(node1) is False
     assert dag.addConnection(node0.uid, node1.uid, 0) is True
     assert dag.addConnection(node1.uid, node2.uid, 0) is True
+    # Reconfigure
+    assert dag.updateNodeOptions(node1.uid, {0: 'cola'}) is True
+    assert dag.updateNodeOptions(node3.uid, {})
+    assert dag.updateNodeOptions(node2.uid, 1)
     # See if everything is as before
     assert node0.operation._shape == node0_is
     assert node1.operation._shape == node1_is
