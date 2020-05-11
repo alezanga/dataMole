@@ -41,7 +41,7 @@ class SetIndexOp(Operation):
         return s
 
     def getOptions(self) -> Iterable:
-        return self.__index_col, self._shape[0]
+        return [self.__index_col]
 
     def getEditor(self) -> AbsOperationEditor:
         pass

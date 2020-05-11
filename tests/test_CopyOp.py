@@ -22,10 +22,9 @@ def test_copy():
 
     op = CopyOp(work)
     op.setOptions(selected_frame='var')
-    op.inferInputShape()
     op.addInputShape(Shape(), pos=0)  # this does nothing
 
-    assert op._shape[0] == op.getOutputShape() == f.shape
+    assert op.getOutputShape() == f.shape
 
     g = op.execute()
     assert g == f

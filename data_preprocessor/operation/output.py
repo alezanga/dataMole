@@ -2,12 +2,13 @@ from typing import Optional, Iterable
 
 from PySide2.QtCore import QObject, Slot
 from PySide2.QtGui import QValidator
-from PySide2.QtWidgets import QWidget, QLineEdit
+from PySide2.QtWidgets import QWidget
 
 import data_preprocessor.gui.workbench as wb
 from data_preprocessor import data
 from data_preprocessor.gui.editor.interface import AbsOperationEditor
 from .interface import OutputOperation
+from ..gui.editor import optionwidget as opw
 
 
 class ToVariableOp(OutputOperation):
@@ -32,7 +33,7 @@ class ToVariableOp(OutputOperation):
         return True
 
     def getOptions(self) -> Iterable:
-        return [self.__var_name, self._workbench]
+        return [self.__var_name]
 
     def getEditor(self) -> AbsOperationEditor:
         class Validator(QValidator):
@@ -47,33 +48,29 @@ class ToVariableOp(OutputOperation):
 
         class WriteEditor(AbsOperationEditor):
             def editorBody(self) -> QWidget:
-                self.__write_box = QLineEdit()
+                self.__write_box = opw.TextOptionWidget()
                 self.__validator = None
                 return self.__write_box
 
             def getOptions(self) -> Iterable:
-                text = self.__write_box.text()
-                if text:
-                    return [text]
-                return [None]
+                text = self.__write_box.getData()
+                return [text]
 
-            def setOptions(self, var_name: str, workbench: wb.WorkbenchModel) -> None:
+            def setOptions(self, var_name: str) -> None:
                 if var_name:
-                    self.__write_box.setText(var_name)
+                    self.__write_box.setData(var_name)
                 if not self.__validator:
-                    self.__validator = Validator(workbench, self)
-                    self.__write_box.setValidator(self.__validator)
-                    self.__write_box.textEdited.connect(self.testInput)
+                    self.__validator = Validator(self._workbench, self)
+                    self.__write_box.widget.setValidator(self.__validator)
+                    self.__write_box.widget.textEdited.connect(self.testInput)
 
             @Slot(str)
             def testInput(self, new_text: str):
                 if self.__validator.validate(new_text, 0) == QValidator.Acceptable:
-                    self.__write_box.setStyleSheet('')
-                    self.__write_box.setToolTip('')
+                    self.__write_box.unsetError()
                     self.enableOkButton()
                 else:
-                    self.__write_box.setStyleSheet('border: 1px solid red')
-                    self.__write_box.setToolTip('Variable name is already present')
+                    self.__write_box.setError('Variable name is already present')
                     self.disableOkButton()
 
         return WriteEditor()

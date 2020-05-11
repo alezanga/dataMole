@@ -3,9 +3,9 @@ from typing import Dict, Any, List
 from PySide2.QtCore import Qt, QModelIndex
 from PySide2.QtWidgets import QTableView, QHeaderView, QWidget
 
-from ..frame import AttributeTableModel, FrameModel
 from data_preprocessor import data
 from data_preprocessor.gui.editor import AbsOperationEditor
+from ..frame import AttributeTableModel, FrameModel
 
 
 class EditableAttributeTable(AttributeTableModel):
@@ -60,8 +60,8 @@ class RenameEditor(AbsOperationEditor):
     def getOptions(self) -> List[Dict[int, str]]:
         return [self.__model.editedAttributes()]
 
-    def setOptions(self, option: Dict[int, str], shape: data.Shape) -> None:
-        frame = data.Frame.fromShape(shape) if shape else data.Frame()
+    def setOptions(self, option: Dict[int, str]) -> None:
+        frame = data.Frame.fromShape(self._inputShapes[0]) if self._inputShapes[0] else data.Frame()
         self.__model.setSourceModel(FrameModel(self, frame))
         self.__model.setEditedAttributes(option)
         self.__view.setModel(self.__model)

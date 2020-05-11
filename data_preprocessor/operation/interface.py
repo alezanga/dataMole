@@ -238,14 +238,18 @@ class InputOperation(Operation):
         super().__init__()
         self._workbench: WorkbenchModel = w
 
-    @abstractmethod
-    def inferInputShape(self) -> None:
-        """ This method must be reimplemented to set the input shape after the options have been set.
-        If the input shape cannot be inferred it should set it to None.
-        It replaces :func:`~data_preprocessor.operation.interface.InputOperation.addInputShape`,
-        which instead should not be used in InputOperation
-        """
-        pass
+    @property
+    def workbench(self) -> WorkbenchModel:
+        return self._workbench
+
+    # @abstractmethod
+    # def inferInputShape(self) -> None:
+    #     """ This method must be reimplemented to set the input shape after the options have been set.
+    #     If the input shape cannot be inferred it should set it to None.
+    #     It replaces :func:`~data_preprocessor.operation.interface.InputOperation.addInputShape`,
+    #     which instead should not be used in InputOperation
+    #     """
+    #     pass
 
     def addInputShape(self, shape: data.Shape, pos: int) -> None:
         """ It intentionally is a no-op, because input-operations has no input argument. Instead the
@@ -259,10 +263,10 @@ class InputOperation(Operation):
         # Input operations are not concerned with types
         return ALL_TYPES
 
+    @abstractmethod
     def getOutputShape(self) -> Union[data.Shape, None]:
-        """ Returns the single input shape unchanged """
-        # Input operation has only one input, and it does not change input shape
-        return self._shape[0]
+        """ Returns the single input shape which must be inferred from options """
+        pass
 
     def unsetOptions(self) -> None:
         """ Reimplements base operation and does nothing, since no options depends on the input shape """
@@ -311,6 +315,10 @@ class OutputOperation(Operation):
         super().__init__()
         self._workbench: WorkbenchModel = w
 
+    @property
+    def workbench(self) -> WorkbenchModel:
+        return self._workbench
+
     def acceptedTypes(self) -> List[Types]:
         """ Accepts all types """
         return ALL_TYPES
@@ -347,3 +355,15 @@ class OutputOperation(Operation):
     def maxOutputNumber() -> int:
         """ Returns 0 """
         return 0
+
+
+class OperationError(Exception):
+    """ Base class for operation exceptions """
+
+    def __init__(self, message: str):
+        super().__init__()
+        self.message = message
+
+
+class InvalidOption(OperationError):
+    pass

@@ -1,4 +1,4 @@
-from typing import Optional, List, Tuple
+from typing import Optional, List, Union
 
 from PySide2.QtCore import Qt
 from PySide2.QtWidgets import QComboBox, QWidget
@@ -28,14 +28,14 @@ class CopyOp(InputOperation):
     def setOptions(self, selected_frame: str) -> None:
         self._frame_name = selected_frame
 
-    def getOptions(self) -> Tuple[Optional[str], wb.WorkbenchModel]:
-        return self._frame_name, self._workbench
+    def getOptions(self) -> List[Optional[str]]:
+        return [self._frame_name]
 
-    def inferInputShape(self) -> None:
+    def getOutputShape(self) -> Union[data.Shape, None]:
         if self._frame_name is None:
-            self._shape = [None]
+            return None
         else:
-            self._shape = [self._workbench.getDataframeByName(self._frame_name).shape]
+            return self._workbench.getDataframeByName(self._frame_name).shape
 
     def needsOptions(self) -> bool:
         return True
@@ -46,8 +46,8 @@ class CopyOp(InputOperation):
                 name = self.__selection_box.currentText() if self.__selection_box.currentText() else None
                 return [name]
 
-            def setOptions(self, selected_name: Optional[str], workbench: wb.WorkbenchModel) -> None:
-                self.__selection_box.setModel(workbench)
+            def setOptions(self, selected_name: Optional[str]) -> None:
+                self.__selection_box.setModel(self._workbench)
                 if selected_name is not None:
                     self.__selection_box.setCurrentIndex(
                         self.__selection_box.findText(selected_name, Qt.MatchExactly))

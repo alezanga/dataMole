@@ -5,10 +5,15 @@
 - [x] Add execution buttons for pipeline
 - [x] Add method to create Frames with specified types and random rows
 - [ ] Add method to compare options in Operation
+- [ ] Do option widget for AttributeTable
+- [ ] ~~Find better strategy for editor (the idea is to have custom editor factory)~~
+- [ ] How to use a single operation? Maybe refactor the hierarchy (Operation -> GraphOperation)
 - [ ] Add many operations
     - [x] Merge values of one attribute (also to Nan)
     - [ ] Remove Nan rows (by % or number)
-    - [ ] Set index
+    - [ ] Load CSV
+    - [ ] Write CSV
+    - [x] Set index
     - [x] Join
         - [ ] Fix merge on "datetime"
     - [ ] Append

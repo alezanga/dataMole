@@ -3,12 +3,12 @@ from typing import Iterable, List, Any
 import numpy as np
 from PySide2.QtCore import Qt, Slot, QRegExp
 from PySide2.QtGui import QRegExpValidator
-from PySide2.QtWidgets import QWidget, QComboBox, QLineEdit, QCheckBox, QHBoxLayout, QVBoxLayout
+from PySide2.QtWidgets import QWidget, QCheckBox, QHBoxLayout, QVBoxLayout
 
+import data_preprocessor.gui.editor.optionwidget as opw
 from data_preprocessor import data
 from data_preprocessor.data.types import Types
 from data_preprocessor.gui import AbsOperationEditor
-from data_preprocessor.gui.frame import ShapeAttributeNamesListModel
 from data_preprocessor.operation.interface import Operation
 
 
@@ -56,7 +56,7 @@ class MergeValuesOp(Operation):
         return True
 
     def getOptions(self) -> Iterable:
-        return self.__values_to_merge, self.__merge_val, self.__attribute, self._shape[0]
+        return self.__attribute, self.__values_to_merge, self.__merge_val
 
     def getEditor(self) -> AbsOperationEditor:
         return _MergeValEditor()
@@ -89,22 +89,23 @@ class _MergeValEditor(AbsOperationEditor):
     # TODO: finish this
     def editorBody(self) -> QWidget:
         self.setWindowTitle('Merge values')
-        self.__combo_box = QComboBox()
-        self.__merge_list_lineedit = QLineEdit()
-        self.__merge_value_lineedit = QLineEdit()
+        self.__attributeComboBox = opw.AttributeComboBox(self._inputShapes[0], self._acceptedTypes)
+        self.__mergeList = opw.TextOptionWidget()
+        self.__mergeValue = opw.TextOptionWidget()
         self.__nan_cb = QCheckBox()
+        self.__curr_type = None
         self.__nan_cb.setText('to Nan')
         layoutH = QHBoxLayout()
-        layoutH.addWidget(self.__merge_value_lineedit)
+        layoutH.addWidget(self.__mergeValue)
         layoutH.addWidget(self.__nan_cb)
 
         layout = QVBoxLayout()
-        layout.addWidget(self.__combo_box)
-        layout.addWidget(self.__merge_list_lineedit)
+        layout.addWidget(self.__attributeComboBox)
+        layout.addWidget(self.__mergeList)
         layout.addLayout(layoutH)
 
         self.__nan_cb.stateChanged.connect(self.toggleValueEdit)
-        self.__combo_box.currentIndexChanged[int].connect(self.toggleValidator)
+        self.__attributeComboBox.widget.currentIndexChanged[int].connect(self.toggleValidator)
         body = QWidget(self)
         body.setLayout(layout)
         return body
@@ -112,47 +113,74 @@ class _MergeValEditor(AbsOperationEditor):
     @Slot(int)
     def toggleValueEdit(self, state: Qt.CheckState) -> None:
         if state == Qt.Checked:
-            self.__merge_value_lineedit.setDisabled(True)
+            self.__mergeValue.widget.setDisabled(True)
         else:
-            self.__merge_value_lineedit.setDisabled(False)
+            self.__mergeValue.widget.setDisabled(False)
 
     @Slot(int)
     def toggleValidator(self, index: int) -> None:
-        self.__curr_type = self.__input_shape.col_types[index]
+        self.__curr_type = self._inputShapes[0].col_types[index]
         if self.__curr_type == Types.Numeric:
             reg = QRegExp('(\\d+(\\.\\d)?\\d*)(\\,\\s?(\\d+(\\.\\d)?\\d*))*')
         else:
             reg = QRegExp('(.*?)')
-        self.__merge_list_lineedit.setValidator(QRegExpValidator(reg, self))
+        self.__mergeList.setValidator(QRegExpValidator(reg, self))
 
     def getOptions(self) -> Iterable:
-        cur_attr = self.__combo_box.currentIndex() if self.__combo_box.currentText() else None
-        list_merge = self.__merge_list_lineedit.text()
+        cur_attr = self.__attributeComboBox.getData()
+        list_merge = self.__mergeList.getData()
         list_merge = list_merge.split(', ') if list_merge else list()
-        vv = self.__merge_value_lineedit
+        vv = self.__mergeValue
         if self.__nan_cb.isChecked():
             value = MergeValuesOp.Nan
         else:
-            value = vv.text() if vv.text() else None
+            value = vv.getData()
         return cur_attr, list_merge, value
 
-    def setOptions(self, values_to_merge: List, merge_val: Any, attribute: int,
-                   input_shape: data.Shape) -> None:
-        self.__input_shape = input_shape
-        self.__combo_box.setModel(ShapeAttributeNamesListModel(input_shape, self))
+    def setOptions(self, attribute: int, values_to_merge: List, merge_val: Any) -> None:
         if values_to_merge:
-            self.__merge_list_lineedit.setText(''.join([str(e) for e in values_to_merge]))
+            self.__mergeList.setData(', '.join([str(e) for e in values_to_merge]))
         if merge_val is not None:
             if merge_val == MergeValuesOp.Nan:
                 self.__nan_cb.setChecked(True)
                 self.__nan_cb.stateChanged.emit(self.__nan_cb.checkState())
             else:
-                self.__merge_value_lineedit.setText(str(merge_val))
+                self.__mergeValue.setData(str(merge_val))
+        self.__attributeComboBox.setData(attribute)
         if attribute is not None:
-            self.__combo_box.setCurrentIndex(attribute)
-            self.__curr_type = input_shape.col_types[attribute]
-        else:
-            self.__combo_box.setCurrentIndex(0)
+            self.__curr_type = self._inputShapes[0].col_types[attribute]
+
+    def validate(self, cur_attr: int, list_merge: List, value: Any) -> bool:
+        """ Validates the options before setting them in the operation. It's called with the values
+        returned by getOptions. This method should sets error fields when necessary. returning False
+        prevents the editor from being closed.
+
+        :return True if options are ok, False otherwise
+        """
+
+        def not_float(num):
+            try:
+                float(num)
+                return False
+            except ValueError:
+                return True
+
+        error = False
+        self.__mergeList.unsetError()
+        self.__mergeValue.unsetError()
+        self.__attributeComboBox.unsetError()
+        if self.__curr_type == Types.Numeric:
+            if any(map(not_float, list_merge)):
+                self.__mergeList.setError('You selected a numeric attribute, but merge values '
+                                          'include non numeric values')
+                error = True
+            elif not_float(value):
+                self.__mergeValue.setError('You selected a numeric attribute but the value to replace '
+                                           'is non numeric')
+                error = True
+        if error:
+            self.disableOkButton()
+        return not error
 
 
 export = MergeValuesOp

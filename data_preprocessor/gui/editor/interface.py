@@ -2,7 +2,7 @@ import abc
 import uuid
 from typing import Iterable, List, Optional
 
-from PySide2.QtCore import Signal
+from PySide2.QtCore import Signal, Slot
 from PySide2.QtGui import QCloseEvent, Qt
 from PySide2.QtWidgets import QWidget, QPushButton, QHBoxLayout, QVBoxLayout
 
@@ -29,11 +29,12 @@ class AbsOperationEditor(QWidget):
     def __init__(self, parent: QWidget = None):
         super().__init__(parent)
         # Call hook method
-        self._custom_widget = self.editorBody()
+        # self._custom_widget = self.editorBody()
 
         # Standard options
-        self._accepted_types: List[Types] = list()
-        self._input_shapes: List[Optional[data.Shape]] = list()
+        self._acceptedTypes: List[Types] = list()
+        self._inputShapes: List[Optional[data.Shape]] = list()
+        self._workbench: 'WorkbenchModel' = None
 
         # Set up buttons
         self.__id: str = uuid.uuid4().hex
@@ -44,12 +45,12 @@ class AbsOperationEditor(QWidget):
         butLayout.addWidget(self.__butOk, alignment=Qt.AlignRight)
 
         layout = QVBoxLayout()
-        layout.addWidget(self._custom_widget)
+        # layout.addWidget(self._custom_widget)
         layout.addLayout(butLayout)
         self.setLayout(layout)
         self.setFocusPolicy(Qt.StrongFocus)
 
-        self.__butOk.pressed.connect(self.acceptAndClose)
+        self.__butOk.pressed.connect(self.onAccept)
         butCancel.pressed.connect(self.rejectAndClose)
 
     @property
@@ -62,7 +63,15 @@ class AbsOperationEditor(QWidget):
         return self.__id
 
     def setTypes(self, types: List[Types]) -> None:
-        self._accepted_types: List[Types] = types
+        """ Set the accepted types in the editor """
+        self._acceptedTypes: List[Types] = types
+
+    def setInputShapes(self, sh: List[Optional[data.Shape]]) -> None:
+        """ Sets the input shapes in the editor """
+        self._inputShapes: List[Optional[data.Shape]] = sh
+
+    def setWorkbench(self, wor: 'WorkbenchModel') -> None:
+        self._workbench: 'WorkbenchModel' = wor
 
     def disableOkButton(self) -> None:
         """ Makes the accept button unclickable.
@@ -79,7 +88,18 @@ class AbsOperationEditor(QWidget):
         self.rejectAndClose.emit()
 
     # def setInputShapes(self, shapes: List[Optional[data.Shape]]) -> None:
-    #     self._input_shapes = shapes
+    #     self._inputShapes = shapes
+
+    @Slot()
+    def onAccept(self) -> None:
+        ok = self.validate(*self.getOptions())
+        if ok:
+            self.acceptAndClose.emit()
+
+    def setUpEditor(self):
+        """ Calls editorBody and add the returned widget """
+        layout: QVBoxLayout = self.layout()
+        layout.insertWidget(0, self.editorBody())
 
     # ----------------------------------------------------------------------------
     # --------------------------- PURE VIRTUAL METHODS ---------------------------
@@ -90,8 +110,7 @@ class AbsOperationEditor(QWidget):
         """
         Hook method to add widget components. This may include Qt components of every kind, as long as
         they can belong to a QWidget. This method may add fields to the instance but must return the
-        widget that should be shown in the editor. This method is called from the constructor,
-        so it should initialise every field which is required in getOptions and setOptions
+        widget that should be shown in the editor. This method is called after the constructor
         """
         pass
 
@@ -116,3 +135,15 @@ class AbsOperationEditor(QWidget):
         :param kwargs: any keyword argument
         """
         pass
+
+    def validate(self, *args) -> bool:
+        """
+        Validates the options returned by 'getOptions'. This method should be used to show error
+        messages if some fields were not imputed correctly. If this method returns False, the editor
+        will not be closed. The Ok button may be disabled to force the user to correct fields.
+        Default implementation does nothing and returns True.
+
+        :param args: the arguments returned by 'getOptions'
+        :return: True if options are ok, False otherwise. Defaults to True
+        """
+        return True

@@ -30,8 +30,8 @@ def test_unsetOptions():
     op.addInputShape(f.shape, pos=0)
     op.setOptions(names={0: 'col4', 2: 'col1'})
 
-    assert op.getOptions() == ({0: 'col4', 2: 'col1'}, f.shape)
+    assert op.getOptions() == [{0: 'col4', 2: 'col1'}]
 
     op.unsetOptions()
 
-    assert op.getOptions() == ({}, f.shape)
+    assert op.getOptions() == [{}]

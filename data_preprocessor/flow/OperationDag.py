@@ -42,8 +42,8 @@ class OperationDag:
         # Set options for operation
         node: OperationNode = self[node_id]
         node.operation.setOptions(*options, **kwoptions)
-        if node.operation.maxInputNumber() == 0:  # if it's an input op
-            node.operation.inferInputShape()
+        # if node.operation.maxInputNumber() == 0:  # if it's an input op
+        #     node.operation.inferInputShape()
         # Update every connected node
         self.__update_descendants(node_id)
         return True
@@ -57,11 +57,11 @@ class OperationDag:
         if node.uid in self.__G:
             return False
         self.__G.add_node(node.uid, op=node)
-        if node.operation.maxInputNumber() == 0:
+        # if node.operation.maxInputNumber() == 0:
             # Then it's an input operation and the shape can be inferred
-            in_op: 'InputOperation' = node.operation
-            in_op.inferInputShape()
-            self.__update_descendants(node.uid)  # TOCHECK: is it needed?
+            # in_op: 'InputOperation' = node.operation
+            # in_op.inferInputShape()
+            # self.__update_descendants(node.uid)  # TOCHECK: is it needed?
         return True
 
     def addConnection(self, source_id: int, target_id: int, slot: int) -> bool:

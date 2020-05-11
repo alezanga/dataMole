@@ -23,8 +23,10 @@ class FakeInput(InputOperation):
     def needsOptions(self) -> bool:
         return False
 
-    def inferInputShape(self) -> None:
-        self._shape = [self.input.shape]
+    def getOutputShape(self) -> Union[data.Shape, None]:
+        if self.input:
+            return self.input.shape
+        return None
 
     def execute(self, *df: data.Frame) -> data.Frame:
         return self.input

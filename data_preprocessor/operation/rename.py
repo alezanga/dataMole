@@ -35,8 +35,8 @@ class RenameOp(Operation):
     def info(self) -> str:
         return 'This operation can rename the attributes'
 
-    def getOptions(self) -> (Dict[int, str], data.Shape):
-        return copy.deepcopy(self.__names), copy.deepcopy(self._shape[0])
+    def getOptions(self) -> List[Dict[int, str]]:
+        return [copy.deepcopy(self.__names)]
 
     def setOptions(self, names: Dict[int, str]) -> None:
         self.__names = names
