@@ -41,7 +41,7 @@ class RubberBand(QtWidgets.QGraphicsItem):
         :type init_pos: :class:`QtCore.QPointF`
 
         :param scene: GraphicsScene that holds the source and target nodes
-        :type scene: :class:`nodegraph.scene.Scene`
+        :type scene: :class:`nodegraph.scene.GraphScene`
 
         :param outline: Width of the edge and arrow outline
         :type outline: int
@@ -129,7 +129,7 @@ class RubberBand(QtWidgets.QGraphicsItem):
     def refresh(self, mouse_pos=None, init_pos=None):
         """Update corner of rubber band defined by mouse pos
 
-        :param mouse_pos: Scene position of the mouse
+        :param mouse_pos: GraphScene position of the mouse
         :type mouse_pos: :class:`QtCore.QPointF`
 
         """

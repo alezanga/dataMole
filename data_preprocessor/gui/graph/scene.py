@@ -25,7 +25,7 @@ from .rubberband import RubberBand
 from ...flow.OperationDag import OperationDag
 
 
-class Scene(QtWidgets.QGraphicsScene):
+class GraphScene(QtWidgets.QGraphicsScene):
     """
     Provides custom implementation of QGraphicsScene
 

@@ -4,10 +4,11 @@ from PySide2.QtWidgets import QTreeView, QTabWidget, QWidget, QVBoxLayout, \
 
 from data_preprocessor.flow.OperationDag import OperationDag
 from data_preprocessor.flow.OperationHandler import OperationHandler
+from data_preprocessor.gui.attributepanel import AttributePanel
 from data_preprocessor.gui.graph.controller import GraphController
-from data_preprocessor.gui.graph.scene import Scene
-from data_preprocessor.gui.graph.view import View
-from data_preprocessor.gui.operation_list import OperationMenu
+from data_preprocessor.gui.graph.scene import GraphScene
+from data_preprocessor.gui.graph.view import GraphView
+from data_preprocessor.gui.operationmenu import OperationMenu
 from data_preprocessor.gui.workbench import WorkbenchModel, WorkbenchView
 from data_preprocessor.operation.loaders import CsvLoader
 from data_preprocessor.operation.utils import OperationAction
@@ -27,10 +28,10 @@ class MainWidget(QWidget):
 
         tabs = QTabWidget(self)
 
-        attributeTab = QWidget()
+        attributeTab = AttributePanel(self.workbench_model, self)
         chartsTab = QWidget()
-        scene = Scene(self)
-        flowTab = View(scene)
+        scene = GraphScene(self)
+        flowTab = GraphView(scene)
         controller = GraphController(self.graph, scene, flowTab, self.workbench_model, self)
 
         tabs.addTab(attributeTab, '&Attribute')
@@ -47,6 +48,7 @@ class MainWidget(QWidget):
         layout.addWidget(tabs, 7)
 
         tabs.currentChanged.connect(self.switch_view)
+        workbenchView.selectedRowChanged.connect(attributeTab.selectionChanged)
 
         self.setLayout(layout)
 

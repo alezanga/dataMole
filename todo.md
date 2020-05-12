@@ -5,6 +5,7 @@
 - [x] Add execution buttons for pipeline
 - [x] Add method to create Frames with specified types and random rows
 - [ ] Add method to compare options in Operation
+- [ ] FIX EDITORS (do not show)
 - [ ] ~~Do option widget for AttributeTable~~
 - [ ] ~~Find better strategy for editor (the idea is to have custom editor factory)~~
 - [x] How to use a single operation? Maybe refactor the hierarchy (Operation -> GraphOperation)

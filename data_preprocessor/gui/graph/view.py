@@ -25,7 +25,7 @@ from .node import Node
 RESOURCES = os.path.dirname(os.path.realpath(__file__))
 
 
-class View(QtWidgets.QGraphicsView):
+class GraphView(QtWidgets.QGraphicsView):
     """
     Provides custom implementation of QGraphicsView
 
@@ -36,14 +36,14 @@ class View(QtWidgets.QGraphicsView):
     def __init__(self, scene, parent=None):
         """Create an instance of this class
 
-        :param scene: Scene reference
-        :type scene: :class:`nodegraph.nodegraphScene.Scene`
+        :param scene: GraphScene reference
+        :type scene: :class:`nodegraph.nodegraphScene.GraphScene`
 
         :param parent: Parent widget
         :type parent: mixed
 
         :returns: An instance of this class
-        :rtype: :class:`nodegraph.nodegraphView.View`
+        :rtype: :class:`nodegraph.nodegraphView.GraphView`
 
         """
         QtWidgets.QGraphicsView.__init__(self, scene, parent)

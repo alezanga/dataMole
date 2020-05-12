@@ -1,6 +1,6 @@
 from typing import Any, List, Tuple, Optional
 
-from PySide2.QtCore import QAbstractListModel, QObject, QModelIndex, Qt, Slot, Signal
+from PySide2.QtCore import QAbstractListModel, QObject, QModelIndex, Qt, Slot, Signal, QItemSelection
 from PySide2.QtGui import QKeyEvent
 from PySide2.QtWidgets import QListView, QTableView
 
@@ -122,6 +122,8 @@ class WorkbenchModel(QAbstractListModel):
 
 
 class WorkbenchView(QTableView):
+    selectedRowChanged = Signal(int)
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setSelectionMode(QListView.SingleSelection)
@@ -135,3 +137,12 @@ class WorkbenchView(QTableView):
                 self.model().removeRow(index.row())
         else:
             super().keyPressEvent(event)
+
+    def selectionChanged(self, selected: QItemSelection, deselected: QItemSelection) -> None:
+        """ Emit signal when current selection changes """
+        super().selectionChanged(selected, deselected)
+        current: QModelIndex = selected.indexes()[0] if selected.indexes() else QModelIndex()
+        if current.isValid():
+            self.selectedRowChanged.emit(current.row())
+        else:
+            self.selectedRowChanged.emit(-1)

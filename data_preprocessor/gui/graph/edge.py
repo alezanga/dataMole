@@ -45,7 +45,7 @@ class Edge(QtWidgets.QGraphicsItem):
         :type target: :cLass:`nodegraph.node.NodeSlot`
 
         :param scene: GraphicsScene that holds the source and target nodes
-        :type scene: :class:`nodegraph.scene.Scene`
+        :type scene: :class:`nodegraph.scene.GraphScene`
 
         :param outline: Width of the edge and arrow outline
         :type outline: int
@@ -301,7 +301,7 @@ class InteractiveEdge(Edge):
         :type mouse: :class:`QtCore.QPointF`
 
         :param scene: GraphicsScene that holds the source and target nodes
-        :type scene: :class:`nodegraph.scene.Scene`
+        :type scene: :class:`nodegraph.scene.GraphScene`
 
         :param outline: Width of the edge and arrow outline
         :type outline: int
@@ -355,7 +355,7 @@ class InteractiveEdge(Edge):
     def refresh(self, mouse_pos, source_slot=None):
         """Updates start/end position and force redraw
 
-        :param mouse_pos: Scene position of the mouse
+        :param mouse_pos: GraphScene position of the mouse
         :type mouse_pos: :class:`QtCore.QPointF`
 
         :param source_slot: Source slot (output or input)

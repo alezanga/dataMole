@@ -5,19 +5,19 @@ from PySide2.QtWidgets import QWidget, QMessageBox
 
 from data_preprocessor.gui.editor.interface import AbsOperationEditor
 from .node import NodeSlot, Node
-from .scene import Scene
-from .view import View
+from .scene import GraphScene
+from .view import GraphView
 from ..workbench import WorkbenchModel
 from ...flow import OperationNode
 from ...flow.OperationDag import OperationDag
 
 
 class GraphController(QWidget):
-    def __init__(self, operation_dag: OperationDag, scene: Scene, view: View,
+    def __init__(self, operation_dag: OperationDag, scene: GraphScene, view: GraphView,
                  workbench_mod: WorkbenchModel, parent: QWidget = None):
         super().__init__(parent)
-        self._scene: Scene = scene
-        self._view: View = view
+        self._scene: GraphScene = scene
+        self._view: GraphView = view
         self._operation_dag: OperationDag = operation_dag
         self._workbench_model: WorkbenchModel = workbench_mod
         # Current active editor

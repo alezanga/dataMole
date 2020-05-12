@@ -1,11 +1,12 @@
 from enum import Enum
-from typing import Any, List, Union, Optional
+from typing import Any, List, Union
 
 from PySide2.QtCore import QAbstractTableModel, QModelIndex, Qt, Slot, QAbstractItemModel, \
-    QAbstractListModel
+    QSortFilterProxyModel
 from PySide2.QtWidgets import QWidget
 
-from data_preprocessor.data import Frame, Shape
+from data_preprocessor.data import Frame
+from data_preprocessor.data.types import Types
 
 
 # New role to return raw data from header
@@ -17,11 +18,13 @@ class FrameModel(QAbstractTableModel):
     """ Table model for a single dataframe """
 
     DataRole = MyRoles.DataRole
+    COL_BATCH_SIZE = 50
 
     def __init__(self, parent: QWidget = None, frame: Frame = Frame(), nrows: int = 10):
         super().__init__(parent)
         self._frame: Frame = frame
         self._n_rows: int = nrows
+        self._loadedCols: int = self.COL_BATCH_SIZE
 
     def setFrame(self, frame: Frame) -> None:
         self.beginResetModel()
@@ -31,12 +34,15 @@ class FrameModel(QAbstractTableModel):
     def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:
         if parent.isValid():
             return 0
-        return self._frame.shape.n_rows if self._frame.shape.n_rows < self._n_rows else self._n_rows
+        return self._frame.nRows if self._frame.nRows < self._n_rows else self._n_rows
 
     def columnCount(self, parent: QModelIndex = QModelIndex()) -> int:
         if parent.isValid():
             return 0
-        return self._frame.shape.n_columns
+        allCols = self._frame.shape.n_columns
+        if allCols < self._loadedCols:
+            return allCols
+        return self._loadedCols
 
     def data(self, index: QModelIndex, role: int = ...) -> Any:
         if index.isValid() and index.row() < self._n_rows:
@@ -50,7 +56,7 @@ class FrameModel(QAbstractTableModel):
                 return self._frame.shape.col_names[section] + '\n' + self._frame.shape.col_types[
                     section].value
             elif role == FrameModel.DataRole:
-                return self._frame.shape.col_names[section], self._frame.shape.col_types[section].value
+                return self._frame.shape.col_names[section], self._frame.shape.col_types[section]
         elif orientation == Qt.Vertical and role == Qt.DisplayRole:
             if self._frame.shape.has_index():
                 return self._frame.index[section]
@@ -66,6 +72,19 @@ class FrameModel(QAbstractTableModel):
             self.headerDataChanged.emit(orientation, section, section)
             return True
         return False
+
+    def canFetchMore(self, parent: QModelIndex) -> bool:
+        """ Returns True if more columns should be displayed, False otherwise """
+        if self._frame.shape.n_columns > self._loadedCols:
+            return True
+        return False
+
+    def fetchMore(self, parent: QModelIndex):
+        remainder = self._frame.shape.n_columns - self._loadedCols
+        colsToFetch = min(remainder, self.COL_BATCH_SIZE)
+        self.beginInsertColumns(parent, self._loadedCols, self._loadedCols + colsToFetch - 1)
+        self._loadedCols += colsToFetch
+        self.endInsertColumns()
 
 
 class AttributeTableModel(QAbstractTableModel):
@@ -178,14 +197,15 @@ class AttributeTableModel(QAbstractTableModel):
     def data(self, index: QModelIndex, role: int = ...) -> Any:
         if not index.isValid():
             return None
-
+        name: str
+        col_type: Types
         name, col_type = self._sourceModel.headerData(index.row(), orientation=Qt.Horizontal,
                                                       role=FrameModel.DataRole)
         value = None
         if index.column() == self._name_pos:
             value = name
         elif index.column() == self._type_pos:
-            value = col_type
+            value = col_type.value
 
         if role == Qt.DisplayRole or role == Qt.EditRole:
             return value
@@ -242,18 +262,37 @@ class AttributeTableModel(QAbstractTableModel):
             flags |= Qt.ItemIsUserCheckable
         return flags
 
+    def canFetchMore(self, parent: QModelIndex) -> bool:
+        return self._sourceModel.canFetchMore(parent)
 
-class ShapeAttributeNamesListModel(QAbstractListModel):
-    def __init__(self, shape: Shape, parent: QWidget = None):
+    def fetchMore(self, parent: QModelIndex) -> None:
+        self._sourceModel.fetchMore(parent)
+
+
+class AttributeTableModelFilter(QSortFilterProxyModel):
+    def __init__(self, filterTypes: List[Types], parent: QWidget = None):
         super().__init__(parent)
-        self.__shape = shape if shape else Shape()
+        self._filterTypes = filterTypes
 
-    def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:
-        if parent.isValid():
-            return 0
-        return self.__shape.n_columns
+    def filterAcceptsRow(self, source_row: int, source_parent: QModelIndex) -> bool:
+        index = self.sourceModel().index(source_row, self.sourceModel()._type_pos, source_parent)
 
-    def data(self, index: QModelIndex, role: int = Qt.DisplayRole) -> Optional[str]:
-        if index.isValid():
-            return self.__shape.col_names[index.row()]
-        return None
+        type_data: str = self.sourceModel().data(index, Qt.DisplayRole)
+        if Types(type_data) in self._filterTypes:
+            return True
+        return False
+
+# class ShapeAttributeNamesListModel(QAbstractListModel):
+#     def __init__(self, shape: Shape, parent: QWidget = None):
+#         super().__init__(parent)
+#         self.__shape = shape if shape else Shape()
+#
+#     def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:
+#         if parent.isValid():
+#             return 0
+#         return self.__shape.n_columns
+#
+#     def data(self, index: QModelIndex, role: int = Qt.DisplayRole) -> Optional[str]:
+#         if index.isValid():
+#             return self.__shape.col_names[index.row()]
+#         return None
