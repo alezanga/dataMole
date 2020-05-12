@@ -8,6 +8,7 @@ from PySide2.QtWidgets import QWidget, QPushButton, QHBoxLayout, QVBoxLayout
 
 from data_preprocessor import data
 from data_preprocessor.data.types import Types
+from data_preprocessor.gui.waitingspinnerwidget import QtWaitingSpinner
 
 
 class AbsOperationEditor(QWidget):
@@ -40,13 +41,13 @@ class AbsOperationEditor(QWidget):
         self.__id: str = uuid.uuid4().hex
         self.__butOk = QPushButton('Ok')
         butCancel = QPushButton('Cancel')
-        butLayout = QHBoxLayout()
-        butLayout.addWidget(butCancel, alignment=Qt.AlignLeft)
-        butLayout.addWidget(self.__butOk, alignment=Qt.AlignRight)
+        self.butLayout = QHBoxLayout()
+        self.butLayout.addWidget(butCancel, alignment=Qt.AlignLeft)
+        self.butLayout.addWidget(self.__butOk, alignment=Qt.AlignRight)
 
         layout = QVBoxLayout()
         # layout.addWidget(self._custom_widget)
-        layout.addLayout(butLayout)
+        layout.addLayout(self.butLayout)
         self.setLayout(layout)
         self.setFocusPolicy(Qt.StrongFocus)
 
@@ -147,3 +148,11 @@ class AbsOperationEditor(QWidget):
         :return: True if options are ok, False otherwise. Defaults to True
         """
         return True
+
+
+def withSpinner(editor: AbsOperationEditor) -> AbsOperationEditor:
+    """ Adds a spinner which can be shown next to the Ok button. Disable the editor when started """
+    editor.spinner = QtWaitingSpinner(editor, centerOnParent=False, disableParentWhenSpinning=True)
+    editor.butLayout.insertWidget(1, editor.spinner, alignment=Qt.AlignRight)
+    editor.spinner.setInnerRadius(6)
+    return editor

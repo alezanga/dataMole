@@ -5,9 +5,10 @@
 - [x] Add execution buttons for pipeline
 - [x] Add method to create Frames with specified types and random rows
 - [ ] Add method to compare options in Operation
-- [ ] Do option widget for AttributeTable
+- [ ] ~~Do option widget for AttributeTable~~
 - [ ] ~~Find better strategy for editor (the idea is to have custom editor factory)~~
-- [ ] How to use a single operation? Maybe refactor the hierarchy (Operation -> GraphOperation)
+- [x] How to use a single operation? Maybe refactor the hierarchy (Operation -> GraphOperation)
+- [ ] Fix spinner/add a status bar
 - [ ] Add many operations
     - [x] Merge values of one attribute (also to Nan)
     - [ ] Remove Nan rows (by % or number)

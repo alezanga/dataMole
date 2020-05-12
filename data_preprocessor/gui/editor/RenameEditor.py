@@ -5,7 +5,7 @@ from PySide2.QtWidgets import QTableView, QHeaderView, QWidget
 
 from data_preprocessor import data
 from data_preprocessor.gui.editor import AbsOperationEditor
-from ..frame import AttributeTableModel, FrameModel
+from ..frame import AttributeTableModel, FrameModel, AttributeTableModelFilter
 
 
 class EditableAttributeTable(AttributeTableModel):
@@ -58,18 +58,22 @@ class EditableAttributeTable(AttributeTableModel):
 
 class RenameEditor(AbsOperationEditor):
     def getOptions(self) -> List[Dict[int, str]]:
-        return [self.__model.editedAttributes()]
+        return [self.__source_model.editedAttributes()]
 
     def setOptions(self, option: Dict[int, str]) -> None:
-        frame = data.Frame.fromShape(self._inputShapes[0]) if self._inputShapes[0] else data.Frame()
-        self.__model.setSourceModel(FrameModel(self, frame))
-        self.__model.setEditedAttributes(option)
-        self.__view.setModel(self.__model)
+        self.__source_model.setEditedAttributes(option)
 
     def editorBody(self) -> QWidget:
         self.setWindowTitle('Rename operation editor')
-        self.__model = EditableAttributeTable(self)
-        self.__view = QTableView()
+
+        frame = data.Frame.fromShape(self._inputShapes[0]) if self._inputShapes[0] else data.Frame()
+        self.__source_model = EditableAttributeTable(self)
+        self.__model = AttributeTableModelFilter(filterTypes=self._acceptedTypes, parent=self)
+        self.__source_model.setSourceModel(FrameModel(self, frame))
+        self.__model.setSourceModel(self.__source_model)
+        # View shows filtered model
+        self.__view = QTableView(self)
+        self.__view.setModel(self.__model)
         header = self.__view.horizontalHeader()
         header.setSectionResizeMode(QHeaderView.Stretch)
         self.__view.setHorizontalHeader(header)

@@ -364,6 +364,9 @@ class OperationError(Exception):
         super().__init__()
         self.message = message
 
+    def __str__(self):
+        return self.message
+
 
 class InvalidOption(OperationError):
     pass

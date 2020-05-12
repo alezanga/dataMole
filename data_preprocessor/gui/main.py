@@ -9,6 +9,8 @@ from data_preprocessor.gui.graph.scene import Scene
 from data_preprocessor.gui.graph.view import View
 from data_preprocessor.gui.operation_list import OperationMenu
 from data_preprocessor.gui.workbench import WorkbenchModel, WorkbenchView
+from data_preprocessor.operation.loaders import CsvLoader
+from data_preprocessor.operation.utils import OperationAction
 
 
 class MainWidget(QWidget):
@@ -68,26 +70,35 @@ class MainWindow(QMainWindow):
         central_w = MainWidget()
         self.setCentralWidget(central_w)
 
-        menu_bar = QMenuBar()
-        menu_bar_file = menu_bar.addMenu('File')
-        menu_bar_flow = menu_bar.addMenu('Flow')
-        add_action = QAction('Add frame', menu_bar_file)
-        add_action.setStatusTip('Create an empty dataframe in the workbench')
-        menu_bar_file.addAction(add_action)
-        menu_bar_file.show()
+        menuBar = QMenuBar()
+        fileMenu = menuBar.addMenu('File')
+        flowMenu = menuBar.addMenu('Flow')
+        addAction = QAction('Add frame', fileMenu)
+        addAction.setStatusTip('Create an empty dataframe in the workbench')
+        self._loadOpToAction = OperationAction(CsvLoader(None), fileMenu, 'Load csv',
+                                               self.rect().center())
+        loadCsvAction = self._loadOpToAction.createAction()
+        fileMenu.addAction(addAction)
+        fileMenu.addAction(loadCsvAction)
+        fileMenu.show()
 
-        exec_ac = QAction('Execute', menu_bar_flow)
-        menu_bar_flow.addAction(exec_ac)
-        menu_bar_flow.show()
+        exec_ac = QAction('Execute', flowMenu)
+        flowMenu.addAction(exec_ac)
+        flowMenu.show()
 
-        self.setMenuBar(menu_bar)
+        self.setMenuBar(menuBar)
 
         # Connect
-        add_action.triggered.connect(central_w.workbench_model.appendEmptyRow)
+        addAction.triggered.connect(central_w.workbench_model.appendEmptyRow)
         exec_ac.triggered.connect(self.executeFlow)
+        self._loadOpToAction.finished.connect(self.loadCsv)
 
     @Slot()
     def executeFlow(self):
         gr: OperationDag = self.centralWidget().graph
         handler = OperationHandler(gr)
         handler.execute()
+
+    @Slot()
+    def loadCsv(self) -> None:
+        self.centralWidget().workbench_model.appendNewRow('new_frame', self._loadOpToAction.output)

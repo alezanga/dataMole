@@ -1,12 +1,12 @@
 from typing import List, Union, Iterable, Optional
 
-from PySide2.QtWidgets import QComboBox, QWidget
+from PySide2.QtWidgets import QWidget
 
+import data_preprocessor.gui.editor.optionwidget as opw
 from data_preprocessor import data
 from data_preprocessor.data.types import Types, inv_type_dict
 from data_preprocessor.gui.editor.interface import AbsOperationEditor
 from .interface import Operation
-from ..gui.frame import ShapeAttributeNamesListModel
 
 
 class ToNumericOp(Operation):
@@ -49,7 +49,7 @@ class ToNumericOp(Operation):
         return True
 
     def getOptions(self) -> Iterable:
-        return self.__attribute, self._shape[0]
+        return [self.__attribute]
 
     def getEditor(self) -> AbsOperationEditor:
         return _SelectAttribute()
@@ -126,7 +126,7 @@ class ToCategoricalOp(Operation):
         return True
 
     def getOptions(self) -> Iterable:
-        return self.__attribute, self._shape[0]
+        return [self.__attribute]
 
     def getEditor(self) -> AbsOperationEditor:
         return _SelectAttribute()
@@ -164,22 +164,15 @@ class ToCategoricalOp(Operation):
 
 class _SelectAttribute(AbsOperationEditor):
     def editorBody(self) -> QWidget:
-        self.__selection_box = QComboBox(self)
+        self.__selection_box = opw.AttributeComboBox(self._inputShapes[0], self._acceptedTypes,
+                                                     parent=self)
         return self.__selection_box
 
     def getOptions(self) -> List[Optional[int]]:
-        if not self.__selection_box.currentText():
-            return [None]
-        return [self.__selection_box.currentIndex()]
+        return [self.__selection_box.getData()]
 
-    def setOptions(self, selected_index: Optional[int],
-                   input_shape: Optional[data.Shape]) -> None:
-        if input_shape is not None:
-            self.__selection_box.setModel(ShapeAttributeNamesListModel(input_shape, self))
-            if selected_index is not None:
-                self.__selection_box.setCurrentIndex(selected_index)
-            else:
-                self.__selection_box.setCurrentIndex(0)  # Select first
+    def setOptions(self, selected_index: Optional[int]) -> None:
+        self.__selection_box.setData(selected_index)
 
 
 # class TypeOp(Operation):

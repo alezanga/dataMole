@@ -81,7 +81,16 @@ class GraphController(QWidget):
             # Set up editor
             self.__editor_widget = node.operation.getEditor()
             self.__editor_node_id = node.uid
+            # Set types
             self.__editor_widget.setTypes(node.operation.acceptedTypes())
+            # Set input shapes
+            self.__editor_widget.setInputShapes(node.operation._shape)
+            # If input/output op set workbench
+            if node.operation.maxInputNumber() == 0 or node.operation.minOutputNumber() == 0:
+                # Then its an input/output operation
+                self.__editor_widget.setWorkbench(node.operation.workbench)
+            # Create the central widget and adds options
+            self.__editor_widget.setUpEditor()
             self.__editor_widget.setOptions(*node.operation.getOptions())
             # Connect editor signals to slots which handle accept/reject
             self.__editor_widget.acceptAndClose.connect(self.onEditAccept)
@@ -112,6 +121,5 @@ class GraphController(QWidget):
         # Do not call close() here, since this function is called after a closeEvent
         self.__editor_widget.disconnect(self)
         self.__editor_widget.deleteLater()
-        # TOCHECK: What actually happens here?
         self.__editor_node_id = None
         self.__editor_widget = None

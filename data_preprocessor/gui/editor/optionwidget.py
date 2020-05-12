@@ -75,9 +75,9 @@ class TextOptionWidget(OptionWidget):
         text = self._textbox.text()
         return text if text else None
 
-    def setData(self, data: str) -> None:
-        if data:
-            self._textbox.setText(data)
+    def setData(self, val: str) -> None:
+        if val:
+            self._textbox.setText(val)
 
     def setError(self, msg: str) -> None:
         self._textbox.setStyleSheet('border: 1px solid red')
