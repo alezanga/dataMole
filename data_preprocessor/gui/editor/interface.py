@@ -45,10 +45,10 @@ class AbsOperationEditor(QWidget):
         self.butLayout.addWidget(butCancel, alignment=Qt.AlignLeft)
         self.butLayout.addWidget(self.__butOk, alignment=Qt.AlignRight)
 
-        layout = QVBoxLayout()
+        self._layout = QVBoxLayout()
         # layout.addWidget(self._custom_widget)
-        layout.addLayout(self.butLayout)
-        self.setLayout(layout)
+        self._layout.addLayout(self.butLayout)
+        self.setLayout(self._layout)
         self.setFocusPolicy(Qt.StrongFocus)
 
         self.__butOk.pressed.connect(self.onAccept)
@@ -99,8 +99,7 @@ class AbsOperationEditor(QWidget):
 
     def setUpEditor(self):
         """ Calls editorBody and add the returned widget """
-        layout: QVBoxLayout = self.layout()
-        layout.insertWidget(0, self.editorBody())
+        self._layout.insertWidget(0, self.editorBody())
 
     # ----------------------------------------------------------------------------
     # --------------------------- PURE VIRTUAL METHODS ---------------------------

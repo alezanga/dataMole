@@ -30,7 +30,7 @@ class GraphController(QWidget):
         self._scene.createNewEdge.connect(self.addEdge)
         self._scene.dropNewNode.connect(self.addNode)
 
-    @Slot(object)
+    @Slot(type)
     def addNode(self, op_class: Callable):
         op_input: bool = getattr(op_class, 'maxInputNumber')() == 0
         op_output: bool = getattr(op_class, 'minOutputNumber')() == 0

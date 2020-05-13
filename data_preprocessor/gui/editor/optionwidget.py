@@ -15,12 +15,16 @@ class QtABCMeta(type(QObject), ABCMeta):
 class OptionWidget(QWidget, metaclass=QtABCMeta):
     """ Represents the interface of an editor for a single option """
 
-    def __init__(self, parent: QWidget = None):
+    def __init__(self, label: str = '', parent: QWidget = None):
         super().__init__(parent)
         self._layout = QVBoxLayout(self)
         self._error = QLabel(self)
         self._layout.setSizeConstraint(QVBoxLayout.SetMinimumSize)
-        self._error.setSizePolicy(QSizePolicy.MinimumExpanding)
+        self._error.setWordWrap(True)
+        self._error.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.MinimumExpanding)
+        if label:
+            self._layout.addWidget(QLabel(label))
+        self.setContentsMargins(0, 0, 0, 0)
 
     @property
     @abstractmethod
@@ -62,8 +66,8 @@ class OptionWidget(QWidget, metaclass=QtABCMeta):
 
 
 class TextOptionWidget(OptionWidget):
-    def __init__(self, parent: QWidget = None):
-        super().__init__(parent)
+    def __init__(self, label: str = '', parent: QWidget = None):
+        super().__init__(label, parent)
         self._textbox = QLineEdit()
         self._layout.addWidget(self._textbox)
 
@@ -89,8 +93,9 @@ class TextOptionWidget(OptionWidget):
 
 
 class AttributeComboBox(OptionWidget):
-    def __init__(self, shape: data.Shape, typesFilter: List[Types], parent: QWidget = None):
-        super().__init__(parent)
+    def __init__(self, shape: data.Shape, typesFilter: List[Types], label: str = '',
+                 parent: QWidget = None):
+        super().__init__(label, parent)
 
         self._inputShape: data.Shape = shape
         self._typesFilter: List[Types] = typesFilter

@@ -3,7 +3,7 @@ from typing import Iterable, List, Any
 import numpy as np
 from PySide2.QtCore import Qt, Slot, QRegExp
 from PySide2.QtGui import QRegExpValidator
-from PySide2.QtWidgets import QWidget, QCheckBox, QHBoxLayout, QVBoxLayout
+from PySide2.QtWidgets import QWidget, QCheckBox, QHBoxLayout, QVBoxLayout, QLabel
 
 import data_preprocessor.gui.editor.optionwidget as opw
 from data_preprocessor import data
@@ -89,8 +89,9 @@ class _MergeValEditor(AbsOperationEditor):
     # TODO: finish this
     def editorBody(self) -> QWidget:
         self.setWindowTitle('Merge values')
-        self.__attributeComboBox = opw.AttributeComboBox(self._inputShapes[0], self._acceptedTypes)
-        self.__mergeList = opw.TextOptionWidget()
+        self.__attributeComboBox = opw.AttributeComboBox(self._inputShapes[0], self._acceptedTypes,
+                                                         'Select an attribute')
+        self.__mergeList = opw.TextOptionWidget('Add values to replace (separated by comma)')
         self.__mergeValue = opw.TextOptionWidget()
         self.__nan_cb = QCheckBox()
         self.__curr_type = None
@@ -102,6 +103,7 @@ class _MergeValEditor(AbsOperationEditor):
         layout = QVBoxLayout()
         layout.addWidget(self.__attributeComboBox)
         layout.addWidget(self.__mergeList)
+        layout.addWidget(QLabel('Substitute value'))
         layout.addLayout(layoutH)
 
         self.__nan_cb.stateChanged.connect(self.toggleValueEdit)
@@ -119,12 +121,17 @@ class _MergeValEditor(AbsOperationEditor):
 
     @Slot(int)
     def toggleValidator(self, index: int) -> None:
+        prev_type = self.__curr_type
         self.__curr_type = self._inputShapes[0].col_types[index]
-        if self.__curr_type == Types.Numeric:
-            reg = QRegExp('(\\d+(\\.\\d)?\\d*)(\\,\\s?(\\d+(\\.\\d)?\\d*))*')
-        else:
-            reg = QRegExp('(.*?)')
-        self.__mergeList.setValidator(QRegExpValidator(reg, self))
+        if self.__curr_type != prev_type:
+            if self.__curr_type == Types.Numeric:
+                reg = QRegExp('(\\d+(\\.\\d)?\\d*)(\\,\\s?(\\d+(\\.\\d)?\\d*))*')
+            else:
+                reg = QRegExp('((\\S+)|(\'.+\'))(,\\s?((\\S+)|(\'.+\')))*')
+            b = self.__mergeList.widget.validator()
+            self.__mergeList.widget.setValidator(QRegExpValidator(reg, self))
+            if b:
+                b.deleteLater()
 
     def getOptions(self) -> Iterable:
         cur_attr = self.__attributeComboBox.getData()

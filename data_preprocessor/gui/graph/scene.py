@@ -33,7 +33,7 @@ class GraphScene(QtWidgets.QGraphicsScene):
 
     editModeEnabled = QtCore.Signal(int)
     createNewEdge = QtCore.Signal(NodeSlot, NodeSlot)
-    dropNewNode = QtCore.Signal(object)
+    dropNewNode = QtCore.Signal(type)
 
     def __init__(self, parent=None, nodegraph_widget=None):
         """Create an instance of this class
