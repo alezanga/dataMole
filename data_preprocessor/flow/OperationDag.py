@@ -3,6 +3,7 @@ from typing import Any
 import networkx as nx
 
 from data_preprocessor.flow import OperationNode
+import logging
 
 
 class OperationDag:
@@ -37,7 +38,7 @@ class OperationDag:
         :raise ValueError: if the node is not in the graph
         """
         if node_id not in self.__G:
-            print('Cannot update a node which does not belong to the graph')
+            logging.info('Cannot update a node which does not belong to the graph')
             return False
         # Set options for operation
         node: OperationNode = self[node_id]

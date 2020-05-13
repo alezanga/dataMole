@@ -1,4 +1,6 @@
-from PySide2.QtCore import Slot
+import logging
+
+from PySide2.QtCore import Slot, QThreadPool
 from PySide2.QtWidgets import QTreeView, QTabWidget, QWidget, QVBoxLayout, \
     QHBoxLayout, QMainWindow, QMenuBar, QAction
 
@@ -9,6 +11,7 @@ from data_preprocessor.gui.graph.controller import GraphController
 from data_preprocessor.gui.graph.scene import GraphScene
 from data_preprocessor.gui.graph.view import GraphView
 from data_preprocessor.gui.operationmenu import OperationMenu
+from data_preprocessor.gui.statusbar import MyStatusBar
 from data_preprocessor.gui.workbench import WorkbenchModel, WorkbenchView
 from data_preprocessor.operation.loaders import CsvLoader
 from data_preprocessor.operation.utils import OperationAction
@@ -71,15 +74,19 @@ class MainWindow(QMainWindow):
         super().__init__()
         central_w = MainWidget()
         self.setCentralWidget(central_w)
+        self.myStatusBar = MyStatusBar(self)
+        self.setStatusBar(self.myStatusBar)
+        # Initialise a thread pool
+        self.threadPool = QThreadPool()
+        logging.info('Multithreading with maximum {} threads'.format(self.threadPool.maxThreadCount()))
 
         menuBar = QMenuBar()
         fileMenu = menuBar.addMenu('File')
         flowMenu = menuBar.addMenu('Flow')
         addAction = QAction('Add frame', fileMenu)
         addAction.setStatusTip('Create an empty dataframe in the workbench')
-        self._loadOpToAction = OperationAction(CsvLoader(None), fileMenu, 'Load csv',
-                                               self.rect().center())
-        loadCsvAction = self._loadOpToAction.createAction()
+        self._loadAction = OperationAction(CsvLoader(None), fileMenu, 'Load csv', self.rect().center())
+        loadCsvAction = self._loadAction.createAction()
         fileMenu.addAction(addAction)
         fileMenu.addAction(loadCsvAction)
         fileMenu.show()
@@ -93,7 +100,7 @@ class MainWindow(QMainWindow):
         # Connect
         addAction.triggered.connect(central_w.workbench_model.appendEmptyRow)
         exec_ac.triggered.connect(self.executeFlow)
-        self._loadOpToAction.finished.connect(self.loadCsv)
+        self._loadAction.success.connect(self.loadCsv)
 
     @Slot()
     def executeFlow(self):
@@ -103,4 +110,4 @@ class MainWindow(QMainWindow):
 
     @Slot()
     def loadCsv(self) -> None:
-        self.centralWidget().workbench_model.appendNewRow('new_frame', self._loadOpToAction.output)
+        self.centralWidget().workbench_model.appendNewRow('new_frame', self._loadAction.output)

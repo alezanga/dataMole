@@ -9,7 +9,7 @@
 - [ ] ~~Do option widget for AttributeTable~~
 - [ ] ~~Find better strategy for editor (the idea is to have custom editor factory)~~
 - [x] How to use a single operation? Maybe refactor the hierarchy (Operation -> GraphOperation)
-    - [ ] Add spinner to status bar (not editor)
+    - [x] Add spinner to status bar (not editor)
 - [ ] Fix spinner/add a status bar
 - [ ] Add many operations
     - [x] Merge values of one attribute (also to Nan)
