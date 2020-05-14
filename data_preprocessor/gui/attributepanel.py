@@ -28,15 +28,18 @@ class AttributePanel(QWidget):
     def selectionChanged(self, frameIndex: int) -> None:
         if 0 <= frameIndex <= self._workbench.rowCount():
             self._currentFrameIndex = frameIndex
-            if self._attributeModel:
-                self._attributeModel.deleteLater()
-            self._attributeModel = AttributeTableModel(self, False, False)
+            if not self._attributeModel:
+                # Create model the first time
+                self._attributeModel = AttributeTableModel(self, False, True)
             frameModel = self._workbench.getDataframeModelByIndex(frameIndex)
         else:
             self._currentFrameIndex = -1
             frameModel = FrameModel(self)
+        # Replace frame model
         self._attributeModel.setSourceModel(frameModel)
-        self._attributeTable.setModel(self._attributeModel)
+        # If model is not set in view yet
+        if self._attributeTable.model() is not self._attributeModel:
+            self._attributeTable.setModel(self._attributeModel)
 
 
 class AttributeTableView(QTableView):

@@ -5,7 +5,7 @@ from PySide2.QtCore import QAbstractTableModel, QModelIndex, Qt, Slot, QAbstract
     QSortFilterProxyModel
 from PySide2.QtWidgets import QWidget
 
-from data_preprocessor.data import Frame
+from data_preprocessor.data import Frame, Shape
 from data_preprocessor.data.types import Types
 
 
@@ -23,12 +23,14 @@ class FrameModel(QAbstractTableModel):
     def __init__(self, parent: QWidget = None, frame: Frame = Frame(), nrows: int = 10):
         super().__init__(parent)
         self._frame: Frame = frame
+        self._shape: Shape = self._frame.shape
         self._n_rows: int = nrows
         self._loadedCols: int = self.COL_BATCH_SIZE
 
     def setFrame(self, frame: Frame) -> None:
         self.beginResetModel()
         self._frame = frame
+        self._shape: Shape = self._frame.shape
         self.endResetModel()
 
     def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:
@@ -53,22 +55,23 @@ class FrameModel(QAbstractTableModel):
     def headerData(self, section: int, orientation: Qt.Orientation, role: int = Qt.DisplayRole) -> Any:
         if orientation == Qt.Horizontal:
             if role == Qt.DisplayRole:
-                return self._frame.shape.col_names[section] + '\n' + self._frame.shape.col_types[
-                    section].value
+                return self._shape.col_names[section] + '\n' + self._shape.col_types[section].value
             elif role == FrameModel.DataRole:
-                return self._frame.shape.col_names[section], self._frame.shape.col_types[section]
+                return self._shape.col_names[section], self._shape.col_types[section]
         elif orientation == Qt.Vertical and role == Qt.DisplayRole:
-            if self._frame.shape.has_index():
+            if self._shape.has_index():
                 return self._frame.index[section]
         return None
 
     def setHeaderData(self, section: int, orientation: Qt.Orientation, value: Any, role: int = ...) \
             -> bool:
+        """ Change column name """
         if orientation == Qt.Horizontal and role == Qt.EditRole and section < self.columnCount():
             names = self._frame.colnames
             names[section] = value
             self._frame = self._frame.rename({self.headerData(section, orientation,
                                                               FrameModel.DataRole)[0]: value})
+            self._shape.col_names[section] = value
             self.headerDataChanged.emit(orientation, section, section)
             return True
         return False
