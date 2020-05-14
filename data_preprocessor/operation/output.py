@@ -26,6 +26,9 @@ class ToVariableOp(OutputOperation):
     def info(self) -> str:
         return 'Save the output as a variable in the workbench with the given name'
 
+    def hasOptions(self) -> bool:
+        return bool(self.__var_name)
+
     def setOptions(self, var_name: Optional[str]) -> None:
         self.__var_name = var_name
 

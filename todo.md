@@ -11,7 +11,7 @@
 - [x] How to use a single operation? Maybe refactor the hierarchy (Operation -> GraphOperation)
     - [x] Add spinner to status bar (not editor)
 - [x] Fix spinner/add a status bar
-- [ ] Add hasOptions to all operations
+- [x] Add hasOptions to all operations
 - [ ] Add many operations
     - [x] Merge values of one attribute (also to Nan)
     - [ ] Remove Nan rows (by % or number)

@@ -24,6 +24,9 @@ class PrintOp(OutputOperation):
     def getOptions(self) -> Any:
         pass
 
+    def hasOptions(self) -> bool:
+        return True
+
     def getEditor(self) -> AbsOperationEditor:
         pass
 

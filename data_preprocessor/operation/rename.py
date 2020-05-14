@@ -35,6 +35,9 @@ class RenameOp(Operation):
     def info(self) -> str:
         return 'This operation can rename the attributes'
 
+    def hasOptions(self) -> bool:
+        return bool(self.__names)
+
     def getOptions(self) -> List[Dict[int, str]]:
         return [copy.deepcopy(self.__names)]
 
@@ -51,10 +54,8 @@ class RenameOp(Operation):
         return RenameEditor()
 
     def getOutputShape(self) -> Union[data.Shape, None]:
-        if not self.__names:
-            # raise ValueError('Method {}.getOutputShape must be called with non null arguments, '
-            #                  'instead \'names\' is None'.format(self.__class__.__name__))
-            return copy.deepcopy(self._shape[0])  # No rename, so shape unchanged
+        if not self.hasOptions():
+            return None
 
         # Shape is the same as before with name changed
         s = copy.deepcopy(self._shape[0])

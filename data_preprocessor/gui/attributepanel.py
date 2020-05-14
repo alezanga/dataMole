@@ -1,8 +1,8 @@
 from PySide2.QtCharts import QtCharts
 from PySide2.QtCore import Slot
-from PySide2.QtWidgets import QWidget, QTableView, QVBoxLayout, QHeaderView
+from PySide2.QtWidgets import QWidget, QVBoxLayout, QHeaderView, QTableView
 
-from data_preprocessor.gui.frame import AttributeTableModel, FrameModel
+from data_preprocessor.gui.frame import FrameModel, AttributeTableModel
 from data_preprocessor.gui.workbench import WorkbenchModel
 
 

@@ -11,9 +11,9 @@ from data_preprocessor.gui.graph.scene import GraphScene
 from data_preprocessor.gui.graph.view import GraphView
 from data_preprocessor.gui.operationmenu import OperationMenu
 from data_preprocessor.gui.statusbar import MyStatusBar
+from data_preprocessor.gui.utils import OperationAction
 from data_preprocessor.gui.workbench import WorkbenchModel, WorkbenchView
 from data_preprocessor.operation.loaders import CsvLoader
-from data_preprocessor.operation.utils import OperationAction
 
 
 class MainWidget(QWidget):

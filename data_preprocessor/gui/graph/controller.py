@@ -5,6 +5,7 @@ from PySide2.QtCore import Slot
 from PySide2.QtWidgets import QWidget, QMessageBox
 
 from data_preprocessor.gui.editor.interface import AbsOperationEditor
+from data_preprocessor.gui.utils import getMainWindow
 from .node import NodeSlot, Node, NodeStatus
 from .scene import GraphScene
 from .view import GraphView
@@ -12,7 +13,6 @@ from ..workbench import WorkbenchModel
 from ...flow import OperationNode
 from ...flow.OperationDag import OperationDag
 from ...flow.OperationHandler import OperationHandler, HandlerException
-from ...operation.utils import getMainWindow
 
 
 class GraphController(QWidget):

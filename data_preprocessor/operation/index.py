@@ -24,6 +24,9 @@ class SetIndexOp(Operation):
     def acceptedTypes(self) -> List[Types]:
         return ALL_TYPES
 
+    def hasOptions(self) -> bool:
+        return self.__index_col is not None
+
     def setOptions(self, col: int) -> None:
         self.__index_col = col
 
@@ -34,7 +37,7 @@ class SetIndexOp(Operation):
         return True
 
     def getOutputShape(self) -> Union[data.Shape, None]:
-        if self.__index_col is None or not self._shape[0]:
+        if not self.hasOptions() or not self._shape[0]:
             return None
         s = self._shape[0].copy()
         s.index = s.col_names[self.__index_col]

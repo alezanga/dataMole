@@ -49,20 +49,6 @@ class Operation(ABC):
     # -------------------- VIRTUAL METHODS --------------------
     # ---------------------------------------------------------
 
-    def hasOptions(self) -> bool:
-        """
-        This should be redefined to tell if all necessary options are set in the operation. It is used by
-        getOuptutShape to verify if the shape can be inferred. It is also run before execution of the
-        operation in the computational graph.
-        But it may be used in any other context by manually calling it before the
-        :func:`~data_preprocessor.operation.Operation.execute` method. Note that a call to this function
-        should not placed inside the 'execute' method, otherwise the graph will run this function twice.
-        Default implementation does nothing and returns True, i.e. options are ok.
-
-        :return: True if computation can continue, False otherwise. Defaults to True
-        """
-        return True
-
     def getOutputShape(self) -> Union[data.Shape, None]:
         """
         Computes what will the frame shape be after execution of the step.
@@ -118,6 +104,22 @@ class Operation(ABC):
     @abstractmethod
     def acceptedTypes(self) -> List[Types]:
         """ Return the column types that this operation accepts """
+        pass
+
+    @abstractmethod
+    def hasOptions(self) -> bool:
+        """
+        This must be redefined to tell if all necessary options are set in the operation. These
+        options include all fields that the must be supplied by the user. It must not check the input
+        shape or any other variable which is not responsibility of the user to check. It is
+        used by getOutputShape to verify if the shape can be inferred. It is also run before execution
+        of the operation in the computational graph.
+        It may be used in any other context by manually calling it before the
+        :func:`~data_preprocessor.operation.Operation.execute` method. Note that a call to this function
+        should not placed inside the 'execute' method.
+
+        :return: True if computation can continue, False otherwise
+        """
         pass
 
     @abstractmethod

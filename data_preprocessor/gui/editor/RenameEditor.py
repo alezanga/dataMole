@@ -29,7 +29,7 @@ class EditableAttributeTable(AttributeTableModel):
             return None
 
         name, col_type = self._sourceModel.headerData(index.row(), orientation=Qt.Horizontal)
-        if index.column() == self._name_pos:
+        if index.column() == self.name_pos:
             # Gets updated value or None
             new_name: str = self._edits.get(index.row(), None)
             # If attribute name was edited before
@@ -46,7 +46,7 @@ class EditableAttributeTable(AttributeTableModel):
             return False
 
         value = value.strip()
-        if role == Qt.EditRole and value and index.column() == self._name_pos and value != index.data(
+        if role == Qt.EditRole and value and index.column() == self.name_pos and value != index.data(
                 Qt.DisplayRole):
             # TODO: add regex validator
             self._edits[index.row()] = value

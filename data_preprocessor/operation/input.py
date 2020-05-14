@@ -25,6 +25,9 @@ class CopyOp(InputOperation):
     def info(self) -> str:
         return 'Copy existing dataframe. Should be used as first operation in a pipeline'
 
+    def hasOptions(self) -> bool:
+        return bool(self._frame_name)
+
     def setOptions(self, selected_frame: str) -> None:
         self._frame_name = selected_frame
 
@@ -32,7 +35,7 @@ class CopyOp(InputOperation):
         return [self._frame_name]
 
     def getOutputShape(self) -> Union[data.Shape, None]:
-        if self._frame_name is None:
+        if not self.hasOptions():
             return None
         else:
             return self._workbench.getDataframeByName(self._frame_name).shape

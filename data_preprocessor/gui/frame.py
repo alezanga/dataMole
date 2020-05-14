@@ -3,7 +3,7 @@ from typing import Any, List, Union
 
 from PySide2.QtCore import QAbstractTableModel, QModelIndex, Qt, Slot, QAbstractItemModel, \
     QSortFilterProxyModel
-from PySide2.QtWidgets import QWidget
+from PySide2.QtWidgets import QWidget, QTableView, QLineEdit, QVBoxLayout, QHeaderView
 
 from data_preprocessor.data import Frame, Shape
 from data_preprocessor.data.types import Types
@@ -107,7 +107,7 @@ class AttributeTableModel(QAbstractTableModel):
         self._sourceModel: QAbstractItemModel = None
 
     @property
-    def _checkbox_pos(self) -> Union[int, None]:
+    def checkbox_pos(self) -> Union[int, None]:
         """
         Return the column index for checkbox
         """
@@ -117,7 +117,7 @@ class AttributeTableModel(QAbstractTableModel):
             return None
 
     @property
-    def _type_pos(self) -> int:
+    def type_pos(self) -> int:
         """ Return the column index for type """
         if self._checkable:
             return 2
@@ -125,7 +125,7 @@ class AttributeTableModel(QAbstractTableModel):
             return 1
 
     @property
-    def _name_pos(self) -> int:
+    def name_pos(self) -> int:
         """ Return the column index for name """
         if self._checkable:
             return 1
@@ -184,8 +184,8 @@ class AttributeTableModel(QAbstractTableModel):
     @Slot(Qt.Orientation, int, int)
     def onHeaderChanged(self, orientation: Qt.Orientation, sec1: int, sec2: int) -> None:
         if orientation == Qt.Horizontal:
-            self.dataChanged.emit(self.index(sec1, self._name_pos),
-                                  self.index(sec2, self._name_pos))
+            self.dataChanged.emit(self.index(sec1, self.name_pos),
+                                  self.index(sec2, self.name_pos))
 
     def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:
         if parent.isValid():
@@ -205,16 +205,16 @@ class AttributeTableModel(QAbstractTableModel):
         name, col_type = self._sourceModel.headerData(index.row(), orientation=Qt.Horizontal,
                                                       role=FrameModel.DataRole)
         value = None
-        if index.column() == self._name_pos:
+        if index.column() == self.name_pos:
             value = name
-        elif index.column() == self._type_pos:
+        elif index.column() == self.type_pos:
             value = col_type.value
 
         if role == Qt.DisplayRole or role == Qt.EditRole:
             return value
         # Return the correct value for checkbox
         elif role == Qt.CheckStateRole:
-            if index.column() == self._checkbox_pos:
+            if index.column() == self.checkbox_pos:
                 if self._checked[index.row()]:
                     return Qt.Checked
                 else:
@@ -229,11 +229,11 @@ class AttributeTableModel(QAbstractTableModel):
             return False
 
         # Change attribute name
-        if role == Qt.EditRole and index.column() == self._name_pos and value != index.data(
+        if role == Qt.EditRole and index.column() == self.name_pos and value != index.data(
                 Qt.DisplayRole):
             return self._sourceModel.setHeaderData(index.row(), Qt.Horizontal, value, Qt.EditRole)
         # Toggle checkbox state
-        elif role == Qt.CheckStateRole and index.column() == self._checkbox_pos:
+        elif role == Qt.CheckStateRole and index.column() == self.checkbox_pos:
             i: int = index.row()
             self._checked[i] = not self._checked[i]
             self.dataChanged.emit(index, index)
@@ -248,9 +248,9 @@ class AttributeTableModel(QAbstractTableModel):
         #                                                     Qt.SmoothTransformation)
 
         if orientation == Qt.Horizontal and role == Qt.DisplayRole:
-            if section == self._name_pos:
+            if section == self.name_pos:
                 return 'Attribute'
-            elif section == self._type_pos:
+            elif section == self.type_pos:
                 return 'Type'
 
         return None
@@ -259,9 +259,9 @@ class AttributeTableModel(QAbstractTableModel):
         if not index.isValid():
             return Qt.NoItemFlags
         flags = Qt.ItemIsEnabled
-        if self._editable and index.column() == self._name_pos:
+        if self._editable and index.column() == self.name_pos:
             flags |= Qt.ItemIsEditable
-        elif self._checkable and index.column() == self._checkbox_pos:
+        elif self._checkable and index.column() == self.checkbox_pos:
             flags |= Qt.ItemIsUserCheckable
         return flags
 
@@ -287,6 +287,40 @@ class AttributeTableModelFilter(QSortFilterProxyModel):
         if Types(type_data) in self._filterTypes:
             return True
         return False
+
+
+class SearchableAttributeTableWidget(QWidget):
+    def __init__(self, parent: QWidget = None, checkable: bool = False, editable: bool = False):
+        super().__init__(parent)
+        self.__model = AttributeTableModel(parent=self, checkable=checkable, editable=editable)
+        self._tableView = QTableView(self)
+        self._tableModel = QSortFilterProxyModel(self)
+        self._tableModel.setSourceModel(self.__model)
+        self._tableModel.setFilterCaseSensitivity(Qt.CaseInsensitive)
+
+        self._searchBar = QLineEdit(self)
+        self._searchBar.setPlaceholderText('Search')
+
+        layout = QVBoxLayout()
+        layout.addWidget(self._searchBar)
+        layout.addWidget(self._tableView)
+        self.setLayout(layout)
+
+    def setSourceModel(self, source: FrameModel) -> None:
+        self.__model.setSourceModel(source)
+        if self._tableView.model() is not self._tableModel:
+            self._tableView.setModel(self._tableModel)
+            hh = self._tableView.horizontalHeader()
+            check_pos = self.__model.checkbox_pos
+            if check_pos:
+                hh.resizeSection(check_pos, 10)
+                hh.setSectionResizeMode(check_pos, QHeaderView.Fixed)
+            hh.setSectionResizeMode(self.__model.name_pos, QHeaderView.Stretch)
+            hh.setSectionResizeMode(self.__model.type_pos, QHeaderView.Fixed)
+            hh.setStretchLastSection(False)
+            self._tableModel.setFilterKeyColumn(self.__model.name_pos)
+            self._tableView.setHorizontalHeader(hh)
+            self._searchBar.textChanged.connect(self._tableModel.setFilterRegExp)
 
 # class ShapeAttributeNamesListModel(QAbstractListModel):
 #     def __init__(self, shape: Shape, parent: QWidget = None):

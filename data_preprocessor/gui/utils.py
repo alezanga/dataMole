@@ -68,11 +68,13 @@ class OperationAction(QObject):
         mainWindow.statusBar().startSpinner()
         mainWindow.statusBar().showMessage('Executing operation...')
         self.operation.setOptions(*self.editor.getOptions())
-        # Execute operation
+        # Prepare worker
         worker = threads.Worker(self.operation, *self._inputs)
+        # Connect
         worker.signals.result.connect(self._setOutput)
         worker.signals.error.connect(self._showError)
         worker.signals.finished.connect(self._finished)
+        # Start worker
         mainWindow.threadPool.start(worker)
         self.editor.hide()
 
