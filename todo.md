@@ -10,7 +10,8 @@
 - [ ] ~~Find better strategy for editor (the idea is to have custom editor factory)~~
 - [x] How to use a single operation? Maybe refactor the hierarchy (Operation -> GraphOperation)
     - [x] Add spinner to status bar (not editor)
-- [ ] Fix spinner/add a status bar
+- [x] Fix spinner/add a status bar
+- [ ] Add hasOptions to all operations
 - [ ] Add many operations
     - [x] Merge values of one attribute (also to Nan)
     - [ ] Remove Nan rows (by % or number)

@@ -270,6 +270,9 @@ class AttributeTableModel(QAbstractTableModel):
 
     def fetchMore(self, parent: QModelIndex) -> None:
         self._sourceModel.fetchMore(parent)
+        if self._checkable:
+            new_rows = self.rowCount() - len(self._checked)
+            self._checked.extend([False] * new_rows)
 
 
 class AttributeTableModelFilter(QSortFilterProxyModel):
