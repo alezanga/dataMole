@@ -1,15 +1,18 @@
+import logging
 from typing import List, Callable
 
 from PySide2.QtCore import Slot
 from PySide2.QtWidgets import QWidget, QMessageBox
 
 from data_preprocessor.gui.editor.interface import AbsOperationEditor
-from .node import NodeSlot, Node
+from .node import NodeSlot, Node, NodeStatus
 from .scene import GraphScene
 from .view import GraphView
 from ..workbench import WorkbenchModel
 from ...flow import OperationNode
 from ...flow.OperationDag import OperationDag
+from ...flow.OperationHandler import OperationHandler, HandlerException
+from ...operation.utils import getMainWindow
 
 
 class GraphController(QWidget):
@@ -123,3 +126,40 @@ class GraphController(QWidget):
         self.__editor_widget.deleteLater()
         self.__editor_node_id = None
         self.__editor_widget = None
+
+    @Slot()
+    def executeFlow(self) -> None:
+        handler = OperationHandler(self._operation_dag)
+        handler.signals.statusChanged.connect(self.onStatusChanged)
+        handler.signals.allFinished.connect(self.flowCompleted)
+        mw = getMainWindow()
+        try:
+            mw.statusBar().startSpinner()
+            mw.statusBar().showMessage('Started flow execution...', 20)
+            handler.execute()
+        except HandlerException as e:
+            mw.statusBar().showMessage('Execution stopped', 20)
+            msgbox = QMessageBox(QMessageBox.Icon.Critical, 'Flow error', str(e), QMessageBox.Ok, self)
+            msgbox.exec_()
+
+    @Slot()
+    def resetFlowStatus(self) -> None:
+        for node in self._scene.nodes:
+            node.status = NodeStatus.NONE
+            node.refresh(refresh_edges=False)
+        logging.debug('Reset flow status')
+
+    @Slot(int, NodeStatus)
+    def onStatusChanged(self, uid: int, status: NodeStatus):
+        node: Node = next((n for n in self._scene.nodes if n.id == uid), None)
+        logging.debug('Node status changed in {} at node {} with id {}'.format(str(status),
+                                                                               node.name,
+                                                                               node.id))
+        node.status = status
+        node.refresh(refresh_edges=False)
+
+    @Slot()
+    def flowCompleted(self) -> None:
+        mw = getMainWindow()
+        mw.statusBar().showMessage('Flow finished', 20)
+        mw.statusBar().stopSpinner()

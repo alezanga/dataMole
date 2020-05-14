@@ -12,6 +12,7 @@
 """Node graph scene manager based on QGraphicsScene
 
 """
+import logging
 from typing import Set, List
 
 from PySide2 import QtCore, QtGui, QtWidgets
@@ -335,12 +336,15 @@ class GraphScene(QtWidgets.QGraphicsScene):
                 self._rubber_band.refresh(event.scenePos())
             elif self.selectedItems():
                 if not self._is_refresh_edges:
+                    logging.debug('Not refresh edges')
                     self._is_refresh_edges = True
                     self._refresh_edges = self._get_refresh_edges()
                 for ahash in self._refresh_edges["move"]:
                     self._edges_by_hash[ahash].refresh_position()
+                    logging.debug('Move edge hash: ' + ahash)
                 for ahash in self._refresh_edges["refresh"]:
                     self._edges_by_hash[ahash].refresh()
+                    logging.debug('Refresh edge hash: ' + ahash)
         else:
             return QtWidgets.QGraphicsScene.mouseMoveEvent(self, event)
 
@@ -410,7 +414,7 @@ class GraphScene(QtWidgets.QGraphicsScene):
         for item in self.selectedItems():
             if isinstance(item, Node):
                 edges |= item.edges
-                nodes.add(item.name)
+                nodes.add(item.id)
 
         # Distinghish edges where both ends are selected from the rest
         for edge in edges:

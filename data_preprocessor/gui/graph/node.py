@@ -21,7 +21,15 @@ from typing import Union, Set, List
 
 from PySide2 import QtCore, QtGui, QtWidgets
 
+from data_preprocessor.status import NodeStatus
 from .constant import DEBUG
+
+_statusShow = {
+    NodeStatus.NONE: ('', None),
+    NodeStatus.SUCCESS: ('completed', QtGui.QColor(50, 205, 50)),
+    NodeStatus.ERROR: ('error', QtGui.QColor(220, 20, 60)),
+    NodeStatus.PROGRESS: ('in progress', QtGui.QColor(255, 255, 0))
+}
 
 
 class Node(QtWidgets.QGraphicsItem):
@@ -74,6 +82,9 @@ class Node(QtWidgets.QGraphicsItem):
             an_input = NodeSlot(name=slot_name, parent=self, position=i)
             self._inputs.append(an_input)
 
+        self._status = NodeStatus.NONE
+        self._status_slot = NodeSlot(name=None, parent=self, family=NodeSlot.STATUS)
+
         # Update internal containers
         self._update()
 
@@ -87,6 +98,14 @@ class Node(QtWidgets.QGraphicsItem):
     @property
     def id(self) -> int:
         return self._id
+
+    @property
+    def status(self) -> NodeStatus:
+        return self._status
+
+    @status.setter
+    def status(self, s) -> None:
+        self._status = s
 
     @property
     def edges(self):
@@ -119,6 +138,14 @@ class Node(QtWidgets.QGraphicsItem):
             self._output.rect = QtCore.QRectF(self._draw_slot).translated(
                 self._width - self._slot_radius, init_y)
 
+        # Update status
+        bbox_plus_status = 0
+        if self._status != NodeStatus.NONE:
+            bbox_plus_status = self._slot_radius
+            init_y = self._outline / 2 - slot_height / 2
+            self._status_slot.rect = QtCore.QRectF(self._draw_slot).translated(
+                self._width - self._slot_radius, init_y)
+
         # Update inputs
         init_y = base_y - slot_height * len(self._inputs) / 2
         for i, _input in enumerate(self._inputs):
@@ -128,9 +155,9 @@ class Node(QtWidgets.QGraphicsItem):
         # Update bounding box
         self._bbox = QtCore.QRectF(
             -self._outline / 2 - self._slot_radius,
-            -self._outline / 2,
+            -self._outline / 2 - bbox_plus_status,
             self._width + self._outline + self._slot_radius * 2,
-            self._height + self._outline)
+            self._height + self._outline + bbox_plus_status)
 
     def _update_hover_slot(self, slot):
         if slot == self._hover_slot:
@@ -205,6 +232,13 @@ class Node(QtWidgets.QGraphicsItem):
                         painter.setBrush(hover_color)
                     painter.drawEllipse(self._output._rect)
 
+                if self._status != NodeStatus.NONE:
+                    if self._hover_slot == self._status_slot:
+                        self.setToolTip('status: {}'.format(_statusShow[self._status][0]))
+                    color = _statusShow[self._status][1]
+                    painter.setBrush(hover_normal if not color else color)
+                    painter.drawEllipse(self._status_slot.rect)
+
                 # Draw input (Ellipse)
                 for aninput in self._inputs:
                     if self._hover_slot == aninput:
@@ -219,7 +253,14 @@ class Node(QtWidgets.QGraphicsItem):
                         painter.setBrush(hover_color)
                     painter.drawRect(self._output._rect)
 
-                # Drae input (Rectangle)
+                if self._status != NodeStatus.NONE:
+                    if self._hover_slot == self._status_slot:
+                        self.setToolTip('status: {}'.format(_statusShow[self._status][0]))
+                    color = _statusShow[self._status][1]
+                    painter.setBrush(hover_normal if not color else color)
+                    painter.drawRect(self._status_slot.rect)
+
+                # Draw input (Rectangle)
                 for aninput in self._inputs:
                     if self._hover_slot == aninput:
                         painter.setBrush(hover_color)
@@ -246,7 +287,7 @@ class Node(QtWidgets.QGraphicsItem):
                                      self._output._rect.top(),
                                      width,
                                      height)
-                painter.drawText(rect, alignment, "out")
+                painter.drawText(rect, alignment, self._output.name)
                 # painter.setBrush(QtCore.Qt.NoBrush)
                 # painter.drawRect(rect)
 
@@ -392,6 +433,7 @@ class NodeSlot(object):
 
     INPUT = 0
     OUTPUT = 1
+    STATUS = 2
 
     def __init__(self, name, parent, family=None, position: int = None):
         """Instance this class

@@ -275,12 +275,12 @@ class Edge(QtWidgets.QGraphicsItem):
         """For a given list of nodes, check if edge is connected (bo)
         node(s)
 
-        :param nodes: node names
+        :param nodes: node ids
         :type nodes: list
 
         """
-        if (self._source_slot.parent.name in nodes and
-                self._target_slot.parent.name in nodes):
+        if (self._source_slot.parentNode.id in nodes and
+                self._target_slot.parentNode.id in nodes):
             return True
         else:
             return False

@@ -21,6 +21,11 @@ class OperationNode:
         """ Returns the integer unique identifier of one node """
         return self.__op_uid.uid
 
+    @property
+    def nInputs(self) -> int:
+        inputs = [i for i in self.__inputs if i is not None]
+        return len(inputs)
+
     def setSourceOperationInputPosition(self, op_id: int, pos: int) -> None:
         """ Call this method to ensure that the output of one parent (source) operation is always passed
         at a specified position when the execute method is called
@@ -72,7 +77,7 @@ class OperationNode:
         """ Delete all input arguments cached in a node """
         self.__inputs: List = [None] * self.operation.maxInputNumber()
 
-    def compute(self) -> Frame:
+    def execute(self) -> Frame:
         """ Execute the operation with input arguments. Additionally checks that everything is
         correctly set """
 
@@ -82,13 +87,13 @@ class OperationNode:
         # Check if input is set
         if op.maxInputNumber() < len(inputs) < op.minInputNumber():
             raise ValueError(
-                '{}.compute(input=...), input argument not correctly set'.format(
+                '{}.execute(input=...), input argument not correctly set'.format(
                     self.__class__.__name__))
 
         # Check if options are set
         msg: bool = op.hasOptions()
         if not msg:
-            raise ValueError('{}.compute(input=...), options check failed with message: {}'.format(
+            raise ValueError('{}.execute(input=...), options check failed with message: {}'.format(
                 self.__class__.__name__, msg))
 
         return op.execute(*inputs)

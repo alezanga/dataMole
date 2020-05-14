@@ -5,7 +5,6 @@ from PySide2.QtWidgets import QTreeView, QTabWidget, QWidget, QVBoxLayout, \
     QHBoxLayout, QMainWindow, QMenuBar, QAction
 
 from data_preprocessor.flow.OperationDag import OperationDag
-from data_preprocessor.flow.OperationHandler import OperationHandler
 from data_preprocessor.gui.attributepanel import AttributePanel
 from data_preprocessor.gui.graph.controller import GraphController
 from data_preprocessor.gui.graph.scene import GraphScene
@@ -35,7 +34,7 @@ class MainWidget(QWidget):
         chartsTab = QWidget()
         scene = GraphScene(self)
         flowTab = GraphView(scene)
-        controller = GraphController(self.graph, scene, flowTab, self.workbench_model, self)
+        self.controller = GraphController(self.graph, scene, flowTab, self.workbench_model, self)
 
         tabs.addTab(attributeTab, '&Attribute')
         tabs.addTab(chartsTab, '&Visualise')
@@ -91,22 +90,19 @@ class MainWindow(QMainWindow):
         fileMenu.addAction(loadCsvAction)
         fileMenu.show()
 
-        exec_ac = QAction('Execute', flowMenu)
-        flowMenu.addAction(exec_ac)
+        exec_flow = QAction('Execute', flowMenu)
+        reset_flow = QAction('Reset', flowMenu)
+        flowMenu.addAction(exec_flow)
+        flowMenu.addAction(reset_flow)
         flowMenu.show()
 
         self.setMenuBar(menuBar)
 
         # Connect
         addAction.triggered.connect(central_w.workbench_model.appendEmptyRow)
-        exec_ac.triggered.connect(self.executeFlow)
+        exec_flow.triggered.connect(self.centralWidget().controller.executeFlow)
+        reset_flow.triggered.connect(self.centralWidget().controller.resetFlowStatus)
         self._loadAction.success.connect(self.loadCsv)
-
-    @Slot()
-    def executeFlow(self):
-        gr: OperationDag = self.centralWidget().graph
-        handler = OperationHandler(gr)
-        handler.execute()
 
     @Slot()
     def loadCsv(self) -> None:

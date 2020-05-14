@@ -1,15 +1,17 @@
 import logging
 import sys
 import traceback
+from typing import Union
 
 from PySide2.QtCore import QRunnable, Slot, QObject, Signal
 
 from data_preprocessor import data
+from data_preprocessor.flow import OperationNode
 from data_preprocessor.operation.interface import Operation
 
 
 class Worker(QRunnable):
-    def __init__(self, operation: Operation, *args):
+    def __init__(self, operation: Union[Operation, OperationNode], *args):
         super().__init__()
         self._operation = operation
         self._args = args
