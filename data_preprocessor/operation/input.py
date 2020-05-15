@@ -22,7 +22,7 @@ class CopyOp(InputOperation):
     def name() -> str:
         return 'Copy operation'
 
-    def info(self) -> str:
+    def shortDescription(self) -> str:
         return 'Copy existing dataframe. Should be used as first operation in a pipeline'
 
     def hasOptions(self) -> bool:

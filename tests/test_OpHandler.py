@@ -34,7 +34,7 @@ class FakeInput(InputOperation):
     def name(self) -> str:
         pass
 
-    def info(self) -> str:
+    def shortDescription(self) -> str:
         pass
 
     def setOptions(self, *args, **kwargs) -> None:
@@ -63,7 +63,7 @@ class Join(Operation):
     def name(self) -> str:
         pass
 
-    def info(self) -> str:
+    def shortDescription(self) -> str:
         pass
 
     def acceptedTypes(self) -> List[Types]:
@@ -121,7 +121,7 @@ class GiveOutOp(OutputOperation):
     def name(self) -> str:
         pass
 
-    def info(self) -> str:
+    def shortDescription(self) -> str:
         pass
 
     def setOptions(self, var) -> None:

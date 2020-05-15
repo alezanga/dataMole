@@ -33,7 +33,7 @@ class CsvLoader(InputOperation):
     def name() -> str:
         return 'Load CSV'
 
-    def info(self) -> str:
+    def shortDescription(self) -> str:
         return 'This command loads a dataframe from a CSV'
 
     def setOptions(self, file: str, separator: str) -> None:

@@ -16,7 +16,7 @@ class DummyOp(Operation):
     def name(self) -> str:
         return 'Dummy operation'
 
-    def info(self) -> str:
+    def shortDescription(self) -> str:
         return 'This operation does nothing and returns None'
 
     def acceptedTypes(self) -> List[Types]:

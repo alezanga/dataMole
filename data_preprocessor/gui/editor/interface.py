@@ -3,8 +3,8 @@ import uuid
 from typing import Iterable, List, Optional
 
 from PySide2.QtCore import Signal, Slot
-from PySide2.QtGui import QCloseEvent, Qt
-from PySide2.QtWidgets import QWidget, QPushButton, QHBoxLayout, QVBoxLayout
+from PySide2.QtGui import QCloseEvent, Qt, QCursor
+from PySide2.QtWidgets import QWidget, QPushButton, QHBoxLayout, QVBoxLayout, QLabel, QWhatsThis
 
 from data_preprocessor import data
 from data_preprocessor.data.types import Types
@@ -45,8 +45,13 @@ class AbsOperationEditor(QWidget):
         self.butLayout.addWidget(butCancel, alignment=Qt.AlignLeft)
         self.butLayout.addWidget(self.__butOk, alignment=Qt.AlignRight)
 
+        self.__helpLayout = QHBoxLayout()
+        self.__descLabel = QLabel()
+        self.__helpLayout.addWidget(self.__descLabel, 7)
+
         self._layout = QVBoxLayout()
         # layout.addWidget(self._custom_widget)
+        self._layout.addLayout(self.__helpLayout)
         self._layout.addLayout(self.butLayout)
         self.setLayout(self._layout)
         self.setFocusPolicy(Qt.StrongFocus)
@@ -74,6 +79,15 @@ class AbsOperationEditor(QWidget):
     def setWorkbench(self, wor: 'WorkbenchModel') -> None:
         self._workbench: 'WorkbenchModel' = wor
 
+    def setDescription(self, short: str, long: str) -> None:
+        self.__descLabel.setText(short)
+        if long:
+            whatsThisButton = QPushButton('More')
+            self.__helpLayout.addWidget(whatsThisButton, 1)
+            self.setWhatsThis(long)
+            whatsThisButton.clicked.connect(
+                lambda: QWhatsThis.showText(QCursor.pos(), long, self))
+
     def disableOkButton(self) -> None:
         """ Makes the accept button unclickable.
             Useful to prevent user from saving invalid changes """
@@ -88,9 +102,6 @@ class AbsOperationEditor(QWidget):
         # Reject changes and close editor if the close button is pressed
         self.rejectAndClose.emit()
 
-    # def setInputShapes(self, shapes: List[Optional[data.Shape]]) -> None:
-    #     self._inputShapes = shapes
-
     @Slot()
     def onAccept(self) -> None:
         ok = self.validate(*self.getOptions())
@@ -99,7 +110,7 @@ class AbsOperationEditor(QWidget):
 
     def setUpEditor(self):
         """ Calls editorBody and add the returned widget """
-        self._layout.insertWidget(0, self.editorBody())
+        self._layout.insertWidget(1, self.editorBody())
 
     # ----------------------------------------------------------------------------
     # --------------------------- PURE VIRTUAL METHODS ---------------------------

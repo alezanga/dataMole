@@ -33,7 +33,7 @@ class ToNumericOp(Operation):
     def name() -> str:
         return 'toNumeric'
 
-    def info(self) -> str:
+    def shortDescription(self) -> str:
         return 'Convert one attribute to Numeric values. All types except Datetime can be converted'
 
     def acceptedTypes(self) -> List[Types]:
@@ -109,7 +109,7 @@ class ToCategoricalOp(Operation):
     def name() -> str:
         return 'toCategory'
 
-    def info(self) -> str:
+    def shortDescription(self) -> str:
         return 'Convert one attribute to categorical type. Every different value will be considered a ' \
                'new category'
 

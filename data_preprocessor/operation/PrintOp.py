@@ -15,7 +15,7 @@ class PrintOp(OutputOperation):
     def name() -> str:
         return 'Print operation'
 
-    def info(self) -> str:
+    def shortDescription(self) -> str:
         return 'Just prints its input'
 
     def setOptions(self, *args, **kwargs) -> None:

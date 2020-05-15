@@ -36,7 +36,7 @@ class MergeValuesOp(Operation):
     def name() -> str:
         return 'Merge values'
 
-    def info(self) -> str:
+    def shortDescription(self) -> str:
         return 'Substitute all specified values in a attribute and substitute them with a single value'
 
     def acceptedTypes(self) -> List[Types]:

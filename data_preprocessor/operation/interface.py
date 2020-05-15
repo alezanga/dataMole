@@ -12,7 +12,6 @@ class Operation(ABC):
     Base interface of every operation
     """
 
-    @abstractmethod
     def __init__(self):
         """ Initialises an operation """
         # Holds the input shapes
@@ -68,6 +67,15 @@ class Operation(ABC):
         result = self.execute(*dummy_frames)
         return result.shape
 
+    def acceptedTypes(self) -> List[Types]:
+        """
+        Return the column types that this operation accepts. If not relevant may avoid
+        reimplementation.
+
+        :return The list of types the operation can handle. Defaults to all types.
+        """
+        return ALL_TYPES
+
     # ----------------------------------------------------------------------------
     # --------------------------- PURE VIRTUAL METHODS ---------------------------
     # ----------------------------------------------------------------------------
@@ -95,16 +103,24 @@ class Operation(ABC):
         pass
 
     @abstractmethod
-    def info(self) -> str:
+    def shortDescription(self) -> str:
         """
-        Provide some information to show for a step
+        Provide some information to show for a step. Should be short, since it is always shown in the
+        editor widget
+
+        :return a string also with html formatting
         """
         pass
 
-    @abstractmethod
-    def acceptedTypes(self) -> List[Types]:
-        """ Return the column types that this operation accepts """
-        pass
+    def longDescription(self) -> str:
+        """
+        A textual description which may be useful to configure the options. It is shown on demand
+        if the user needs further information over the short description. May be long and include html
+        tags
+
+        :return: a string also with html formatting
+        """
+        return None
 
     @abstractmethod
     def hasOptions(self) -> bool:

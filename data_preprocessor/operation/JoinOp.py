@@ -47,7 +47,7 @@ class JoinOp(Operation):
     def name() -> str:
         return 'Join operation'
 
-    def info(self) -> str:
+    def shortDescription(self) -> str:
         return 'Allows to join two tables. Can handle four type of join: left, right, outer and inner'
 
     def acceptedTypes(self) -> List[Types]:

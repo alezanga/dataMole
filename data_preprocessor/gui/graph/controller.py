@@ -76,7 +76,7 @@ class GraphController(QWidget):
                 msg_noeditor.setWindowTitle(node.operation.name())
                 msg_noeditor.setInformativeText(
                     'This operations require no options.<hr><b>Operation description</b><br><br>' +
-                    node.operation.info())
+                    node.operation.shortDescription())
                 msg_noeditor.setStandardButtons(QMessageBox.Ok)
                 msg_noeditor.exec_()
                 msg_noeditor.deleteLater()
@@ -94,6 +94,8 @@ class GraphController(QWidget):
                 self.__editor_widget.setWorkbench(node.operation.workbench)
             # Create the central widget and adds options
             self.__editor_widget.setUpEditor()
+            self.__editor_widget.setDescription(node.operation.shortDescription(),
+                                                node.operation.longDescription())
             self.__editor_widget.setOptions(*node.operation.getOptions())
             # Connect editor signals to slots which handle accept/reject
             self.__editor_widget.acceptAndClose.connect(self.onEditAccept)

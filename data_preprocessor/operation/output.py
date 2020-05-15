@@ -23,7 +23,7 @@ class ToVariableOp(OutputOperation):
     def name() -> str:
         return 'To variable'
 
-    def info(self) -> str:
+    def shortDescription(self) -> str:
         return 'Save the output as a variable in the workbench with the given name'
 
     def hasOptions(self) -> bool:

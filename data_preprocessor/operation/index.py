@@ -18,7 +18,7 @@ class SetIndexOp(Operation):
     def name() -> str:
         return 'Set index'
 
-    def info(self) -> str:
+    def shortDescription(self) -> str:
         return 'Sets the column index of a table'
 
     def acceptedTypes(self) -> List[Types]:

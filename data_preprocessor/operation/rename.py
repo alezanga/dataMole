@@ -32,7 +32,7 @@ class RenameOp(Operation):
     def name() -> str:
         return 'Rename operation'
 
-    def info(self) -> str:
+    def shortDescription(self) -> str:
         return 'This operation can rename the attributes'
 
     def hasOptions(self) -> bool:
