@@ -281,7 +281,7 @@ class AttributeTableModelFilter(QSortFilterProxyModel):
         self._filterTypes = filterTypes
 
     def filterAcceptsRow(self, source_row: int, source_parent: QModelIndex) -> bool:
-        index = self.sourceModel().index(source_row, self.sourceModel()._type_pos, source_parent)
+        index = self.sourceModel().index(source_row, self.sourceModel().type_pos, source_parent)
 
         type_data: str = self.sourceModel().data(index, Qt.DisplayRole)
         if Types(type_data) in self._filterTypes:

@@ -2,10 +2,12 @@ from PySide2.QtCore import Slot, QUrl, QSize
 from PySide2.QtGui import QDesktopServices
 from PySide2.QtWidgets import QStatusBar, QWidget, QPushButton, QLabel
 
+from data_preprocessor.decorators.generic import singleton
 from data_preprocessor.gui.waitingspinnerwidget import QtWaitingSpinner
 
 
-class MyStatusBar(QStatusBar):
+@singleton
+class StatusBar(QStatusBar):
     def __init__(self, parent: QWidget = None):
         super().__init__(parent)
         logButton = QPushButton('Open log', self)

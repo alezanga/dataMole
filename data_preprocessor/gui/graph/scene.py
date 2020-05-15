@@ -76,6 +76,7 @@ class GraphScene(QtWidgets.QGraphicsScene):
 
         self.__operation_dag = OperationDag()
         self.__dropPosition: QPointF = None
+        self.disableEdit = False
 
     @property
     def nodes(self):
@@ -139,6 +140,8 @@ class GraphScene(QtWidgets.QGraphicsScene):
         """Create an edge between source slot and mouse position
 
         """
+        if self.disableEdit:
+            return
         self._is_interactive_edge = True
         if not self._interactive_edge:
             # Create interactive edge
@@ -156,7 +159,8 @@ class GraphScene(QtWidgets.QGraphicsScene):
         and the slot given by connect_to
 
         """
-        # TODO: validation part is a bit messy
+        if self.disableEdit:
+            return
         self._is_interactive_edge = False
         if connect_to:
             eh = self._edges_by_hash  # shortcut

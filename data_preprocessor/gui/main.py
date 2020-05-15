@@ -10,7 +10,7 @@ from data_preprocessor.gui.graph.controller import GraphController
 from data_preprocessor.gui.graph.scene import GraphScene
 from data_preprocessor.gui.graph.view import GraphView
 from data_preprocessor.gui.operationmenu import OperationMenu
-from data_preprocessor.gui.statusbar import MyStatusBar
+from data_preprocessor.gui.statusbar import StatusBar
 from data_preprocessor.gui.utils import OperationAction
 from data_preprocessor.gui.workbench import WorkbenchModel, WorkbenchView
 from data_preprocessor.operation.loaders import CsvLoader
@@ -73,8 +73,7 @@ class MainWindow(QMainWindow):
         super().__init__()
         central_w = MainWidget()
         self.setCentralWidget(central_w)
-        self.myStatusBar = MyStatusBar(self)
-        self.setStatusBar(self.myStatusBar)
+        self.setStatusBar(StatusBar(self))
         # Initialise a thread pool
         self.threadPool = QThreadPool()
         logging.info('Multithreading with maximum {} threads'.format(self.threadPool.maxThreadCount()))

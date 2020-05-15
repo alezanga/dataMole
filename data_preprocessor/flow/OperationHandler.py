@@ -6,8 +6,8 @@ from PySide2.QtCore import QThreadPool, Slot, QObject, Signal
 
 from data_preprocessor import data
 from data_preprocessor.flow.OperationDag import OperationDag, OperationNode
-from data_preprocessor.threads import Worker
 from data_preprocessor.status import NodeStatus
+from data_preprocessor.threads import NodeWorker
 
 
 # NOTE: Eventualmente memorizzare con joblib
@@ -43,16 +43,16 @@ class OperationHandler:
 
         end = self.threadPool.waitForDone()
         if end:
+            logging.debug('ThreadPool ended')
             # Everything finished
             self.signals.allFinished.emit()
             logging.info('Flow finished')
 
     def startNode(self, node: OperationNode):
-        worker = Worker(node)
+        worker = NodeWorker(node)
         # Connect
-        worker.signals.result.connect(lambda df: self.__qtSlots.nodeCompleted(node.uid, df))
-        worker.signals.error.connect(lambda err: self.__qtSlots.nodeErrored(node.uid, err))
-        # worker.signals.finished.connect(self._finished)
+        worker.signals.result.connect(self.__qtSlots.nodeCompleted)
+        worker.signals.error.connect(self.__qtSlots.nodeErrored)
         self.threadPool.start(worker)
         self.signals.statusChanged.emit(node.uid, NodeStatus.PROGRESS)
 
@@ -95,8 +95,9 @@ class _HandlerSlots(QObject):
         super().__init__(parent)
         self.handler = handler
 
-    @Slot(int, data.Frame)
+    @Slot(int, object)
     def nodeCompleted(self, node_id: int, result: data.Frame):
+        logging.debug('nodeCompleted SUCCESS')
         # Emit node finished
         self.handler.signals.statusChanged.emit(node_id, NodeStatus.SUCCESS)
         # Clear eventual input, since now I have result

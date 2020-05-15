@@ -1,9 +1,9 @@
+import logging
 from typing import Any
 
 import networkx as nx
 
 from data_preprocessor.flow import OperationNode
-import logging
 
 
 class OperationDag:
@@ -59,10 +59,10 @@ class OperationDag:
             return False
         self.__G.add_node(node.uid, op=node)
         # if node.operation.maxInputNumber() == 0:
-            # Then it's an input operation and the shape can be inferred
-            # in_op: 'InputOperation' = node.operation
-            # in_op.inferInputShape()
-            # self.__update_descendants(node.uid)  # TOCHECK: is it needed?
+        # Then it's an input operation and the shape can be inferred
+        # in_op: 'InputOperation' = node.operation
+        # in_op.inferInputShape()
+        # self.__update_descendants(node.uid)  # TOCHECK: is it needed?
         return True
 
     def addConnection(self, source_id: int, target_id: int, slot: int) -> bool:
@@ -81,6 +81,10 @@ class OperationDag:
         to_max_in = target_node.operation.maxInputNumber()
         if (0 <= from_max_out <= self.__G.out_degree(source_id)) or (
                 0 <= to_max_in <= self.__G.in_degree(target_id)):
+            return False
+
+        if not source_node.operation.isOutputShapeKnown() and \
+                target_node.operation.minOutputNumber() != 0:
             return False
 
         # Add connection

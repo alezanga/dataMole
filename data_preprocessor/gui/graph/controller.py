@@ -1,14 +1,14 @@
 import logging
 from typing import List, Callable
 
-from PySide2.QtCore import Slot
+from PySide2.QtCore import Slot, Qt
 from PySide2.QtWidgets import QWidget, QMessageBox
 
 from data_preprocessor.gui.editor.interface import AbsOperationEditor
-from data_preprocessor.gui.utils import getMainWindow
 from .node import NodeSlot, Node, NodeStatus
 from .scene import GraphScene
 from .view import GraphView
+from ..statusbar import StatusBar
 from ..workbench import WorkbenchModel
 from ...flow import OperationNode
 from ...flow.OperationDag import OperationDag
@@ -27,6 +27,8 @@ class GraphController(QWidget):
         self.__editor_widget: AbsOperationEditor = None
         # Current node being edited
         self.__editor_node_id: int = None
+        # Flag to know when execution starts
+        self.__executing = False
         # Connections
         self._scene.editModeEnabled.connect(self.startEditNode)
         self._view.deleteSelected.connect(self.removeItems)
@@ -35,6 +37,8 @@ class GraphController(QWidget):
 
     @Slot(type)
     def addNode(self, op_class: Callable):
+        if self.__executing:
+            return
         op_input: bool = getattr(op_class, 'maxInputNumber')() == 0
         op_output: bool = getattr(op_class, 'minOutputNumber')() == 0
         if op_output or op_input:
@@ -48,6 +52,8 @@ class GraphController(QWidget):
 
     @Slot(NodeSlot, NodeSlot)
     def addEdge(self, source_slot: NodeSlot, target_slot: NodeSlot):
+        if self.__executing:
+            return
         u: Node = source_slot.parentNode
         v: Node = target_slot.parentNode
         if self._operation_dag.addConnection(source_id=u.id, target_id=v.id, slot=target_slot.position):
@@ -58,6 +64,8 @@ class GraphController(QWidget):
 
     @Slot()
     def removeItems(self):
+        if self.__executing:
+            return
         selected_nodes: List[Node] = self._scene.selectedNodes
         selected_edges: List['Edge'] = self._scene.selectedEdges
         for edge in selected_edges:
@@ -69,6 +77,8 @@ class GraphController(QWidget):
 
     @Slot(int)
     def startEditNode(self, node_id: int):
+        if self.__executing:
+            return
         node: OperationNode = self._operation_dag[node_id]
         if not self.__editor_widget:
             if not node.operation.needsOptions():
@@ -131,21 +141,37 @@ class GraphController(QWidget):
 
     @Slot()
     def executeFlow(self) -> None:
+        if self.__executing:
+            msgbox = QMessageBox(QMessageBox.Icon.Warning, 'Flow already in progress',
+                                 'An operation is still executing. Starting more than one flow is not '
+                                 'supported', QMessageBox.Ok)
+            msgbox.setAttribute(Qt.WA_DeleteOnClose)
+            msgbox.show()
+            return
+        # Reset status
+        self.resetFlowStatus()
+        self.__executing = True
+        # Disable some features of view/scene
+        self._view.setAcceptDrops(False)
+        self._scene.disableEdit = True
+        # Execute
         handler = OperationHandler(self._operation_dag)
         handler.signals.statusChanged.connect(self.onStatusChanged)
         handler.signals.allFinished.connect(self.flowCompleted)
-        mw = getMainWindow()
         try:
-            mw.statusBar().startSpinner()
-            mw.statusBar().showMessage('Started flow execution...', 20)
+            StatusBar().startSpinner()
+            StatusBar().showMessage('Started flow execution...', 20)
             handler.execute()
         except HandlerException as e:
-            mw.statusBar().showMessage('Execution stopped', 20)
+            StatusBar().showMessage('Execution stopped', 20)
             msgbox = QMessageBox(QMessageBox.Icon.Critical, 'Flow error', str(e), QMessageBox.Ok, self)
             msgbox.exec_()
+            self.flowCompleted()
 
     @Slot()
     def resetFlowStatus(self) -> None:
+        if self.__executing:
+            return
         for node in self._scene.nodes:
             node.status = NodeStatus.NONE
             node.refresh(refresh_edges=False)
@@ -162,6 +188,8 @@ class GraphController(QWidget):
 
     @Slot()
     def flowCompleted(self) -> None:
-        mw = getMainWindow()
-        mw.statusBar().showMessage('Flow finished', 20)
-        mw.statusBar().stopSpinner()
+        StatusBar().showMessage('Flow finished', 20)
+        StatusBar().stopSpinner()
+        self.__executing = False
+        self._view.setAcceptDrops(True)
+        self._scene.disableEdit = False

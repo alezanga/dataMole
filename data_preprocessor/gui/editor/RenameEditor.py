@@ -28,7 +28,8 @@ class EditableAttributeTable(AttributeTableModel):
         if not index.isValid():
             return None
 
-        name, col_type = self._sourceModel.headerData(index.row(), orientation=Qt.Horizontal)
+        name, col_type = self._sourceModel.headerData(index.row(), orientation=Qt.Horizontal,
+                                                      role=FrameModel.DataRole)
         if index.column() == self.name_pos:
             # Gets updated value or None
             new_name: str = self._edits.get(index.row(), None)
@@ -38,6 +39,8 @@ class EditableAttributeTable(AttributeTableModel):
                     return name + ' -> ' + new_name
                 elif role == Qt.EditRole:
                     return new_name
+            elif role == Qt.DisplayRole or role == Qt.EditRole:
+                return name
         else:
             return super().data(index, role)
 

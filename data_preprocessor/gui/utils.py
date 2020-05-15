@@ -69,7 +69,7 @@ class OperationAction(QObject):
         mainWindow.statusBar().showMessage('Executing operation...')
         self.operation.setOptions(*self.editor.getOptions())
         # Prepare worker
-        worker = threads.Worker(self.operation, *self._inputs)
+        worker = threads.OperationWorker(self.operation, *self._inputs)
         # Connect
         worker.signals.result.connect(self._setOutput)
         worker.signals.error.connect(self._showError)

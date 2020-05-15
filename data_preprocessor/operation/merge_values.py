@@ -148,7 +148,7 @@ class _MergeValEditor(AbsOperationEditor):
         if values_to_merge:
             self.__mergeList.setData(', '.join([str(e) for e in values_to_merge]))
         if merge_val is not None:
-            if merge_val == MergeValuesOp.Nan:
+            if merge_val is MergeValuesOp.Nan:
                 self.__nan_cb.setChecked(True)
                 self.__nan_cb.stateChanged.emit(self.__nan_cb.checkState())
             else:
