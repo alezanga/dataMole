@@ -19,7 +19,7 @@ class OperationHandler:
 
     def __init__(self, graph: OperationDag):
         self.graph: nx.DiGraph = graph.getNxGraph()
-        self.threadPool = QThreadPool()
+        self.threadPool = QThreadPool.globalInstance()
         self.__qtSlots = _HandlerSlots(self)
         self.signals = HandlerSignals()
 

@@ -19,14 +19,21 @@ class OperationDag:
         """ Returns a reference to the NetworkX graph """
         return self.__G
 
-    def __update_descendants(self, parent_id: int, unset_options: bool = False) -> None:
-        # TOCHECK
+    def __update_descendants(self, parent_id: int) -> None:
+        """
+        Recursively update the descendants of a provided node. Updates the input shape and unset
+        options if the input shape changed
+
+        :param parent_id: the id of the parent node
+        """
         for child_id in self.__G.successors(parent_id):  # Direct successors
             child_node = self[child_id]
-            if unset_options:
+            newParentOutputShape = self[parent_id].operation.getOutputShape()
+            oldParentOutputShape = child_node.inputShapeFrom(parent_id)
+            if newParentOutputShape != oldParentOutputShape:
                 child_node.operation.unsetOptions()
-            child_node.addInputShape(self[parent_id].operation.getOutputShape(), parent_id)
-            self.__update_descendants(child_id)
+                child_node.addInputShape(newParentOutputShape, parent_id)
+                self.__update_descendants(child_id)
 
     def updateNodeOptions(self, node_id: int, *options: Any, **kwoptions: Any) -> bool:
         """ Set/updates the options of a node.
@@ -47,6 +54,7 @@ class OperationDag:
         #     node.operation.inferInputShape()
         # Update every connected node
         self.__update_descendants(node_id)
+        # TOCHECK: else clause should not update since shape is the same
         return True
 
     def addNode(self, node: OperationNode) -> bool:
@@ -120,7 +128,7 @@ class OperationDag:
         # Unset options which depends on the input shape
         target_node.operation.unsetOptions()
         # Updates (remove) input shapes (and options) in descendants
-        self.__update_descendants(target_id, unset_options=True)
+        self.__update_descendants(target_id)
         return True
 
     def removeNode(self, op_id: int) -> bool:

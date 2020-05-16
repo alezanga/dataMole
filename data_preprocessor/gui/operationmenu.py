@@ -1,7 +1,7 @@
 import importlib
 from typing import Callable, List
 
-from PySide2.QtCore import Qt, QPoint, QMimeData
+from PySide2.QtCore import Qt, QPoint, QMimeData, Slot
 from PySide2.QtGui import QMouseEvent, QDrag
 from PySide2.QtWidgets import QWidget, QTreeWidget, QTreeWidgetItem, QApplication
 
@@ -57,6 +57,20 @@ class OperationMenu(QTreeWidget):
                     _addChildren(top_items, c)
             else:
                 _addChildren(top_items, op_class)
+
+        self.__expanded: bool = False
+        self.header().setDefaultAlignment(Qt.AlignCenter)
+        self.header().setSectionsClickable(True)
+        self.header().sectionClicked.connect(self.toggleExpansion)
+
+    @Slot(int)
+    def toggleExpansion(self, section: int) -> None:
+        if section == 0:
+            self.__expanded = not self.__expanded
+            if self.__expanded:
+                self.expandAll()
+            else:
+                self.collapseAll()
 
     def mousePressEvent(self, event: QMouseEvent):
         if event.button() == Qt.LeftButton:

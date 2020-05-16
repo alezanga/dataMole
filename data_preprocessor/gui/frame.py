@@ -1,9 +1,11 @@
+import logging
 from enum import Enum
 from typing import Any, List, Union
 
 from PySide2.QtCore import QAbstractTableModel, QModelIndex, Qt, Slot, QAbstractItemModel, \
-    QSortFilterProxyModel
-from PySide2.QtWidgets import QWidget, QTableView, QLineEdit, QVBoxLayout, QHeaderView
+    QSortFilterProxyModel, QBasicTimer, QTimerEvent
+from PySide2.QtWidgets import QWidget, QTableView, QLineEdit, QVBoxLayout, QHeaderView, QLabel, \
+    QHBoxLayout
 
 from data_preprocessor.data import Frame, Shape
 from data_preprocessor.data.types import Types
@@ -41,7 +43,7 @@ class FrameModel(QAbstractTableModel):
     def columnCount(self, parent: QModelIndex = QModelIndex()) -> int:
         if parent.isValid():
             return 0
-        allCols = self._frame.shape.n_columns
+        allCols = self._shape.n_columns
         if allCols < self._loadedCols:
             return allCols
         return self._loadedCols
@@ -78,12 +80,12 @@ class FrameModel(QAbstractTableModel):
 
     def canFetchMore(self, parent: QModelIndex) -> bool:
         """ Returns True if more columns should be displayed, False otherwise """
-        if self._frame.shape.n_columns > self._loadedCols:
+        if self._shape.n_columns > self._loadedCols:
             return True
         return False
 
     def fetchMore(self, parent: QModelIndex):
-        remainder = self._frame.shape.n_columns - self._loadedCols
+        remainder = self._shape.n_columns - self._loadedCols
         colsToFetch = min(remainder, self.COL_BATCH_SIZE)
         self.beginInsertColumns(parent, self._loadedCols, self._loadedCols + colsToFetch - 1)
         self._loadedCols += colsToFetch
@@ -200,25 +202,24 @@ class AttributeTableModel(QAbstractTableModel):
     def data(self, index: QModelIndex, role: int = ...) -> Any:
         if not index.isValid():
             return None
-        name: str
-        col_type: Types
-        name, col_type = self._sourceModel.headerData(index.row(), orientation=Qt.Horizontal,
-                                                      role=FrameModel.DataRole)
-        value = None
-        if index.column() == self.name_pos:
-            value = name
-        elif index.column() == self.type_pos:
-            value = col_type.value
 
-        if role == Qt.DisplayRole or role == Qt.EditRole:
+        if (role == Qt.DisplayRole or role == Qt.EditRole) and index.column() != self.checkbox_pos:
+            name: str
+            col_type: Types
+            name, col_type = self._sourceModel.headerData(index.row(), orientation=Qt.Horizontal,
+                                                          role=FrameModel.DataRole)
+            value = None
+            if index.column() == self.name_pos:
+                value = name
+            elif index.column() == self.type_pos:
+                value = col_type.value
             return value
         # Return the correct value for checkbox
-        elif role == Qt.CheckStateRole:
-            if index.column() == self.checkbox_pos:
-                if self._checked[index.row()]:
-                    return Qt.Checked
-                else:
-                    return Qt.Unchecked
+        elif role == Qt.CheckStateRole and index.column() == self.checkbox_pos:
+            if self._checked[index.row()]:
+                return Qt.Checked
+            else:
+                return Qt.Unchecked
         elif role == Qt.TextAlignmentRole:
             return Qt.AlignCenter
         return None
@@ -293,20 +294,28 @@ class SearchableAttributeTableWidget(QWidget):
     def __init__(self, parent: QWidget = None, checkable: bool = False, editable: bool = False):
         super().__init__(parent)
         self.__model = AttributeTableModel(parent=self, checkable=checkable, editable=editable)
-        self._tableView = QTableView(self)
+        self._tableView = IncrementalAttributeTableView(parent=self)
         self._tableModel = QSortFilterProxyModel(self)
         self._tableModel.setSourceModel(self.__model)
         self._tableModel.setFilterCaseSensitivity(Qt.CaseInsensitive)
 
         self._searchBar = QLineEdit(self)
         self._searchBar.setPlaceholderText('Search')
+        searchLabel = QLabel('Attribute search')
+        titleLabel = QLabel('Attribute list')
+        searchLayout = QHBoxLayout()
+        searchLayout.addWidget(titleLabel, 0, alignment=Qt.AlignRight)
+        searchLayout.addStretch(1)
+        searchLayout.addWidget(searchLabel, 0, alignment=Qt.AlignLeft)
+        searchLayout.addSpacing(20)
+        searchLayout.addWidget(self._searchBar, 0, alignment=Qt.AlignLeft)
 
         layout = QVBoxLayout()
-        layout.addWidget(self._searchBar)
+        layout.addLayout(searchLayout)
         layout.addWidget(self._tableView)
         self.setLayout(layout)
 
-    def setSourceModel(self, source: FrameModel) -> None:
+    def setSourceFrameModel(self, source: FrameModel) -> None:
         self.__model.setSourceModel(source)
         if self._tableView.model() is not self._tableModel:
             self._tableView.setModel(self._tableModel)
@@ -321,6 +330,54 @@ class SearchableAttributeTableWidget(QWidget):
             self._tableModel.setFilterKeyColumn(self.__model.name_pos)
             self._tableView.setHorizontalHeader(hh)
             self._searchBar.textChanged.connect(self._tableModel.setFilterRegExp)
+
+
+class IncrementalAttributeTableView(QTableView):
+    def __init__(self, period: int = 50, parent: QWidget = None):
+        super().__init__(parent)
+        self.__timer = QBasicTimer()
+        self.__timerPeriodMs = period
+
+    def setModel(self, model: QAbstractItemModel) -> None:
+        """ Reimplemented to start fetch timer """
+        if self.__timer.isActive():
+            self.__timer.stop()
+            logging.debug('Model about to be set. Fetch timer stopped')
+        super().setModel(model)
+        # Add timer to periodically fetch more rows
+        self.__timer.start(self.__timerPeriodMs, self)
+        logging.debug('Model set. Fetch timer started')
+
+    def timerEvent(self, event: QTimerEvent) -> None:
+        if event.timerId() == self.__timer.timerId():
+            more = self.__fetchMoreRows()
+            if not more:
+                self.__timer.stop()
+                logging.debug('Fetch timer stopped')
+        super().timerEvent(event)
+
+    def reset(self) -> None:
+        """ Reimplemented to start fetch timer when model is reset """
+        # Stop to avoid problems while model is reset
+        if self.__timer.isActive():
+            self.__timer.stop()
+            logging.debug('Model about to be reset. Fetch timer stopped')
+        super().reset()
+        # Restart timer
+        self.__timer.start(self.__timerPeriodMs, self)
+        logging.debug('Model reset. Fetch timer started')
+
+    def __fetchMoreRows(self, parent: QModelIndex = QModelIndex()) -> bool:
+        """
+        Tries to fetch more data from the model
+
+        :return True if new data were fetched, False otherwise
+        """
+        model = self.model()
+        if model is None or not model.canFetchMore(parent):
+            return False
+        model.fetchMore(parent)
+        return True
 
 # class ShapeAttributeNamesListModel(QAbstractListModel):
 #     def __init__(self, shape: Shape, parent: QWidget = None):

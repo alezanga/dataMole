@@ -4,7 +4,8 @@ from typing import Iterable, List, Optional
 
 from PySide2.QtCore import Signal, Slot
 from PySide2.QtGui import QCloseEvent, Qt, QCursor
-from PySide2.QtWidgets import QWidget, QPushButton, QHBoxLayout, QVBoxLayout, QLabel, QWhatsThis
+from PySide2.QtWidgets import QWidget, QPushButton, QHBoxLayout, QVBoxLayout, QLabel, QWhatsThis, \
+    QSizePolicy
 
 from data_preprocessor import data
 from data_preprocessor.data.types import Types
@@ -81,8 +82,10 @@ class AbsOperationEditor(QWidget):
 
     def setDescription(self, short: str, long: str) -> None:
         self.__descLabel.setText(short)
+        self.__descLabel.setWordWrap(True)
         if long:
             whatsThisButton = QPushButton('More')
+            whatsThisButton.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.MinimumExpanding)
             self.__helpLayout.addWidget(whatsThisButton, 1)
             self.setWhatsThis(long)
             whatsThisButton.clicked.connect(

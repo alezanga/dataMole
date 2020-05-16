@@ -108,6 +108,9 @@ class _MergeValEditor(AbsOperationEditor):
 
         self.__nan_cb.stateChanged.connect(self.toggleValueEdit)
         self.__attributeComboBox.widget.currentIndexChanged[int].connect(self.toggleValidator)
+        self.__mergeList.widget.textEdited.connect(self.clearError)
+        self.__mergeValue.widget.textEdited.connect(self.clearError)
+        self.__attributeComboBox.widget.currentIndexChanged[int].connect(self.clearError)
         body = QWidget(self)
         body.setLayout(layout)
         return body
@@ -130,6 +133,11 @@ class _MergeValEditor(AbsOperationEditor):
                 reg = QRegExp('((\\S+)|(\'.+\'))(,\\s?((\\S+)|(\'.+\')))*')
             b = self.__mergeList.widget.validator()
             self.__mergeList.widget.setValidator(QRegExpValidator(reg, self))
+            text = self.__mergeList.widget.text()
+            if self.__mergeList.widget.validator().validate(text, len(text) - 1) == \
+                    QRegExpValidator.Invalid:
+                self.__mergeList.widget.setText('')
+                self.__mergeList.unsetError()
             if b:
                 b.deleteLater()
 
@@ -156,6 +164,13 @@ class _MergeValEditor(AbsOperationEditor):
         self.__attributeComboBox.setData(attribute)
         if attribute is not None:
             self.__curr_type = self._inputShapes[0].col_types[attribute]
+
+    @Slot(tuple)
+    def clearError(self):
+        self.__mergeList.unsetError()
+        self.__mergeValue.unsetError()
+        self.__attributeComboBox.unsetError()
+        self.enableOkButton()
 
     def validate(self, cur_attr: int, list_merge: List, value: Any) -> bool:
         """ Validates the options before setting them in the operation. It's called with the values
@@ -187,6 +202,8 @@ class _MergeValEditor(AbsOperationEditor):
                 error = True
         if error:
             self.disableOkButton()
+        else:
+            self.enableOkButton()
         return not error
 
 

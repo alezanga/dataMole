@@ -58,7 +58,6 @@ class OperationAction(QObject):
 
     @Slot()
     def destroyEditor(self) -> None:
-        self.editor.disconnect(self)
         self.editor.deleteLater()
         self.editor = None
 
@@ -81,10 +80,10 @@ class OperationAction(QObject):
     @Slot(data.Frame)
     def _setOutput(self, f: data.Frame) -> None:
         self._output = f
-        logging.info('Operation result saved')
         self.destroyEditor()
         # Signal that result has been set
         self.success.emit()
+        logging.info('Operation result saved')
 
     @Slot()
     def _finished(self) -> None:

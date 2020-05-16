@@ -12,9 +12,11 @@
     - [x] Add spinner to status bar (not editor)
 - [x] Fix spinner/add a status bar
 - [x] Add hasOptions to all operations
+- [ ] Look into the possibility of doing a lazy loading from big csv (maybe with a hdf5 store)
 - [ ] Add many operations
+    - [ ] Decide how to handle unknown shape
     - [x] Merge values of one attribute (also to Nan)
-    - [ ] Remove Nan rows (by % or number)
+    - [x] Remove Nan rows (by % or number)
     - [ ] Load CSV
     - [ ] Write CSV
     - [x] Set index
@@ -30,5 +32,5 @@
     - [ ] Select rows based on condition
     - [ ] Select attributes based on condition
     - [ ] Remove selection (two inputs: selection and table)
-- [ ] Add Signal object to communicate operation status to the View
-- [ ] Add methods to launch specific signals in Operation
+- [x] Add Signal object to communicate operation status to the View
+- [x] Add methods to launch specific signals in Operation

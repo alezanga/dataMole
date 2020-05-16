@@ -38,7 +38,7 @@ class NodeWorker(QRunnable):
         self._executable = executable
         self._args = args
         self.signals = NodeWorker.WorkerSignals()
-        self.setAutoDelete(True)
+        self.setAutoDelete(False)
 
     @Slot()
     def run(self) -> None:
