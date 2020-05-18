@@ -75,7 +75,7 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(central_w)
         self.setStatusBar(StatusBar(self))
         # Initialise a thread pool
-        self.threadPool = QThreadPool()
+        self.threadPool = QThreadPool.globalInstance()
         logging.info('Multithreading with maximum {} threads'.format(self.threadPool.maxThreadCount()))
 
         menuBar = QMenuBar()

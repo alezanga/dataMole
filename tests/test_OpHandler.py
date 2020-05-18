@@ -10,12 +10,13 @@ from data_preprocessor.flow.OperationDag import OperationDag
 from data_preprocessor.flow.OperationHandler import OperationHandler
 from data_preprocessor.flow.OperationNode import OperationNode
 from data_preprocessor.gui.editor.interface import AbsOperationEditor
-from data_preprocessor.operation.interface import Operation, OutputOperation, InputOperation
+from data_preprocessor.operation.interface import GraphOperation, OutputGraphOperation, \
+    InputGraphOperation
 from data_preprocessor.operation.rename import RenameOp
 from data_preprocessor.operation.type import ToCategoricalOp, ToNumericOp
 
 
-class FakeInput(InputOperation):
+class FakeInput(InputGraphOperation):
     def __init__(self, input):
         super().__init__()
         self.input = input
@@ -47,7 +48,7 @@ class FakeInput(InputOperation):
         pass
 
 
-class Join(Operation):
+class Join(GraphOperation):
     def __init__(self):
         super().__init__()
         self.__lprefix: str = 'l'
@@ -110,7 +111,7 @@ class Join(Operation):
         return -1
 
 
-class GiveOutOp(OutputOperation):
+class GiveOutOp(OutputGraphOperation):
 
     def needsOptions(self) -> bool:
         return True
@@ -300,7 +301,7 @@ def test_GraphAdd():
     dag.updateNodeOptions(node2.uid, 0)
     new_shape1 = copy.deepcopy(new_shape)
     new_shape1.col_types[0] = Types.Numeric
-    assert op2._shape == [new_shape1] # Does nothing since col is already Numeric
+    assert op2._shape == [new_shape1]  # Does nothing since col is already Numeric
     assert op3._shape == [new_shape1]
 
     output1: Dict[int, data.Frame] = {1: data.Frame()}

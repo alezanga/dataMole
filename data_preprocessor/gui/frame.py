@@ -1,17 +1,19 @@
 import logging
 from enum import Enum
-from typing import Any, List, Union
+from typing import Any, List, Union, Dict, Tuple
 
-from PySide2.QtCore import QAbstractTableModel, QModelIndex, Qt, Slot, QAbstractItemModel, \
-    QSortFilterProxyModel, QBasicTimer, QTimerEvent
+from PySide2.QtCore import QAbstractTableModel, QModelIndex, Qt, Signal, Slot, QAbstractItemModel, \
+    QSortFilterProxyModel, QBasicTimer, QTimerEvent, QItemSelection, QThreadPool
 from PySide2.QtWidgets import QWidget, QTableView, QLineEdit, QVBoxLayout, QHeaderView, QLabel, \
     QHBoxLayout
 
 from data_preprocessor.data import Frame, Shape
 from data_preprocessor.data.types import Types
-
-
 # New role to return raw data from header
+from data_preprocessor.operation.computations.statistics import AttributeStatistics
+from data_preprocessor.threads import Worker
+
+
 class MyRoles(Enum):
     DataRole = Qt.UserRole
 
@@ -22,17 +24,24 @@ class FrameModel(QAbstractTableModel):
     DataRole = MyRoles.DataRole
     COL_BATCH_SIZE = 50
 
+    statisticsComputed = Signal(str)
+    statisticsError = Signal(str)
+
     def __init__(self, parent: QWidget = None, frame: Frame = Frame(), nrows: int = 10):
         super().__init__(parent)
         self._frame: Frame = frame
         self._shape: Shape = self._frame.shape
         self._n_rows: int = nrows
         self._loadedCols: int = self.COL_BATCH_SIZE
+        # Dictionary { attributeName: value }
+        self._statistics: Dict[str, Dict[str, object]] = dict()
+        self.__currentAttributeName: str = None
 
     def setFrame(self, frame: Frame) -> None:
         self.beginResetModel()
         self._frame = frame
         self._shape: Shape = self._frame.shape
+        self._statistics = dict()
         self.endResetModel()
 
     def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:
@@ -58,7 +67,7 @@ class FrameModel(QAbstractTableModel):
         if orientation == Qt.Horizontal:
             if role == Qt.DisplayRole:
                 return self._shape.col_names[section] + '\n' + self._shape.col_types[section].value
-            elif role == FrameModel.DataRole:
+            elif role == FrameModel.DataRole.value:
                 return self._shape.col_names[section], self._shape.col_types[section]
         elif orientation == Qt.Vertical and role == Qt.DisplayRole:
             if self._shape.has_index():
@@ -72,7 +81,7 @@ class FrameModel(QAbstractTableModel):
             names = self._frame.colnames
             names[section] = value
             self._frame = self._frame.rename({self.headerData(section, orientation,
-                                                              FrameModel.DataRole)[0]: value})
+                                                              FrameModel.DataRole.value)[0]: value})
             self._shape.col_names[section] = value
             self.headerDataChanged.emit(orientation, section, section)
             return True
@@ -91,6 +100,31 @@ class FrameModel(QAbstractTableModel):
         self._loadedCols += colsToFetch
         self.endInsertColumns()
 
+    @property
+    def statistics(self) -> Dict[str, Dict[str, object]]:
+        return self._statistics
+
+    def computeStatistics(self, attribute: str) -> None:
+        """ Compute statistics for a given attribute """
+        oper = AttributeStatistics()
+        oper.setOptions(attribute=attribute)
+        worker = Worker(oper, args=(self._frame,), identifier=attribute)
+        self.__currentAttributeName = attribute
+        worker.signals.result.connect(self.onWorkerSuccess)
+        worker.signals.error.connect(self.onWorkerError)
+        QThreadPool.globalInstance().start(worker)
+
+    @Slot(object, object)
+    def onWorkerSuccess(self, attribute: str, stats: Dict[str, object]) -> None:
+        self._statistics[attribute] = stats
+        logging.info('Statistics computation succeeded')
+        self.statisticsComputed.emit(attribute)
+
+    @Slot(object, tuple)
+    def onWorkerError(self, attribute: str, error: Tuple[type, Exception, str]) -> None:
+        logging.error('Statistics computation failed with {}: {}\n{}'.format(*error))
+        self.statisticsError.emit(attribute)
+
 
 class AttributeTableModel(QAbstractTableModel):
     def __init__(self, parent: QWidget = None, checkable: bool = False,
@@ -107,6 +141,7 @@ class AttributeTableModel(QAbstractTableModel):
         # Keeps track of checked items
         self._checked: List[bool] = list()
         self._sourceModel: QAbstractItemModel = None
+        self._statistics: Dict[str, Dict[str, object]] = dict()
 
     @property
     def checkbox_pos(self) -> Union[int, None]:
@@ -133,6 +168,9 @@ class AttributeTableModel(QAbstractTableModel):
             return 1
         else:
             return 0
+
+    def sourceModel(self) -> FrameModel:
+        return self._sourceModel
 
     # Getter and setter for checkbox
     def checkedAttributes(self) -> List[int]:
@@ -207,7 +245,7 @@ class AttributeTableModel(QAbstractTableModel):
             name: str
             col_type: Types
             name, col_type = self._sourceModel.headerData(index.row(), orientation=Qt.Horizontal,
-                                                          role=FrameModel.DataRole)
+                                                          role=FrameModel.DataRole.value)
             value = None
             if index.column() == self.name_pos:
                 value = name
@@ -242,24 +280,17 @@ class AttributeTableModel(QAbstractTableModel):
         return False
 
     def headerData(self, section: int, orientation: Qt.Orientation, role: int = ...) -> Any:
-        # if self._checkable:
-        #     if orientation == Qt.Horizontal and role == Qt.DecorationRole:
-        #         if section == self.__checkbox_pos:
-        #             return QPixmap(self.header_icon).scaled(100, 100, Qt.KeepAspectRatio,
-        #                                                     Qt.SmoothTransformation)
-
         if orientation == Qt.Horizontal and role == Qt.DisplayRole:
             if section == self.name_pos:
                 return 'Attribute'
             elif section == self.type_pos:
                 return 'Type'
-
         return None
 
     def flags(self, index: QModelIndex) -> Qt.ItemFlags:
         if not index.isValid():
             return Qt.NoItemFlags
-        flags = Qt.ItemIsEnabled
+        flags = Qt.ItemIsEnabled | Qt.ItemIsSelectable
         if self._editable and index.column() == self.name_pos:
             flags |= Qt.ItemIsEditable
         elif self._checkable and index.column() == self.checkbox_pos:
@@ -294,7 +325,7 @@ class SearchableAttributeTableWidget(QWidget):
     def __init__(self, parent: QWidget = None, checkable: bool = False, editable: bool = False):
         super().__init__(parent)
         self.__model = AttributeTableModel(parent=self, checkable=checkable, editable=editable)
-        self._tableView = IncrementalAttributeTableView(parent=self)
+        self.tableView = IncrementalAttributeTableView(parent=self, namecol=self.__model.name_pos)
         self._tableModel = QSortFilterProxyModel(self)
         self._tableModel.setSourceModel(self.__model)
         self._tableModel.setFilterCaseSensitivity(Qt.CaseInsensitive)
@@ -312,14 +343,17 @@ class SearchableAttributeTableWidget(QWidget):
 
         layout = QVBoxLayout()
         layout.addLayout(searchLayout)
-        layout.addWidget(self._tableView)
+        layout.addWidget(self.tableView)
         self.setLayout(layout)
+
+    def model(self) -> AttributeTableModel:
+        return self.__model
 
     def setSourceFrameModel(self, source: FrameModel) -> None:
         self.__model.setSourceModel(source)
-        if self._tableView.model() is not self._tableModel:
-            self._tableView.setModel(self._tableModel)
-            hh = self._tableView.horizontalHeader()
+        if self.tableView.model() is not self._tableModel:
+            self.tableView.setModel(self._tableModel)
+            hh = self.tableView.horizontalHeader()
             check_pos = self.__model.checkbox_pos
             if check_pos:
                 hh.resizeSection(check_pos, 10)
@@ -328,17 +362,22 @@ class SearchableAttributeTableWidget(QWidget):
             hh.setSectionResizeMode(self.__model.type_pos, QHeaderView.Fixed)
             hh.setStretchLastSection(False)
             self._tableModel.setFilterKeyColumn(self.__model.name_pos)
-            self._tableView.setHorizontalHeader(hh)
+            self.tableView.setHorizontalHeader(hh)
             self._searchBar.textChanged.connect(self._tableModel.setFilterRegExp)
 
 
 class IncrementalAttributeTableView(QTableView):
-    def __init__(self, period: int = 50, parent: QWidget = None):
+    selectedAttributeChanged = Signal(str)
+
+    def __init__(self, namecol: int, period: int = 50, parent: QWidget = None):
         super().__init__(parent)
         self.__timer = QBasicTimer()
         self.__timerPeriodMs = period
+        self.__attNameColumn = namecol
+        self.setSelectionBehavior(QTableView.SelectRows)
+        self.setSelectionMode(QTableView.SingleSelection)
 
-    def setModel(self, model: QAbstractItemModel) -> None:
+    def setModel(self, model: AttributeTableModel) -> None:
         """ Reimplemented to start fetch timer """
         if self.__timer.isActive():
             self.__timer.stop()
@@ -378,6 +417,17 @@ class IncrementalAttributeTableView(QTableView):
             return False
         model.fetchMore(parent)
         return True
+
+    def selectionChanged(self, selected: QItemSelection, deselected: QItemSelection) -> None:
+        """ Emit signal when current selection changes """
+        super().selectionChanged(selected, deselected)
+        current: QModelIndex = selected.indexes()[0] if selected.indexes() else QModelIndex()
+        if current.isValid():
+            attrIndex = self.model().index(current.row(), self.__attNameColumn, QModelIndex())
+            attrName: str = attrIndex.data(role=Qt.DisplayRole)
+            self.selectedAttributeChanged.emit(attrName)
+        else:
+            self.selectedAttributeChanged.emit('')
 
 # class ShapeAttributeNamesListModel(QAbstractListModel):
 #     def __init__(self, shape: Shape, parent: QWidget = None):

@@ -9,10 +9,10 @@ import data_preprocessor.gui.editor.optionwidget as opw
 from data_preprocessor import data
 from data_preprocessor.data.types import Types
 from data_preprocessor.gui import AbsOperationEditor
-from data_preprocessor.operation.interface import Operation
+from data_preprocessor.operation.interface import GraphOperation
 
 
-class MergeValuesOp(Operation):
+class MergeValuesOp(GraphOperation):
     """ Merge values of one attribute into a single value """
     Nan = np.nan
 

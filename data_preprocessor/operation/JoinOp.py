@@ -4,7 +4,7 @@ from typing import List, Tuple, Optional
 from data_preprocessor import data
 from data_preprocessor.data.types import Types, ALL_TYPES
 from data_preprocessor.gui.editor.interface import AbsOperationEditor
-from .interface import Operation
+from .interface import GraphOperation
 
 
 @unique
@@ -18,7 +18,7 @@ class JoinType(Enum):
 jt = JoinType
 
 
-class JoinOp(Operation):
+class JoinOp(GraphOperation):
     def __init__(self):
         super().__init__()
         self.__lsuffix: str = '_l'

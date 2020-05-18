@@ -3,10 +3,10 @@ from typing import Union, Any, List
 from data_preprocessor import data
 from data_preprocessor.data.types import Types, ALL_TYPES
 from data_preprocessor.gui.editor.interface import AbsOperationEditor
-from data_preprocessor.operation.interface import Operation
+from data_preprocessor.operation.interface import GraphOperation
 
 
-class DummyOp(Operation):
+class DummyOp(GraphOperation):
     def __init__(self):
         super().__init__()
 

@@ -7,11 +7,11 @@ from PySide2.QtWidgets import QWidget
 import data_preprocessor.gui.workbench as wb
 from data_preprocessor import data
 from data_preprocessor.gui.editor.interface import AbsOperationEditor
-from .interface import OutputOperation
+from .interface import OutputGraphOperation
 from ..gui.editor import optionwidget as opw
 
 
-class ToVariableOp(OutputOperation):
+class ToVariableOp(OutputGraphOperation):
     def __init__(self, w: wb.WorkbenchModel):
         super().__init__(w)
         self.__var_name: Optional[str] = None

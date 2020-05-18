@@ -6,10 +6,10 @@ import data_preprocessor.gui.editor.optionwidget as opw
 from data_preprocessor import data
 from data_preprocessor.data.types import Types, inv_type_dict
 from data_preprocessor.gui.editor.interface import AbsOperationEditor
-from .interface import Operation
+from .interface import GraphOperation
 
 
-class ToNumericOp(Operation):
+class ToNumericOp(GraphOperation):
     def __init__(self):
         super().__init__()
         self.__attribute: Optional[int] = None
@@ -85,7 +85,7 @@ class ToNumericOp(Operation):
         return -1
 
 
-class ToCategoricalOp(Operation):
+class ToCategoricalOp(GraphOperation):
     def __init__(self):
         super().__init__()
         self.__attribute: Optional[int] = None
@@ -175,7 +175,7 @@ class _SelectAttribute(AbsOperationEditor):
         self.__selection_box.setData(selected_index)
 
 
-# class TypeOp(Operation):
+# class TypeOp(GraphOperation):
 #     def __init__(self):
 #         super().__init__()
 #         self.__types: Dict[int, Types] = dict()

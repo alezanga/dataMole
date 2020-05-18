@@ -1,12 +1,12 @@
 import logging
-from typing import Optional, Iterable, Tuple
+from typing import Optional, Tuple
 
 from PySide2.QtCore import Slot, QObject, Signal, QPoint
 from PySide2.QtWidgets import QMessageBox, QAction, QWidget, QMainWindow, QApplication
 
 from data_preprocessor import data
 from data_preprocessor import threads
-from data_preprocessor.operation.interface import Operation
+from data_preprocessor.operation.interface import GraphOperation
 
 
 class OperationAction(QObject):
@@ -18,7 +18,7 @@ class OperationAction(QObject):
     """
     success = Signal()
 
-    def __init__(self, op: Operation, parent: QObject, name: str = '',
+    def __init__(self, op: GraphOperation, parent: QObject, name: str = '',
                  editorPosition: QPoint = QPoint()):
         super().__init__(parent)
 
@@ -27,7 +27,7 @@ class OperationAction(QObject):
         self.operation = op
         self.editor: Optional[QWidget] = None
         self._editorPos = editorPosition
-        self._inputs: Iterable[data.Frame] = tuple()
+        self._inputs: Tuple[data.Frame] = tuple()
         self._output: Optional[data.Frame] = None
         self._action.triggered.connect(self.start)
 
@@ -37,10 +37,10 @@ class OperationAction(QObject):
         self._output = None
         return a
 
-    def createAction(self, inputs: Iterable[data.Frame] = tuple()) -> QAction:
+    def createAction(self, inputs: Tuple[data.Frame] = tuple()) -> QAction:
         """ Retrieve the action. When triggered this action allows to start the operation by showing
         the editor """
-        self._inputs = inputs
+        self._inputs: Tuple[data.Frame] = inputs
         return self._action
 
     @Slot()
@@ -68,7 +68,7 @@ class OperationAction(QObject):
         mainWindow.statusBar().showMessage('Executing operation...')
         self.operation.setOptions(*self.editor.getOptions())
         # Prepare worker
-        worker = threads.OperationWorker(self.operation, *self._inputs)
+        worker = threads.Worker(self.operation, args=self._inputs)
         # Connect
         worker.signals.result.connect(self._setOutput)
         worker.signals.error.connect(self._showError)
@@ -77,29 +77,29 @@ class OperationAction(QObject):
         mainWindow.threadPool.start(worker)
         self.editor.hide()
 
-    @Slot(data.Frame)
-    def _setOutput(self, f: data.Frame) -> None:
+    @Slot(object, object)
+    def _setOutput(self, identifier, f: data.Frame) -> None:
         self._output = f
         self.destroyEditor()
         # Signal that result has been set
         self.success.emit()
-        logging.info('Operation result saved')
+        logging.info('GraphOperation result saved')
 
-    @Slot()
-    def _finished(self) -> None:
-        logging.info('Operation {} finished'.format(self.operation.name()))
+    @Slot(object)
+    def _finished(self, identifier) -> None:
+        logging.info('GraphOperation {} finished'.format(self.operation.name()))
         getMainWindow().statusBar().stopSpinner()
-        getMainWindow().statusBar().showMessage('Operation finished')
+        getMainWindow().statusBar().showMessage('GraphOperation finished')
 
-    @Slot(tuple)
-    def _showError(self, error: Tuple[type, Exception, str]) -> None:
+    @Slot(object, tuple)
+    def _showError(self, identifier, error: Tuple[type, Exception, str]) -> None:
         msg = str(error[1])
-        msg_short = 'Operation failed to execute with following message: <br> {}'.format(msg[:80])
+        msg_short = 'GraphOperation failed to execute with following message: <br> {}'.format(msg[:80])
         if len(msg) > 80:
             msg_short += '... (see all in log)'
         msgbox = QMessageBox(QMessageBox.Icon.Critical, 'Critical error', msg_short, QMessageBox.Ok,
                              self.editor)
-        logging.critical('Operation {} failed with exception {}: {} - trace: {}'.format(
+        logging.critical('GraphOperation {} failed with exception {}: {} - trace: {}'.format(
             self.operation.name(), str(error[0]), msg, error[2]))
         self.editor.show()
         msgbox.exec_()

@@ -1,14 +1,14 @@
 from typing import Any, Dict, List, Optional
 
 from data_preprocessor.data import Frame, Shape
-from data_preprocessor.operation.interface import Operation
+from data_preprocessor.operation.interface import GraphOperation
 from .OperationUid import OperationUid, OperationUidFactory
 
 
 class OperationNode:
     """ Wraps an operation, providing functionality required for graph computation """
 
-    def __init__(self, operation: Operation):
+    def __init__(self, operation: GraphOperation):
         self.__op_uid: OperationUid = OperationUidFactory().getUniqueId()
         self.operation = operation
         # List of inputs, kept in order

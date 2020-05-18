@@ -2,10 +2,10 @@ from typing import Any
 
 from data_preprocessor import data
 from data_preprocessor.gui.editor.interface import AbsOperationEditor
-from .interface import OutputOperation
+from .interface import OutputGraphOperation
 
 
-class PrintOp(OutputOperation):
+class PrintOp(OutputGraphOperation):
     def execute(self, *df: data.Frame) -> None:
         for f in df:
             print(f.head())

@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Union, List, Optional, Iterable
+from typing import Union, List, Optional, Iterable, Any
 
 from data_preprocessor import data
 from data_preprocessor.data.types import Types, ALL_TYPES
@@ -7,9 +7,22 @@ from data_preprocessor.gui.editor.interface import AbsOperationEditor
 from data_preprocessor.gui.workbench import WorkbenchModel
 
 
-class Operation(ABC):
+class SimpleOperation(ABC):
+    """ Base class of every operation. Allows to set up a command giving arguments and executing it
+    over a data.Frame """
+
+    @abstractmethod
+    def execute(self, *df: data.Frame) -> Any:
+        pass
+
+    @abstractmethod
+    def setOptions(self, *args, **kwargs) -> None:
+        pass
+
+
+class GraphOperation(SimpleOperation):
     """
-    Base interface of every operation
+    Base interface of every graph operation
     """
 
     def __init__(self):
@@ -26,7 +39,7 @@ class Operation(ABC):
 
         :param shape: the shape to add
         :param pos: an integer index being the position to add the shape at. Must be non-negative and
-            consistent with :func:`~data_preprocessor.operation.interface.Operation.maxInputNumber`
+            consistent with :func:`~data_preprocessor.operation.interface.GraphOperation.maxInputNumber`
         :raise ValueError: if 'pos' is negative
         """
         if pos < 0:
@@ -37,7 +50,7 @@ class Operation(ABC):
         """ Remove the input shape at given position, replacing it with None
 
         :param pos: index of the shape to remove. Must be non-negative and consistent with
-            :func:`~data_preprocessor.operation.interface.Operation.maxInputNumber`
+            :func:`~data_preprocessor.operation.interface.GraphOperation.maxInputNumber`
         :raise ValueError: if 'pos' is negative
         """
         if pos < 0:
@@ -57,7 +70,7 @@ class Operation(ABC):
         options/input shapes are not set, and otherwise it tries to infer the output shapes by running
         the 'execute' method with dummy frames.
         Additionally 'isOutputShapeKnown' should be overridden accordingly.
-        See :func:`~data_preprocessor.operation.interface.Operation.isOutputShapeKnown`
+        See :func:`~data_preprocessor.operation.interface.GraphOperation.isOutputShapeKnown`
         """
         # If shapes or options are not set
         if not all(self._shape) or not self.hasOptions():
@@ -87,7 +100,7 @@ class Operation(ABC):
         Must not modify the input dataframe (i.e. no in-place operations), but must modify a copy of
         it. Returning the input dataframe is allowed if the operation does nothing.
         If the method is called to operate on attribute types which are not accepted, it must do nothing.
-        See :func:`~data_preprocessor.operation.interface.Operation.acceptedTypes`
+        See :func:`~data_preprocessor.operation.interface.GraphOperation.acceptedTypes`
 
         :param df: input dataframe
         :return: the new dataframe modified as specified by the operation
@@ -131,7 +144,7 @@ class Operation(ABC):
         used by getOutputShape to verify if the shape can be inferred. It is also run before execution
         of the operation in the computational graph.
         It may be used in any other context by manually calling it before the
-        :func:`~data_preprocessor.operation.Operation.execute` method. Note that a call to this function
+        :func:`~data_preprocessor.operation.GraphOperation.execute` method. Note that a call to this function
         should not placed inside the 'execute' method.
 
         :return: True if computation can continue, False otherwise
@@ -163,9 +176,9 @@ class Operation(ABC):
         Returns whether the operation needs to be configured with options. If this method
         returns False, then the following methods will be ignored (but must be redefined all the same):
 
-            - :func:`~data_preprocessor.operation.interface.Operation.getEditor`
-            - :func:`~data_preprocessor.operation.interface.Operation.getOptions`
-            - :func:`~data_preprocessor.operation.interface.Operation.setOptions`
+            - :func:`~data_preprocessor.operation.interface.GraphOperation.getEditor`
+            - :func:`~data_preprocessor.operation.interface.GraphOperation.getOptions`
+            - :func:`~data_preprocessor.operation.interface.GraphOperation.setOptions`
 
         :return a boolean value, True if the operation needs to be configured, False otherwise
         """
@@ -197,7 +210,7 @@ class Operation(ABC):
         """
         Must return True if the number of columns and their types can be inferred with
         'getOutputShape'. Thus if this function returns False, then
-        :func:`~data_preprocessor.operation.interface.Operation.getOutputShape` must always return None
+        :func:`~data_preprocessor.operation.interface.GraphOperation.getOutputShape` must always return None
         """
         pass
 
@@ -240,11 +253,11 @@ class Operation(ABC):
         pass
 
 
-class InputOperation(Operation):
+class InputGraphOperation(GraphOperation):
     """
     Base class for operations to be used to provide input.
     These operations have no input, an unbounded number of outputs and do not modify the input shape.
-    Additionally every InputOperation has access to the workbench, in order to be able to access
+    Additionally every InputGraphOperation has access to the workbench, in order to be able to access
     variables to use as input
     """
 
@@ -264,15 +277,15 @@ class InputOperation(Operation):
     # def inferInputShape(self) -> None:
     #     """ This method must be reimplemented to set the input shape after the options have been set.
     #     If the input shape cannot be inferred it should set it to None.
-    #     It replaces :func:`~data_preprocessor.operation.interface.InputOperation.addInputShape`,
-    #     which instead should not be used in InputOperation
+    #     It replaces :func:`~data_preprocessor.operation.interface.InputGraphOperation.addInputShape`,
+    #     which instead should not be used in InputGraphOperation
     #     """
     #     pass
 
     def addInputShape(self, shape: data.Shape, pos: int) -> None:
         """ It intentionally is a no-op, because input-operations has no input argument. Instead the
         input shape should be inferred using method
-        :func:`~data_preprocessor.operation.interface.InputOperation.inferInputShape`
+        :func:`~data_preprocessor.operation.interface.InputGraphOperation.inferInputShape`
         """
         pass
 
@@ -316,12 +329,12 @@ class InputOperation(Operation):
         return -1
 
 
-class OutputOperation(Operation):
+class OutputGraphOperation(GraphOperation):
     """
     Base class for operations to be used to persist output.
     These operations have exactly one input, no outputs and do not modify the input
     shape.
-    Additionally every OutputOperation has access to the workbench, in order to be able write new
+    Additionally every OutputGraphOperation has access to the workbench, in order to be able write new
     variables
     """
 

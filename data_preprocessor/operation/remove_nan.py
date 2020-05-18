@@ -6,10 +6,10 @@ from PySide2.QtWidgets import QWidget, QButtonGroup, QLabel, QRadioButton, QSlid
 
 from data_preprocessor import data
 from data_preprocessor.gui import AbsOperationEditor
-from data_preprocessor.operation.interface import Operation, InvalidOption
+from data_preprocessor.operation.interface import GraphOperation, InvalidOption
 
 
-class RemoveNanRows(Operation):
+class RemoveNanRows(GraphOperation):
     def __init__(self):
         super().__init__()
         # range [0.0, 1.0]
@@ -92,7 +92,7 @@ class RemoveNanRows(Operation):
         return -1
 
 
-class RemoveNanColumns(Operation):
+class RemoveNanColumns(GraphOperation):
     def __init__(self):
         super().__init__()
         # range [0.0, 1.0]

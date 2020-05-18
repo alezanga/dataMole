@@ -4,11 +4,11 @@ import pandas as pd
 
 from data_preprocessor import data
 from data_preprocessor.gui import AbsOperationEditor
-from data_preprocessor.operation.interface import InputOperation, InvalidOption
+from data_preprocessor.operation.interface import InputGraphOperation, InvalidOption
 from ..gui.editor.loaders import LoadCSVEditor
 
 
-class CsvLoader(InputOperation):
+class CsvLoader(InputGraphOperation):
     def __init__(self, w):
         super().__init__(w)
         self.__file: str = None

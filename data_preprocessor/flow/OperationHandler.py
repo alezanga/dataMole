@@ -7,7 +7,7 @@ from PySide2.QtCore import QThreadPool, Slot, QObject, Signal
 from data_preprocessor import data
 from data_preprocessor.flow.OperationDag import OperationDag, OperationNode
 from data_preprocessor.status import NodeStatus
-from data_preprocessor.threads import NodeWorker
+from data_preprocessor.threads import Worker
 
 
 # NOTE: Eventualmente memorizzare con joblib
@@ -49,7 +49,7 @@ class OperationHandler:
             logging.info('Flow finished')
 
     def startNode(self, node: OperationNode):
-        worker = NodeWorker(node)
+        worker = Worker(node, identifier=node.uid)
         # Connect
         worker.signals.result.connect(self.__qtSlots.nodeCompleted)
         worker.signals.error.connect(self.__qtSlots.nodeErrored)
@@ -75,7 +75,8 @@ class OperationHandler:
             if not node.operation.hasOptions():
                 logging.error('Flow not started: operation {}-{} has options to set'.format(
                     node.operation.name(), node.uid))
-                raise HandlerException('Operation {} has options to set'.format(node.operation.name()))
+                raise HandlerException(
+                    'GraphOperation {} has options to set'.format(node.operation.name()))
         return True
 
 
@@ -95,7 +96,7 @@ class _HandlerSlots(QObject):
         super().__init__(parent)
         self.handler = handler
 
-    @Slot(int, object)
+    @Slot(object, object)
     def nodeCompleted(self, node_id: int, result: data.Frame):
         logging.debug('nodeCompleted SUCCESS')
         # Emit node finished
@@ -112,12 +113,12 @@ class _HandlerSlots(QObject):
                 # If so, add the worker to thread pool
                 self.handler.startNode(child)
 
-    @Slot(int, tuple)
+    @Slot(object, tuple)
     def nodeErrored(self, node_id: int, error: Tuple[type, Exception, str]):
         msg = str(error[1])
         node = self.handler.graph.nodes[node_id]['op']
         node.clearInputArgument()
-        logging.error('Operation {} failed with exception {}: {} - trace: {}'.format(
+        logging.error('GraphOperation {} failed with exception {}: {} - trace: {}'.format(
             node.operation.name(), str(error[0]), msg, error[2]))
         self.handler.signals.statusChanged.emit(node_id, NodeStatus.ERROR)
         # Stop all threads

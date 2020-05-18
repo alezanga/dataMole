@@ -3,10 +3,10 @@ from typing import Iterable, List, Union
 from data_preprocessor import data
 from data_preprocessor.data.types import Types, ALL_TYPES
 from data_preprocessor.gui import AbsOperationEditor
-from data_preprocessor.operation.interface import Operation
+from data_preprocessor.operation.interface import GraphOperation
 
 
-class SetIndexOp(Operation):
+class SetIndexOp(GraphOperation):
     def __init__(self):
         super().__init__()
         self.__index_col: int = None

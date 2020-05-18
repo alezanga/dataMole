@@ -1,4 +1,4 @@
-# Tests for generic Operation
+# Tests for generic GraphOperation
 import pytest
 
 from data_preprocessor.data import Frame

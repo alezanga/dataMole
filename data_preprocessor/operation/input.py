@@ -6,10 +6,10 @@ from PySide2.QtWidgets import QComboBox, QWidget
 import data_preprocessor.gui.workbench as wb
 from data_preprocessor import data
 from data_preprocessor.gui.editor.interface import AbsOperationEditor
-from .interface import InputOperation
+from .interface import InputGraphOperation
 
 
-class CopyOp(InputOperation):
+class CopyOp(InputGraphOperation):
     def __init__(self, workbench: wb.WorkbenchModel):
         super().__init__(workbench)
         self._frame_name: Optional[str] = None

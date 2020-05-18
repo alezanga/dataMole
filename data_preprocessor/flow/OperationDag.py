@@ -40,7 +40,7 @@ class OperationDag:
 
         :param node_id: the id of the node to update
         :param options, kwoptions: any argument to pass to
-            :func:`~data_preprocessor.operation.interface.Operation.setOptions`
+            :func:`~data_preprocessor.operation.interface.GraphOperation.setOptions`
         :return True if the options were set, False otherwise
         :raise ValueError: if the node is not in the graph
         """
@@ -68,7 +68,7 @@ class OperationDag:
         self.__G.add_node(node.uid, op=node)
         # if node.operation.maxInputNumber() == 0:
         # Then it's an input operation and the shape can be inferred
-        # in_op: 'InputOperation' = node.operation
+        # in_op: 'InputGraphOperation' = node.operation
         # in_op.inferInputShape()
         # self.__update_descendants(node.uid)  # TOCHECK: is it needed?
         return True
