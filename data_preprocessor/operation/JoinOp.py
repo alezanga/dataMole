@@ -4,7 +4,7 @@ from typing import List, Tuple, Optional
 from data_preprocessor import data
 from data_preprocessor.data.types import Types, ALL_TYPES
 from data_preprocessor.gui.editor.interface import AbsOperationEditor
-from .interface import GraphOperation
+from .interface.graph import GraphOperation
 
 
 @unique

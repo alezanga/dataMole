@@ -6,7 +6,7 @@ from PySide2.QtWidgets import QComboBox, QWidget
 import data_preprocessor.gui.workbench as wb
 from data_preprocessor import data
 from data_preprocessor.gui.editor.interface import AbsOperationEditor
-from .interface import InputGraphOperation
+from .interface.graph import InputGraphOperation
 
 
 class CopyOp(InputGraphOperation):

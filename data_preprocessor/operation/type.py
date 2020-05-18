@@ -6,7 +6,7 @@ import data_preprocessor.gui.editor.optionwidget as opw
 from data_preprocessor import data
 from data_preprocessor.data.types import Types, inv_type_dict
 from data_preprocessor.gui.editor.interface import AbsOperationEditor
-from .interface import GraphOperation
+from .interface.graph import GraphOperation
 
 
 class ToNumericOp(GraphOperation):

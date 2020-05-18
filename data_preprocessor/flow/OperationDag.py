@@ -3,7 +3,7 @@ from typing import Any
 
 import networkx as nx
 
-from data_preprocessor.flow import OperationNode
+from data_preprocessor.flow.OperationNode import OperationNode
 
 
 class OperationDag:
@@ -148,6 +148,6 @@ class OperationDag:
         self.__G.remove_node(op_id)
         return True
 
-    def __getitem__(self, uid: int) -> OperationNode:
+    def __getitem__(self, uid: int) -> 'OperationNode':
         """ Return the operation node with specified id """
         return self.__G.nodes[uid]['op']

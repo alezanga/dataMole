@@ -9,7 +9,7 @@ import data_preprocessor.gui.editor.optionwidget as opw
 from data_preprocessor import data
 from data_preprocessor.data.types import Types
 from data_preprocessor.gui import AbsOperationEditor
-from data_preprocessor.operation.interface import GraphOperation
+from data_preprocessor.operation.interface.graph import GraphOperation
 
 
 class MergeValuesOp(GraphOperation):

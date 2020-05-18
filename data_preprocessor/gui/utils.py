@@ -6,7 +6,7 @@ from PySide2.QtWidgets import QMessageBox, QAction, QWidget, QMainWindow, QAppli
 
 from data_preprocessor import data
 from data_preprocessor import threads
-from data_preprocessor.operation.interface import GraphOperation
+from data_preprocessor.operation.interface.graph import GraphOperation
 
 
 class OperationAction(QObject):

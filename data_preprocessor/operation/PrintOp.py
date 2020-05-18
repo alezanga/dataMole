@@ -2,7 +2,7 @@ from typing import Any
 
 from data_preprocessor import data
 from data_preprocessor.gui.editor.interface import AbsOperationEditor
-from .interface import OutputGraphOperation
+from .interface.graph import OutputGraphOperation
 
 
 class PrintOp(OutputGraphOperation):

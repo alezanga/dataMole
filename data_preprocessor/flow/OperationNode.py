@@ -1,7 +1,7 @@
 from typing import Any, Dict, List, Optional
 
 from data_preprocessor.data import Frame, Shape
-from data_preprocessor.operation.interface import GraphOperation
+from data_preprocessor.operation.interface.graph import GraphOperation
 from .OperationUid import OperationUid, OperationUidFactory
 
 

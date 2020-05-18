@@ -1,11 +1,11 @@
 import re
 from typing import Dict
 
-from ..interface import SimpleOperation
+from ..interface.operation import Operation
 from ... import data
 
 
-class AttributeStatistics(SimpleOperation):
+class AttributeStatistics(Operation):
     def __init__(self):
         super().__init__()
         self.__attribute: str = None

@@ -4,7 +4,7 @@ import pandas as pd
 
 from data_preprocessor import data
 from data_preprocessor.gui import AbsOperationEditor
-from data_preprocessor.operation.interface import InputGraphOperation, InvalidOption
+from data_preprocessor.operation.interface.graph import InputGraphOperation, InvalidOption
 from ..gui.editor.loaders import LoadCSVEditor
 
 

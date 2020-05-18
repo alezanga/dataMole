@@ -10,9 +10,9 @@ from .scene import GraphScene
 from .view import GraphView
 from ..statusbar import StatusBar
 from ..workbench import WorkbenchModel
-from ...flow import OperationNode
 from ...flow.OperationDag import OperationDag
 from ...flow.OperationHandler import OperationHandler, HandlerException
+from ...flow.OperationNode import OperationNode
 
 
 class GraphController(QWidget):

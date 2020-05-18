@@ -4,7 +4,7 @@ from PySide2.QtCore import Qt, QModelIndex
 from PySide2.QtWidgets import QTableView, QHeaderView, QWidget
 
 from data_preprocessor import data
-from data_preprocessor.gui.editor import AbsOperationEditor
+from data_preprocessor.gui.editor.interface import AbsOperationEditor
 from ..frame import AttributeTableModel, FrameModel, AttributeTableModelFilter
 
 

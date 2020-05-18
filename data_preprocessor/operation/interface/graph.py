@@ -1,26 +1,14 @@
-from abc import ABC, abstractmethod
-from typing import Union, List, Optional, Iterable, Any
+from abc import abstractmethod
+from typing import Union, List, Optional, Iterable
 
 from data_preprocessor import data
 from data_preprocessor.data.types import Types, ALL_TYPES
 from data_preprocessor.gui.editor.interface import AbsOperationEditor
 from data_preprocessor.gui.workbench import WorkbenchModel
+from .operation import Operation
 
 
-class SimpleOperation(ABC):
-    """ Base class of every operation. Allows to set up a command giving arguments and executing it
-    over a data.Frame """
-
-    @abstractmethod
-    def execute(self, *df: data.Frame) -> Any:
-        pass
-
-    @abstractmethod
-    def setOptions(self, *args, **kwargs) -> None:
-        pass
-
-
-class GraphOperation(SimpleOperation):
+class GraphOperation(Operation):
     """
     Base interface of every graph operation
     """

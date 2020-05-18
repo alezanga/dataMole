@@ -6,7 +6,7 @@ from PySide2.QtWidgets import QWidget, QButtonGroup, QLabel, QRadioButton, QSlid
 
 from data_preprocessor import data
 from data_preprocessor.gui import AbsOperationEditor
-from data_preprocessor.operation.interface import GraphOperation, InvalidOption
+from data_preprocessor.operation.interface.graph import GraphOperation, InvalidOption
 
 
 class RemoveNanRows(GraphOperation):

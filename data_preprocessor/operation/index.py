@@ -3,7 +3,7 @@ from typing import Iterable, List, Union
 from data_preprocessor import data
 from data_preprocessor.data.types import Types, ALL_TYPES
 from data_preprocessor.gui import AbsOperationEditor
-from data_preprocessor.operation.interface import GraphOperation
+from data_preprocessor.operation.interface.graph import GraphOperation
 
 
 class SetIndexOp(GraphOperation):

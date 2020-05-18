@@ -8,8 +8,8 @@ from data_preprocessor.data.types import Types
 from data_preprocessor.flow.OperationHandler import OperationHandler
 from data_preprocessor.flow.OperationNode import OperationNode
 from data_preprocessor.gui.editor.interface import AbsOperationEditor
-from data_preprocessor.operation.interface.InputOperation import InputOperation
-from data_preprocessor.operation.rename import RenameOp, TypeOp
+from data_preprocessor.operation.interface import InputGraphOperation
+from data_preprocessor.operation.rename import RenameOp
 from data_preprocessor.operation.PrintOp import PrintOp
 
 

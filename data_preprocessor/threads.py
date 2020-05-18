@@ -5,9 +5,6 @@ from typing import Tuple, Any, Union
 
 from PySide2.QtCore import QRunnable, Slot, QObject, Signal
 
-from data_preprocessor.flow import OperationNode
-from data_preprocessor.operation.interface import SimpleOperation
-
 
 class Worker(QRunnable):
     """
@@ -28,7 +25,7 @@ class Worker(QRunnable):
         error = Signal(object, tuple)
         result = Signal(object, object)
 
-    def __init__(self, executable: Union[SimpleOperation, OperationNode], args: Tuple = tuple(),
+    def __init__(self, executable: Union['Operation', 'OperationNode'], args: Tuple = tuple(),
                  identifier: Any = None):
         """
         Builds a worker to run an operation
