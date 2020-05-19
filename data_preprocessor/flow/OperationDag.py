@@ -95,6 +95,10 @@ class OperationDag:
                 target_node.operation.minOutputNumber() != 0:
             return False
 
+        if self.__G.has_edge(source_id, target_id):
+            # Avoid connecting the same node twice (debatable)
+            return False
+
         # Add connection
         self.__G.add_edge(source_id, target_id)
         # If the edge forms a cycle do nothing and return False
