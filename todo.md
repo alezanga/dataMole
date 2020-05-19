@@ -13,6 +13,7 @@
 - [x] Fix spinner/add a status bar
 - [x] Add hasOptions to all operations
 - [ ] Look into the possibility of doing a lazy loading from big csv (maybe with a hdf5 store)
+- [x] !!! FIX WORKBENCH AND FRAME
 - [ ] Add many operations
     - [ ] Decide how to handle unknown shape
     - [x] Merge values of one attribute (also to Nan)

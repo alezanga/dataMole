@@ -3,7 +3,7 @@ from typing import Union, Any, List
 from data_preprocessor import data
 from data_preprocessor.data.types import Types, ALL_TYPES
 from data_preprocessor.gui.editor.interface import AbsOperationEditor
-from data_preprocessor.operation.interface import GraphOperation
+from data_preprocessor.operation.interface.graph import GraphOperation
 
 
 class DummyOp(GraphOperation):
@@ -26,6 +26,9 @@ class DummyOp(GraphOperation):
         pass
 
     def getOptions(self) -> Any:
+        pass
+
+    def hasOptions(self) -> bool:
         pass
 
     def getEditor(self) -> AbsOperationEditor:

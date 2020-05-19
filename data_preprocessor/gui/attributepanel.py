@@ -27,10 +27,10 @@ class AttributePanel(QWidget):
         layout.addWidget(self._statPanel, 1)
         layout.addWidget(section3, 3)
         self.setLayout(layout)
-        self._attributeTable.tableView.selectedAttributeChanged.connect(self.attributeChanged)
+        self._attributeTable.tableView.selectedAttributeChanged.connect(self.onAttributeSelectionChanged)
 
     @Slot(int)
-    def selectionChanged(self, frameIndex: int) -> None:
+    def onFrameSelectionChanged(self, frameIndex: int) -> None:
         if 0 <= frameIndex < self._workbench.rowCount():
             self._currentFrameIndex = frameIndex
             # if not self._attributeModel:
@@ -41,17 +41,20 @@ class AttributePanel(QWidget):
             self._currentFrameIndex = -1
             self._frameModel = FrameModel(self)
         self._attributeTable.setSourceFrameModel(self._frameModel)
+        # Reset attribute panel
+        self.onAttributeSelectionChanged(None)
 
     @Slot(str)
-    def attributeChanged(self, attributeName: str) -> None:
+    def onAttributeSelectionChanged(self, attributeName: str) -> None:
         if not attributeName:
+            self._statPanel.setStatistics(dict())
             return
         s: Optional[Dict[str, object]] = self._frameModel.statistics.get(attributeName, None)
         if not s:
             # Ask the model to compute statistics
             self._statPanel.spinner.start()
             self._frameModel.computeStatistics(attribute=attributeName)
-            self._frameModel.statisticsComputed.connect(self.attributeChanged)
+            self._frameModel.statisticsComputed.connect(self.onAttributeSelectionChanged)
             logging.debug('Attribute changed and computation statistics started')
         else:
             # Statistics are computed, just show them

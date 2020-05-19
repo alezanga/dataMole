@@ -1,11 +1,11 @@
 from typing import Any, List, Tuple, Optional
 
+from PySide2 import QtGui
 from PySide2.QtCore import QAbstractListModel, QObject, QModelIndex, Qt, Slot, Signal, QItemSelection
-from PySide2.QtGui import QKeyEvent
-from PySide2.QtWidgets import QListView, QTableView
+from PySide2.QtWidgets import QListView, QTableView, QHeaderView
 
 import data_preprocessor.data as d
-import data_preprocessor.gui.frame as m
+from data_preprocessor.gui.frame import FrameModel
 
 
 class WorkbenchModel(QAbstractListModel):
@@ -13,7 +13,7 @@ class WorkbenchModel(QAbstractListModel):
 
     def __init__(self, parent: QObject = None):
         super().__init__(parent)
-        self.__workbench: List[Tuple[str, d.Frame, m.FrameModel]] = list()
+        self.__workbench: List[Tuple[str, FrameModel]] = list()
 
     @property
     def keys(self) -> List[str]:
@@ -41,7 +41,6 @@ class WorkbenchModel(QAbstractListModel):
         if role == Qt.EditRole:
             new_name = new_name.strip()
             old_name = self.data(index, Qt.DisplayRole)
-            old_frame = self.getDataframeByIndex(index.row())
             old_model = self.getDataframeModelByIndex(index.row())
             if not new_name or new_name == old_name or new_name in self.keys:
                 # Name is empty string, value is unchanged or the name already exists
@@ -51,20 +50,20 @@ class WorkbenchModel(QAbstractListModel):
                     self.removeRow(index.row())
                 return False  # No changes
             # Edit entry with the new name and the old value
-            self.__workbench[index.row()] = (new_name, old_frame, old_model)
+            self.__workbench[index.row()] = (new_name, old_model)
             # Update view
             self.dataChanged.emit(index, index, [Qt.DisplayRole, Qt.EditRole])
             return True
         return False
 
     def getDataframeByName(self, name: str) -> d.Frame:
-        return self.__workbench[[e[0] for e in self.__workbench].index(name)][1]
+        return self.__workbench[[e[0] for e in self.__workbench].index(name)][1].frame
 
     def getDataframeByIndex(self, index: int) -> d.Frame:
-        return self.__workbench[index][1]
+        return self.__workbench[index][1].frame
 
-    def getDataframeModelByIndex(self, index: int) -> m.FrameModel:
-        return self.__workbench[index][2]
+    def getDataframeModelByIndex(self, index: int) -> FrameModel:
+        return self.__workbench[index][1]
 
     def setDataframeByIndex(self, index: QModelIndex, value: d.Frame) -> bool:
         if not index.isValid():
@@ -74,9 +73,7 @@ class WorkbenchModel(QAbstractListModel):
         frame_model = self.getDataframeModelByIndex(index.row())
         # This will reset any view currently showing the frame
         frame_model.setFrame(value)
-        self.__workbench[index.row()] = (self.data(index, Qt.DisplayRole),
-                                         value,
-                                         frame_model)
+        self.__workbench[index.row()] = (self.data(index, Qt.DisplayRole), frame_model)
         # dataChanged is not emitted because the frame name has not changed
 
     def headerData(self, section: int, orientation: Qt.Orientation, role: int = ...) -> Any:
@@ -100,7 +97,6 @@ class WorkbenchModel(QAbstractListModel):
         # Now delete row
         del self.__workbench[row]
         self.endRemoveRows()
-        # TODO: views showing the Frame should react to this
         return True
 
     @Slot()
@@ -108,7 +104,7 @@ class WorkbenchModel(QAbstractListModel):
         row = self.rowCount()
         self.beginInsertRows(QModelIndex(), row, row)
         # Create a dummy entry
-        self.__workbench.append((' ', d.Frame(), m.FrameModel()))
+        self.__workbench.append((' ', FrameModel()))
         self.endInsertRows()
         self.emptyRowInserted.emit(self.index(row, 0, QModelIndex()))
         return True
@@ -116,7 +112,7 @@ class WorkbenchModel(QAbstractListModel):
     def appendNewRow(self, name: str, frame: d.Frame) -> bool:
         self.beginInsertRows(QModelIndex(), self.rowCount(), self.rowCount())
         # Create a dummy entry
-        self.__workbench.append((name, frame, m.FrameModel(self, frame)))
+        self.__workbench.append((name, FrameModel(self, frame)))
         self.endInsertRows()
         return True
 
@@ -127,11 +123,18 @@ class WorkbenchView(QTableView):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setSelectionMode(QListView.SingleSelection)
-        hh = self.horizontalHeader()
-        hh.setStretchLastSection(True)
-        self.setHorizontalHeader(hh)
+        self.horizontalHeader().setStretchLastSection(True)
 
-    def keyPressEvent(self, event: QKeyEvent) -> None:
+        # Allow rearrange of rows
+        self.verticalHeader().setSectionResizeMode(QHeaderView.Fixed)
+        self.verticalHeader().setSectionsMovable(True)
+        self.verticalHeader().setDragEnabled(True)
+        self.verticalHeader().setDragDropMode(QTableView.InternalMove)
+        self.verticalHeader().setDragDropOverwriteMode(False)
+        self.verticalHeader().setDropIndicatorShown(True)
+        self.verticalHeader().hide()
+
+    def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
         if event.key() == Qt.Key_Delete:
             for index in self.selectedIndexes():
                 self.model().removeRow(index.row())
@@ -146,3 +149,15 @@ class WorkbenchView(QTableView):
             self.selectedRowChanged.emit(current.row())
         else:
             self.selectedRowChanged.emit(-1)
+
+    def mousePressEvent(self, event: QtGui.QMouseEvent):
+        super().mousePressEvent(event)
+        self.verticalHeader().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event: QtGui.QMouseEvent):
+        super().mouseMoveEvent(event)
+        self.verticalHeader().mouseMoveEvent(event)
+
+    def mouseReleaseEvent(self, event: QtGui.QMouseEvent):
+        super().mouseReleaseEvent(event)
+        self.verticalHeader().mouseReleaseEvent(event)

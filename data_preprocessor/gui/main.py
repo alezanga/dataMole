@@ -50,7 +50,7 @@ class MainWidget(QWidget):
         layout.addWidget(tabs, 7)
 
         tabs.currentChanged.connect(self.switch_view)
-        workbenchView.selectedRowChanged.connect(attributeTab.selectionChanged)
+        workbenchView.selectedRowChanged.connect(attributeTab.onFrameSelectionChanged)
 
         self.setLayout(layout)
 

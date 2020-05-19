@@ -2,6 +2,7 @@ import logging
 from enum import Enum
 from typing import Any, List, Union, Dict, Tuple
 
+from PySide2 import QtGui
 from PySide2.QtCore import QAbstractTableModel, QModelIndex, Qt, Signal, Slot, QAbstractItemModel, \
     QSortFilterProxyModel, QBasicTimer, QTimerEvent, QItemSelection, QThreadPool
 from PySide2.QtWidgets import QWidget, QTableView, QLineEdit, QVBoxLayout, QHeaderView, QLabel, \
@@ -29,75 +30,79 @@ class FrameModel(QAbstractTableModel):
 
     def __init__(self, parent: QWidget = None, frame: Frame = Frame(), nrows: int = 10):
         super().__init__(parent)
-        self._frame: Frame = frame
-        self._shape: Shape = self._frame.shape
-        self._n_rows: int = nrows
-        self._loadedCols: int = self.COL_BATCH_SIZE
+        self.__frame: Frame = frame
+        self.__shape: Shape = self.__frame.shape
+        self.__n_rows: int = nrows
+        self.__loadedCols: int = self.COL_BATCH_SIZE
         # Dictionary { attributeName: value }
         self._statistics: Dict[str, Dict[str, object]] = dict()
         self.__currentAttributeName: str = None
 
+    @property
+    def frame(self) -> Frame:
+        return self.__frame
+
     def setFrame(self, frame: Frame) -> None:
         self.beginResetModel()
-        self._frame = frame
-        self._shape: Shape = self._frame.shape
+        self.__frame = frame
+        self.__shape: Shape = self.__frame.shape
         self._statistics = dict()
         self.endResetModel()
 
     def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:
         if parent.isValid():
             return 0
-        return self._frame.nRows if self._frame.nRows < self._n_rows else self._n_rows
+        return self.__frame.nRows if self.__frame.nRows < self.__n_rows else self.__n_rows
 
     def columnCount(self, parent: QModelIndex = QModelIndex()) -> int:
         if parent.isValid():
             return 0
-        allCols = self._shape.n_columns
-        if allCols < self._loadedCols:
+        allCols = self.__shape.n_columns
+        if allCols < self.__loadedCols:
             return allCols
-        return self._loadedCols
+        return self.__loadedCols
 
     def data(self, index: QModelIndex, role: int = ...) -> Any:
-        if index.isValid() and index.row() < self._n_rows:
+        if index.isValid() and index.row() < self.__n_rows:
             if role == Qt.DisplayRole:
-                return str(self._frame.at((index.row(), index.column())))
+                return str(self.__frame.at((index.row(), index.column())))
         return None
 
     def headerData(self, section: int, orientation: Qt.Orientation, role: int = Qt.DisplayRole) -> Any:
         if orientation == Qt.Horizontal:
             if role == Qt.DisplayRole:
-                return self._shape.col_names[section] + '\n' + self._shape.col_types[section].value
+                return self.__shape.col_names[section] + '\n' + self.__shape.col_types[section].value
             elif role == FrameModel.DataRole.value:
-                return self._shape.col_names[section], self._shape.col_types[section]
+                return self.__shape.col_names[section], self.__shape.col_types[section]
         elif orientation == Qt.Vertical and role == Qt.DisplayRole:
-            if self._shape.has_index():
-                return self._frame.index[section]
+            if self.__shape.has_index():
+                return self.__frame.index[section]
         return None
 
     def setHeaderData(self, section: int, orientation: Qt.Orientation, value: Any, role: int = ...) \
             -> bool:
         """ Change column name """
         if orientation == Qt.Horizontal and role == Qt.EditRole and section < self.columnCount():
-            names = self._frame.colnames
+            names = self.__frame.colnames
             names[section] = value
-            self._frame = self._frame.rename({self.headerData(section, orientation,
-                                                              FrameModel.DataRole.value)[0]: value})
-            self._shape.col_names[section] = value
+            self.__frame = self.__frame.rename({self.headerData(section, orientation,
+                                                                FrameModel.DataRole.value)[0]: value})
+            self.__shape.col_names[section] = value
             self.headerDataChanged.emit(orientation, section, section)
             return True
         return False
 
     def canFetchMore(self, parent: QModelIndex) -> bool:
         """ Returns True if more columns should be displayed, False otherwise """
-        if self._shape.n_columns > self._loadedCols:
+        if self.__shape.n_columns > self.__loadedCols:
             return True
         return False
 
     def fetchMore(self, parent: QModelIndex):
-        remainder = self._shape.n_columns - self._loadedCols
+        remainder = self.__shape.n_columns - self.__loadedCols
         colsToFetch = min(remainder, self.COL_BATCH_SIZE)
-        self.beginInsertColumns(parent, self._loadedCols, self._loadedCols + colsToFetch - 1)
-        self._loadedCols += colsToFetch
+        self.beginInsertColumns(parent, self.__loadedCols, self.__loadedCols + colsToFetch - 1)
+        self.__loadedCols += colsToFetch
         self.endInsertColumns()
 
     @property
@@ -108,7 +113,7 @@ class FrameModel(QAbstractTableModel):
         """ Compute statistics for a given attribute """
         oper = AttributeStatistics()
         oper.setOptions(attribute=attribute)
-        worker = Worker(oper, args=(self._frame,), identifier=attribute)
+        worker = Worker(oper, args=(self.__frame,), identifier=attribute)
         self.__currentAttributeName = attribute
         worker.signals.result.connect(self.onWorkerSuccess)
         worker.signals.error.connect(self.onWorkerError)
@@ -427,6 +432,12 @@ class IncrementalAttributeTableView(QTableView):
             attrName: str = attrIndex.data(role=Qt.DisplayRole)
             self.selectedAttributeChanged.emit(attrName)
         else:
+            self.selectedAttributeChanged.emit('')
+
+    def mouseReleaseEvent(self, event: QtGui.QMouseEvent) -> None:
+        super().mouseReleaseEvent(event)
+        index = self.indexAt(event.pos())
+        if not index.isValid():
             self.selectedAttributeChanged.emit('')
 
 # class ShapeAttributeNamesListModel(QAbstractListModel):
