@@ -1,24 +1,26 @@
 # TODO
+- [ ] CHECK: race condition when connecting QRunnable to same slot? (onWorkerSuccess)
+- [ ] IMPROVE: look into the possibility of doing a lazy loading from big csv (maybe with a hdf5 store)
+- [ ] IMPROVE: Add method to compare options in Operation
 - [x] New export method for operations
 - [x] Fix tab change with Operation Menu
 - [x] Add output operation
 - [x] Add execution buttons for pipeline
 - [x] Add method to create Frames with specified types and random rows
-- [ ] Add method to compare options in Operation
 - [x] FIX EDITORS (do not show)
-- [ ] ~~Do option widget for AttributeTable~~
-- [ ] ~~Find better strategy for editor (the idea is to have custom editor factory)~~
 - [x] How to use a single operation? Maybe refactor the hierarchy (Operation -> GraphOperation)
     - [x] Add spinner to status bar (not editor)
 - [x] Fix spinner/add a status bar
 - [x] Add hasOptions to all operations
-- [ ] Look into the possibility of doing a lazy loading from big csv (maybe with a hdf5 store)
-- [x] !!! FIX WORKBENCH AND FRAME
+- [x] FIX WORKBENCH AND FRAME
+- [ ] Remove attribute types from signal
+- [x] Remove tracking from slider
 - [ ] Add many operations
     - [ ] Decide how to handle unknown shape
     - [x] Merge values of one attribute (also to Nan)
     - [x] Remove Nan rows (by % or number)
-    - [ ] Load CSV
+    - [x] Load CSV
+    - [ ] Open more files at the same time
     - [ ] Write CSV
     - [x] Set index
     - [x] Join

@@ -46,8 +46,8 @@ class MainWidget(QWidget):
         self.__leftSide.addWidget(workbenchView, 0)
 
         layout = QHBoxLayout()
-        layout.addLayout(self.__leftSide, 3)
-        layout.addWidget(tabs, 7)
+        layout.addLayout(self.__leftSide, 2)
+        layout.addWidget(tabs, 8)
 
         tabs.currentChanged.connect(self.switch_view)
         workbenchView.selectedRowChanged.connect(attributeTab.onFrameSelectionChanged)

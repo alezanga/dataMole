@@ -11,7 +11,7 @@ from PySide2.QtWidgets import QWidget, QTableView, QLineEdit, QVBoxLayout, QHead
 from data_preprocessor.data import Frame, Shape
 from data_preprocessor.data.types import Types
 # New role to return raw data from header
-from data_preprocessor.operation.computations.statistics import AttributeStatistics
+from data_preprocessor.operation.computations.statistics import AttributeStatistics, Hist
 from data_preprocessor.threads import Worker
 
 
@@ -25,8 +25,8 @@ class FrameModel(QAbstractTableModel):
     DataRole = MyRoles.DataRole
     COL_BATCH_SIZE = 50
 
-    statisticsComputed = Signal(str)
-    statisticsError = Signal(str)
+    statisticsComputed = Signal(tuple)
+    statisticsError = Signal(tuple)
 
     def __init__(self, parent: QWidget = None, frame: Frame = Frame(), nrows: int = 10):
         super().__init__(parent)
@@ -34,9 +34,9 @@ class FrameModel(QAbstractTableModel):
         self.__shape: Shape = self.__frame.shape
         self.__n_rows: int = nrows
         self.__loadedCols: int = self.COL_BATCH_SIZE
-        # Dictionary { attributeName: value }
-        self._statistics: Dict[str, Dict[str, object]] = dict()
-        self.__currentAttributeName: str = None
+        # Dictionary { attributeIndex: value }
+        self._statistics: Dict[int, Dict[str, object]] = dict()
+        self._histogram: Dict[int, Dict[Any, int]] = dict()
 
     @property
     def frame(self) -> Frame:
@@ -106,29 +106,48 @@ class FrameModel(QAbstractTableModel):
         self.endInsertColumns()
 
     @property
-    def statistics(self) -> Dict[str, Dict[str, object]]:
+    def statistics(self) -> Dict[int, Dict[str, object]]:
         return self._statistics
 
-    def computeStatistics(self, attribute: str) -> None:
+    @property
+    def histogram(self) -> Dict[int, Dict[Any, int]]:
+        return self._histogram
+
+    def computeStatistics(self, attribute: int) -> None:
         """ Compute statistics for a given attribute """
-        oper = AttributeStatistics()
-        oper.setOptions(attribute=attribute)
-        worker = Worker(oper, args=(self.__frame,), identifier=attribute)
-        self.__currentAttributeName = attribute
-        worker.signals.result.connect(self.onWorkerSuccess)
-        worker.signals.error.connect(self.onWorkerError)
-        QThreadPool.globalInstance().start(worker)
+        stats = AttributeStatistics()
+        attType = self.__shape.col_types[attribute]
+        stats.setOptions(attribute=attribute)
+        statWorker = Worker(stats, args=(self.__frame,), identifier=(attribute, attType, 'stat'))
+        statWorker.signals.result.connect(self.onWorkerSuccess, Qt.DirectConnection)
+        statWorker.signals.error.connect(self.onWorkerError, Qt.DirectConnection)
+        QThreadPool.globalInstance().start(statWorker)
+
+    def computeHistogram(self, attribute: int, histBins: int) -> None:
+        hist = Hist()
+        attType = self.__shape.col_types[attribute]
+        hist.setOptions(attribute=attribute, attType=attType, bins=histBins)
+        histWorker = Worker(hist, args=(self.__frame,), identifier=(attribute, attType, 'hist'))
+        histWorker.signals.result.connect(self.onWorkerSuccess, Qt.DirectConnection)
+        histWorker.signals.error.connect(self.onWorkerError, Qt.DirectConnection)
+        QThreadPool.globalInstance().start(histWorker)
 
     @Slot(object, object)
-    def onWorkerSuccess(self, attribute: str, stats: Dict[str, object]) -> None:
-        self._statistics[attribute] = stats
-        logging.info('Statistics computation succeeded')
-        self.statisticsComputed.emit(attribute)
+    def onWorkerSuccess(self, identifier: Tuple[int, Types, str], result: Dict[Any, Any]) -> None:
+        attribute, attType, mode = identifier
+        if mode == 'stat':
+            self._statistics[attribute] = result
+            logging.info('Statistics computation succeeded')
+        elif mode == 'hist':
+            self._histogram[attribute] = result
+            logging.info('Histogram computation succeeded')
+        self.statisticsComputed.emit(identifier)
 
     @Slot(object, tuple)
-    def onWorkerError(self, attribute: str, error: Tuple[type, Exception, str]) -> None:
+    def onWorkerError(self, identifier: Tuple[int, Types, str],
+                      error: Tuple[type, Exception, str]) -> None:
         logging.error('Statistics computation failed with {}: {}\n{}'.format(*error))
-        self.statisticsError.emit(attribute)
+        self.statisticsError.emit(identifier)
 
 
 class AttributeTableModel(QAbstractTableModel):
@@ -372,7 +391,7 @@ class SearchableAttributeTableWidget(QWidget):
 
 
 class IncrementalAttributeTableView(QTableView):
-    selectedAttributeChanged = Signal(str)
+    selectedAttributeChanged = Signal(int)
 
     def __init__(self, namecol: int, period: int = 50, parent: QWidget = None):
         super().__init__(parent)
@@ -428,17 +447,15 @@ class IncrementalAttributeTableView(QTableView):
         super().selectionChanged(selected, deselected)
         current: QModelIndex = selected.indexes()[0] if selected.indexes() else QModelIndex()
         if current.isValid():
-            attrIndex = self.model().index(current.row(), self.__attNameColumn, QModelIndex())
-            attrName: str = attrIndex.data(role=Qt.DisplayRole)
-            self.selectedAttributeChanged.emit(attrName)
+            self.selectedAttributeChanged.emit(self.model().mapToSource(current).row())
         else:
-            self.selectedAttributeChanged.emit('')
+            self.selectedAttributeChanged.emit(-1)
 
     def mouseReleaseEvent(self, event: QtGui.QMouseEvent) -> None:
         super().mouseReleaseEvent(event)
         index = self.indexAt(event.pos())
         if not index.isValid():
-            self.selectedAttributeChanged.emit('')
+            self.selectedAttributeChanged.emit(-1)
 
 # class ShapeAttributeNamesListModel(QAbstractListModel):
 #     def __init__(self, shape: Shape, parent: QWidget = None):

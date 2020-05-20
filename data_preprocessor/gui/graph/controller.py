@@ -29,6 +29,8 @@ class GraphController(QWidget):
         self.__editor_node_id: int = None
         # Flag to know when execution starts
         self.__executing = False
+        # A reference to the handler must be kept while computation runs
+        self.__handler = None
         # Connections
         self._scene.editModeEnabled.connect(self.startEditNode)
         self._view.deleteSelected.connect(self.removeItems)
@@ -155,13 +157,13 @@ class GraphController(QWidget):
         self._view.setAcceptDrops(False)
         self._scene.disableEdit = True
         # Execute
-        handler = OperationHandler(self._operation_dag)
-        handler.signals.statusChanged.connect(self.onStatusChanged)
-        handler.signals.allFinished.connect(self.flowCompleted)
+        self.__handler = OperationHandler(self._operation_dag)
+        self.__handler.signals.statusChanged.connect(self.onStatusChanged)
+        self.__handler.signals.allFinished.connect(self.flowCompleted)
         try:
             StatusBar().startSpinner()
             StatusBar().showMessage('Started flow execution...', 20)
-            handler.execute()
+            self.__handler.execute()
         except HandlerException as e:
             StatusBar().showMessage('Execution stopped', 20)
             msgbox = QMessageBox(QMessageBox.Icon.Critical, 'Flow error', str(e), QMessageBox.Ok, self)

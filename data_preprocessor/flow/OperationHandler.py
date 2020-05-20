@@ -2,7 +2,7 @@ import logging
 from typing import Tuple, List
 
 import networkx as nx
-from PySide2.QtCore import QThreadPool, Slot, QObject, Signal
+from PySide2.QtCore import QThreadPool, Slot, QObject, Signal, Qt
 
 from data_preprocessor import data
 from data_preprocessor.flow.OperationDag import OperationDag, OperationNode
@@ -19,9 +19,9 @@ class OperationHandler:
 
     def __init__(self, graph: OperationDag):
         self.graph: nx.DiGraph = graph.getNxGraph()
-        self.threadPool = QThreadPool.globalInstance()
         self.__qtSlots = _HandlerSlots(self)
         self.signals = HandlerSignals()
+        self.taskIdSet = set()
 
         # self.__memoryContext = Memory(cachedir='/tmp', verbose=1)
 
@@ -36,25 +36,19 @@ class OperationHandler:
         input_nodes = [node for node in map(lambda nid: self.graph.nodes[nid]['op'], start_nodes_id) if
                        node.operation.maxInputNumber() == 0]
         self._canExecute(input_nodes)
+        self.taskIdSet = set(self.graph.nodes)
 
         for node_id in start_nodes_id:
             node: OperationNode = self.graph.nodes[node_id]['op']
             self.startNode(node)
 
-        end = self.threadPool.waitForDone()
-        if end:
-            logging.debug('ThreadPool ended')
-            # Everything finished
-            self.signals.allFinished.emit()
-            logging.info('Flow finished')
-
     def startNode(self, node: OperationNode):
         worker = Worker(node, identifier=node.uid)
         # Connect
-        worker.signals.result.connect(self.__qtSlots.nodeCompleted)
-        worker.signals.error.connect(self.__qtSlots.nodeErrored)
-        self.threadPool.start(worker)
+        worker.signals.result.connect(self.__qtSlots.nodeCompleted, Qt.QueuedConnection)
+        worker.signals.error.connect(self.__qtSlots.nodeErrored, Qt.QueuedConnection)
         self.signals.statusChanged.emit(node.uid, NodeStatus.PROGRESS)
+        QThreadPool.globalInstance().start(worker)
 
     def _canExecute(self, input_nodes: List[OperationNode]) -> bool:
         """
@@ -104,6 +98,13 @@ class _HandlerSlots(QObject):
         # Clear eventual input, since now I have result
         node = self.handler.graph.nodes[node_id]['op']
         node.clearInputArgument()
+        # Remove from task list
+        self.handler.taskIdSet.remove(node_id)
+        # Check if it was the last one
+        if not len(self.handler.taskIdSet):
+            # All tasks were completed
+            self.handler.signals.allFinished.emit()
+            return
         # Put result in all child nodes
         for child_id in self.handler.graph.successors(node_id):
             child: OperationNode = self.handler.graph.nodes[child_id]['op']
@@ -121,8 +122,6 @@ class _HandlerSlots(QObject):
         logging.error('GraphOperation {} failed with exception {}: {} - trace: {}'.format(
             node.operation.name(), str(error[0]), msg, error[2]))
         self.handler.signals.statusChanged.emit(node_id, NodeStatus.ERROR)
-        # Stop all threads
-        self.handler.threadPool.clear()
 
 
 class HandlerException(Exception):
