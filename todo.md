@@ -1,5 +1,6 @@
 # TODO
 - [ ] CHECK: race condition when connecting QRunnable to same slot? (onWorkerSuccess)
+- [ ] CHECK: why sometimes flow does not add edge
 - [ ] IMPROVE: look into the possibility of doing a lazy loading from big csv (maybe with a hdf5 store)
 - [ ] IMPROVE: Add method to compare options in Operation
 - [x] New export method for operations
@@ -16,7 +17,8 @@
 - [ ] Remove attribute types from signal
 - [x] Remove tracking from slider
 - [ ] Add many operations
-    - [ ] Decide how to handle unknown shape
+    - [x] Decide how to handle unknown shape
+    - [ ] Finish type change editor with table model (for toNumeric)
     - [x] Merge values of one attribute (also to Nan)
     - [x] Remove Nan rows (by % or number)
     - [x] Load CSV

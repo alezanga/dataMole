@@ -28,9 +28,9 @@ class FrameModel(QAbstractTableModel):
     statisticsComputed = Signal(tuple)
     statisticsError = Signal(tuple)
 
-    def __init__(self, parent: QWidget = None, frame: Frame = Frame(), nrows: int = 10):
+    def __init__(self, parent: QWidget = None, frame: Union[Frame, Shape] = Frame(), nrows: int = 10):
         super().__init__(parent)
-        self.__frame: Frame = frame
+        self.__frame: Frame = frame if isinstance(frame, Frame) else Frame.fromShape(frame)
         self.__shape: Shape = self.__frame.shape
         self.__n_rows: int = nrows
         self.__loadedCols: int = self.COL_BATCH_SIZE
@@ -152,7 +152,7 @@ class FrameModel(QAbstractTableModel):
 
 class AttributeTableModel(QAbstractTableModel):
     def __init__(self, parent: QWidget = None, checkable: bool = False,
-                 editable: bool = False):
+                 editable: bool = False, showTypes: bool = True):
         """ Creates a tablemodel to hold attributes list
 
         :param parent: parent widget
@@ -161,6 +161,7 @@ class AttributeTableModel(QAbstractTableModel):
         """
         super().__init__(parent)
         self._checkable: bool = checkable
+        self._showTypes: bool = showTypes
         self._editable: bool = editable
         # Keeps track of checked items
         self._checked: List[bool] = list()
@@ -197,9 +198,21 @@ class AttributeTableModel(QAbstractTableModel):
         return self._sourceModel
 
     # Getter and setter for checkbox
+    @property
     def checkedAttributes(self) -> List[int]:
         """ Get selected rows if the model is checkable """
         return [i for i, v in enumerate(self._checked) if v] if self._checkable else None
+
+    @checkedAttributes.setter
+    def checkedAttributes(self, values: List[int]) -> None:
+        if values:
+            for index in values:
+                self._checked[index] = True
+        else:
+            self._checked = [False] * self.rowCount()
+        for v in values:
+            qindex = self.index(v, self.checkbox_pos, QModelIndex())
+            self.dataChanged.emit(qindex, qindex, [Qt.CheckStateRole])
 
     def setSourceModel(self, sourceModel: QAbstractItemModel) -> None:
         if self._sourceModel is sourceModel:
@@ -259,9 +272,14 @@ class AttributeTableModel(QAbstractTableModel):
     def columnCount(self, parent: QModelIndex = QModelIndex()) -> int:
         if parent.isValid():
             return 0
-        return 3 if self._checkable else 2
+        if self._checkable ^ self._showTypes:
+            return 2
+        elif self._checkable:  # Show everything
+            return 3
+        else:  # Only name
+            return 1
 
-    def data(self, index: QModelIndex, role: int = ...) -> Any:
+    def data(self, index: QModelIndex, role: int = Qt.DisplayRole) -> Any:
         if not index.isValid():
             return None
 
@@ -331,7 +349,7 @@ class AttributeTableModel(QAbstractTableModel):
             self._checked.extend([False] * new_rows)
 
 
-class AttributeTableModelFilter(QSortFilterProxyModel):
+class TypeFilteredTableModel(QSortFilterProxyModel):
     def __init__(self, filterTypes: List[Types], parent: QWidget = None):
         super().__init__(parent)
         self._filterTypes = filterTypes
@@ -346,13 +364,17 @@ class AttributeTableModelFilter(QSortFilterProxyModel):
 
 
 class SearchableAttributeTableWidget(QWidget):
-    def __init__(self, parent: QWidget = None, checkable: bool = False, editable: bool = False):
+    def __init__(self, parent: QWidget = None, checkable: bool = False, editable: bool = False,
+                 showTypes: bool = False, filterTypes: List[Types] = None):
         super().__init__(parent)
-        self.__model = AttributeTableModel(parent=self, checkable=checkable, editable=editable)
+        self.__typeFiltered = bool(filterTypes)
+        self.__model = AttributeTableModel(parent=self, checkable=checkable, editable=editable,
+                                           showTypes=showTypes)
         self.tableView = IncrementalAttributeTableView(parent=self, namecol=self.__model.name_pos)
-        self._tableModel = QSortFilterProxyModel(self)
-        self._tableModel.setSourceModel(self.__model)
-        self._tableModel.setFilterCaseSensitivity(Qt.CaseInsensitive)
+        typeFilteredModel = self.setupFilteredModel(filterTypes)
+        self._searchableModel = QSortFilterProxyModel(self)
+        self._searchableModel.setSourceModel(typeFilteredModel)
+        self._searchableModel.setFilterCaseSensitivity(Qt.CaseInsensitive)
 
         self._searchBar = QLineEdit(self)
         self._searchBar.setPlaceholderText('Search')
@@ -370,14 +392,27 @@ class SearchableAttributeTableWidget(QWidget):
         layout.addWidget(self.tableView)
         self.setLayout(layout)
 
+    def setupFilteredModel(self, typesToShow: List[Types]) -> QAbstractItemModel:
+        typesToShow: List[Types] = typesToShow if typesToShow else list()
+        if typesToShow:
+            typeFilteredModel = TypeFilteredTableModel(typesToShow, self)
+            # typeFilteredModel.setFilterKeyColumn(self.__model.type_pos)
+            # regex = QRegularExpression(
+            #     QRegularExpression.anchoredPattern('|'.join(map(lambda x: str(x.value), typesToShow))))
+            # typeFilteredModel.setFilterRegularExpression(regex)
+            typeFilteredModel.setSourceModel(self.__model)
+            return typeFilteredModel
+        return self.__model
+
     def model(self) -> AttributeTableModel:
         return self.__model
 
-    def setModel(self, model: AttributeTableModel) -> None:
+    def setModel(self, model: AttributeTableModel, filterTypes: List[Types] = None) -> None:
         """
         Sets a custom AttributeTableModel. If the source frame is present it also updates view.
         This method is provided as an alternative to building everything in the constructor.
         """
+        self.__typeFiltered = bool(filterTypes)
         if self.tableView:
             oldView = self.tableView
             self.tableView = IncrementalAttributeTableView(parent=self, namecol=model.name_pos)
@@ -386,25 +421,26 @@ class SearchableAttributeTableWidget(QWidget):
         if self.__model:
             self.__model.deleteLater()
         self.__model = model
-        self._tableModel.setSourceModel(self.__model)
+        typeFilteredModel = self.setupFilteredModel(filterTypes)
+        self._searchableModel.setSourceModel(typeFilteredModel)
         if self.__model.sourceModel():
             self.setSourceFrameModel(self.__model.sourceModel())
 
     def setSourceFrameModel(self, source: FrameModel) -> None:
         self.__model.setSourceModel(source)
-        if self.tableView.model() is not self._tableModel:
-            self.tableView.setModel(self._tableModel)
+        if self.tableView.model() is not self._searchableModel:
+            self.tableView.setModel(self._searchableModel, filtered=self.__typeFiltered)
             hh = self.tableView.horizontalHeader()
             check_pos = self.__model.checkbox_pos
-            if check_pos:
-                hh.resizeSection(check_pos, 10)
+            if check_pos is not None:
+                hh.resizeSection(check_pos, 5)
                 hh.setSectionResizeMode(check_pos, QHeaderView.Fixed)
             hh.setSectionResizeMode(self.__model.name_pos, QHeaderView.Stretch)
             hh.setSectionResizeMode(self.__model.type_pos, QHeaderView.Fixed)
             hh.setStretchLastSection(False)
-            self._tableModel.setFilterKeyColumn(self.__model.name_pos)
+            self._searchableModel.setFilterKeyColumn(self.__model.name_pos)
             self.tableView.setHorizontalHeader(hh)
-            self._searchBar.textChanged.connect(self._tableModel.setFilterRegExp)
+            self._searchBar.textChanged.connect(self._searchableModel.setFilterRegExp)
 
 
 class IncrementalAttributeTableView(QTableView):
@@ -417,9 +453,11 @@ class IncrementalAttributeTableView(QTableView):
         self.__attNameColumn = namecol
         self.setSelectionBehavior(QTableView.SelectRows)
         self.setSelectionMode(QTableView.SingleSelection)
+        self.__filtered = False
 
-    def setModel(self, model: AttributeTableModel) -> None:
+    def setModel(self, model: QSortFilterProxyModel, filtered: bool) -> None:
         """ Reimplemented to start fetch timer """
+        self.__filtered = filtered
         if self.__timer.isActive():
             self.__timer.stop()
             logging.debug('Model about to be set. Fetch timer stopped')
@@ -464,7 +502,10 @@ class IncrementalAttributeTableView(QTableView):
         super().selectionChanged(selected, deselected)
         current: QModelIndex = selected.indexes()[0] if selected.indexes() else QModelIndex()
         if current.isValid():
-            self.selectedAttributeChanged.emit(self.model().mapToSource(current).row())
+            index = self.model().mapToSource(current)
+            realRow = index.row() if not self.__filtered else self.model().sourceModel() \
+                .mapToSource(index).row()
+            self.selectedAttributeChanged.emit(realRow)
         else:
             self.selectedAttributeChanged.emit(-1)
 
