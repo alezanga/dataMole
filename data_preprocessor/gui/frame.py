@@ -373,6 +373,23 @@ class SearchableAttributeTableWidget(QWidget):
     def model(self) -> AttributeTableModel:
         return self.__model
 
+    def setModel(self, model: AttributeTableModel) -> None:
+        """
+        Sets a custom AttributeTableModel. If the source frame is present it also updates view.
+        This method is provided as an alternative to building everything in the constructor.
+        """
+        if self.tableView:
+            oldView = self.tableView
+            self.tableView = IncrementalAttributeTableView(parent=self, namecol=model.name_pos)
+            self.layout().replaceWidget(oldView, self.tableView)
+            oldView.deleteLater()
+        if self.__model:
+            self.__model.deleteLater()
+        self.__model = model
+        self._tableModel.setSourceModel(self.__model)
+        if self.__model.sourceModel():
+            self.setSourceFrameModel(self.__model.sourceModel())
+
     def setSourceFrameModel(self, source: FrameModel) -> None:
         self.__model.setSourceModel(source)
         if self.tableView.model() is not self._tableModel:

@@ -1,11 +1,11 @@
 from typing import Dict, Any, List
 
 from PySide2.QtCore import Qt, QModelIndex
-from PySide2.QtWidgets import QTableView, QHeaderView, QWidget
+from PySide2.QtWidgets import QWidget
 
 from data_preprocessor import data
 from data_preprocessor.gui.editor.interface import AbsOperationEditor
-from ..frame import AttributeTableModel, FrameModel, AttributeTableModelFilter
+from ..frame import AttributeTableModel, FrameModel, SearchableAttributeTableWidget
 
 
 class EditableAttributeTable(AttributeTableModel):
@@ -61,23 +61,17 @@ class EditableAttributeTable(AttributeTableModel):
 
 class RenameEditor(AbsOperationEditor):
     def getOptions(self) -> List[Dict[int, str]]:
-        return [self.__source_model.editedAttributes()]
+        return [self.__model.editedAttributes()]
 
     def setOptions(self, option: Dict[int, str]) -> None:
-        self.__source_model.setEditedAttributes(option)
+        self.__model.setEditedAttributes(option)
 
     def editorBody(self) -> QWidget:
         self.setWindowTitle('Rename operation editor')
 
         frame = data.Frame.fromShape(self._inputShapes[0]) if self._inputShapes[0] else data.Frame()
-        self.__source_model = EditableAttributeTable(self)
-        self.__model = AttributeTableModelFilter(filterTypes=self._acceptedTypes, parent=self)
-        self.__source_model.setSourceModel(FrameModel(self, frame))
-        self.__model.setSourceModel(self.__source_model)
-        # View shows filtered model
-        self.__view = QTableView(self)
-        self.__view.setModel(self.__model)
-        header = self.__view.horizontalHeader()
-        header.setSectionResizeMode(QHeaderView.Stretch)
-        self.__view.setHorizontalHeader(header)
-        return self.__view
+        self.__model = EditableAttributeTable(self)
+        self.__model.setSourceModel(FrameModel(self, frame))
+        searchableView = SearchableAttributeTableWidget(checkable=False, editable=True)
+        searchableView.setModel(self.__model)
+        return searchableView
