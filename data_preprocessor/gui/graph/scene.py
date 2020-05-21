@@ -287,7 +287,7 @@ class GraphScene(QtWidgets.QGraphicsScene):
         :type event: :class:`QtWidgets.QMouseEvent`
 
         """
-        print("MOUSE PRESS SCENE!")
+        # print("MOUSE PRESS SCENE!")
         if not self._is_interactive_edge:
 
             if not self.items(event.scenePos()):
@@ -480,14 +480,14 @@ class GraphScene(QtWidgets.QGraphicsScene):
     def dragEnterEvent(self, event: QGraphicsSceneDragDropEvent):
         md = event.mimeData()
         if md.hasText() and md.text() == 'operation':
-            print('YYYEES')
+            # print('YYYEES')
             event.acceptProposedAction()
 
     def dragMoveEvent(self, event: QGraphicsSceneDragDropEvent):
         self.dragEnterEvent(event)
 
     def dropEvent(self, event: QGraphicsSceneDragDropEvent):
-        print('dropEvent')
+        # print('dropEvent')
         tree_w = event.source()
         self.__dropPosition = event.scenePos()
         self.dropNewNode.emit(tree_w.getDropData())

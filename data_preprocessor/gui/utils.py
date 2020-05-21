@@ -33,6 +33,8 @@ class OperationAction(QObject):
 
     @property
     def output(self) -> Optional[data.Frame]:
+        """ Returns the output of the operation if completed, otherwise None. Output is consumed,
+        which means that it is deleted after the first retrieval """
         a = self._output
         self._output = None
         return a
@@ -48,8 +50,8 @@ class OperationAction(QObject):
         self.editor = self.operation.getEditor()
         self.editor.acceptAndClose.connect(self.onAcceptEditor)
         self.editor.rejectAndClose.connect(self.destroyEditor)
-        self.editor.setTypes(self.operation.acceptedTypes())
-        self.editor.setInputShapes([i.shape for i in self._inputs])
+        self.editor.acceptedTypes = self.operation.acceptedTypes()
+        self.editor.inputShapes = [i.shape for i in self._inputs]
         self.editor.setUpEditor()
         self.editor.setOptions(*self.operation.getOptions())
         self.editor.setParent(None)
@@ -78,7 +80,7 @@ class OperationAction(QObject):
         self.editor.hide()
 
     @Slot(object, object)
-    def _setOutput(self, identifier, f: data.Frame) -> None:
+    def _setOutput(self, _, f: data.Frame) -> None:
         self._output = f
         self.destroyEditor()
         # Signal that result has been set
@@ -86,13 +88,13 @@ class OperationAction(QObject):
         logging.info('GraphOperation result saved')
 
     @Slot(object)
-    def _finished(self, identifier) -> None:
+    def _finished(self, _) -> None:
         logging.info('GraphOperation {} finished'.format(self.operation.name()))
         getMainWindow().statusBar().stopSpinner()
         getMainWindow().statusBar().showMessage('GraphOperation finished')
 
     @Slot(object, tuple)
-    def _showError(self, identifier, error: Tuple[type, Exception, str]) -> None:
+    def _showError(self, _, error: Tuple[type, Exception, str]) -> None:
         msg = str(error[1])
         msg_short = 'GraphOperation failed to execute with following message: <br> {}'.format(msg[:80])
         if len(msg) > 80:

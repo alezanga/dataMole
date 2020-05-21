@@ -69,7 +69,7 @@ class RenameEditor(AbsOperationEditor):
     def editorBody(self) -> QWidget:
         self.setWindowTitle('Rename operation editor')
 
-        frame = data.Frame.fromShape(self._inputShapes[0]) if self._inputShapes[0] else data.Frame()
+        frame = data.Frame.fromShape(self.inputShapes[0]) if self.inputShapes[0] else data.Frame()
         self.__model = EditableAttributeTable(self)
         self.__model.setSourceModel(FrameModel(self, frame))
         searchableView = SearchableAttributeTableWidget(checkable=False, editable=True)

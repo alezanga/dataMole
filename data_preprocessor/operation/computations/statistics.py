@@ -1,8 +1,6 @@
 import re
 from typing import Dict
 
-import numpy as np
-
 from ..interface.operation import Operation
 from ... import data
 from ...data.types import Types
@@ -47,8 +45,9 @@ class Hist(Operation):
     def execute(self, df: data.Frame) -> Dict[object, int]:
         col = df.getRawFrame().iloc[:, self.__attribute]
         if self.__type == Types.Numeric:
-            hist, bins = np.histogram(col.dropna(), bins=self.__nBins)
-            return {edge: freq for freq, edge in zip(hist, bins)}
+            values = col.value_counts(bins=self.__nBins, sort=False)
+            values.index = values.index.map(lambda i: '{:.2f}'.format(i.left))
+            return values.to_dict()
         else:
             return col.value_counts().to_dict()
 

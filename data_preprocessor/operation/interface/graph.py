@@ -22,6 +22,10 @@ class GraphOperation(Operation):
     # ---------------------- FINAL METHODS (PLS NO OVERRIDE) ---------------------
     # ----------------------------------------------------------------------------
 
+    @property
+    def shapes(self) -> List[Optional[data.Shape]]:
+        return self._shape
+
     def addInputShape(self, shape: data.Shape, pos: int) -> None:
         """ Setter method for the shape input
 
@@ -132,18 +136,10 @@ class GraphOperation(Operation):
         used by getOutputShape to verify if the shape can be inferred. It is also run before execution
         of the operation in the computational graph.
         It may be used in any other context by manually calling it before the
-        :func:`~data_preprocessor.operation.GraphOperation.execute` method. Note that a call to this function
-        should not placed inside the 'execute' method.
+        :func:`~data_preprocessor.operation.GraphOperation.execute` method.
+        Note that a call to this function should not placed inside the 'execute' method.
 
         :return: True if computation can continue, False otherwise
-        """
-        pass
-
-    @abstractmethod
-    def setOptions(self, *args, **kwargs) -> None:
-        """
-        Called to configure a step with the required data.
-        Typically must be called after the user set parameters in the configuration dialog
         """
         pass
 
@@ -374,18 +370,3 @@ class OutputGraphOperation(GraphOperation):
     def maxOutputNumber() -> int:
         """ Returns 0 """
         return 0
-
-
-class OperationError(Exception):
-    """ Base class for operation exceptions """
-
-    def __init__(self, message: str):
-        super().__init__()
-        self.message = message
-
-    def __str__(self):
-        return self.message
-
-
-class InvalidOption(OperationError):
-    pass

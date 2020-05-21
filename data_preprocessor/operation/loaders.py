@@ -4,7 +4,8 @@ import pandas as pd
 
 from data_preprocessor import data
 from data_preprocessor.gui import AbsOperationEditor
-from data_preprocessor.operation.interface.graph import InputGraphOperation, InvalidOption
+from data_preprocessor.operation.interface.graph import InputGraphOperation
+from .interface.exceptions import InvalidOptions
 from ..gui.editor.loaders import LoadCSVEditor
 
 
@@ -25,7 +26,7 @@ class CsvLoader(InputGraphOperation):
 
     def execute(self) -> data.Frame:
         if not self.hasOptions():
-            raise InvalidOption('Options are not set')
+            raise InvalidOptions('Options are not set')
         pd_df = pd.read_csv(self.__file, sep=self.__separator)
         return data.Frame(pd_df)
 

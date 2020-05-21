@@ -13,6 +13,7 @@ from ..workbench import WorkbenchModel
 from ...flow.OperationDag import OperationDag
 from ...flow.OperationHandler import OperationHandler, HandlerException
 from ...flow.OperationNode import OperationNode
+from ...operation.interface.exceptions import OptionValidationError
 
 
 class GraphController(QWidget):
@@ -60,9 +61,6 @@ class GraphController(QWidget):
         v: Node = target_slot.parentNode
         if self._operation_dag.addConnection(source_id=u.id, target_id=v.id, slot=target_slot.position):
             self._scene.create_edge(source_slot, target_slot)
-            print('Create')
-        else:
-            print('No create')
 
     @Slot()
     def removeItems(self):
@@ -97,13 +95,13 @@ class GraphController(QWidget):
             self.__editor_widget = node.operation.getEditor()
             self.__editor_node_id = node.uid
             # Set types
-            self.__editor_widget.setTypes(node.operation.acceptedTypes())
+            self.__editor_widget.acceptedTypes = node.operation.acceptedTypes()
             # Set input shapes
-            self.__editor_widget.setInputShapes(node.operation._shape)
+            self.__editor_widget.inputShapes = node.operation.shapes
             # If input/output op set workbench
             if node.operation.maxInputNumber() == 0 or node.operation.minOutputNumber() == 0:
                 # Then its an input/output operation
-                self.__editor_widget.setWorkbench(node.operation.workbench)
+                self.__editor_widget.workbench = node.operation.workbench
             # Create the central widget and adds options
             self.__editor_widget.setUpEditor()
             self.__editor_widget.setDescription(node.operation.shortDescription(),
@@ -123,15 +121,21 @@ class GraphController(QWidget):
     @Slot()
     def onEditAccept(self) -> None:
         options = self.__editor_widget.getOptions()
-        if self._operation_dag.updateNodeOptions(self.__editor_node_id, *options):
-            # Update view
-            pass
-            print('Edited!')
+        try:
+            graphUpdated = self._operation_dag.updateNodeOptions(self.__editor_node_id, *options)
+        except OptionValidationError as e:
+            self.__editor_widget.handleErrors(e.invalid)
         else:
-            # Signal something in view?
-            pass
-        # Delete editor
-        self.cleanupEditor()
+            # If validation succeed
+            if graphUpdated:
+                # TODO: Maybe update view
+                logging.debug('Graph node {} edited'.format(self.__editor_node_id))
+            else:
+                # TODO: Maybe update view
+                logging.debug('Graph node {} was not updated'.format(self.__editor_node_id))
+                pass
+            # Delete editor
+            self.cleanupEditor()
 
     @Slot()
     def cleanupEditor(self) -> None:
@@ -195,3 +199,4 @@ class GraphController(QWidget):
         self.__executing = False
         self._view.setAcceptDrops(True)
         self._scene.disableEdit = False
+        logging.debug('Flow finished controller slot called')

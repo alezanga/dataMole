@@ -10,7 +10,7 @@ from data_preprocessor.flow.OperationDag import OperationDag
 from data_preprocessor.flow.OperationHandler import OperationHandler
 from data_preprocessor.flow.OperationNode import OperationNode
 from data_preprocessor.gui.editor.interface import AbsOperationEditor
-from data_preprocessor.operation.interface import GraphOperation, OutputGraphOperation, \
+from data_preprocessor.operation.interface.graph import GraphOperation, OutputGraphOperation, \
     InputGraphOperation
 from data_preprocessor.operation.rename import RenameOp
 from data_preprocessor.operation.type import ToCategoricalOp, ToNumericOp

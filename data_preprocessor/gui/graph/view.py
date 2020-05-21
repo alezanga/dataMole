@@ -412,7 +412,7 @@ class GraphView(QtWidgets.QGraphicsView):
         :type event: :class:`QtWidgets.QFocusEvent`
 
         """
-        print("Mouse out!")
+        # print("Mouse out!")
         # Stop dragging mode if needed
         self.scene()._is_alt_key = False
         self._is_pan = False

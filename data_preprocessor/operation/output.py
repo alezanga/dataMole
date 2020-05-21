@@ -63,7 +63,7 @@ class ToVariableOp(OutputGraphOperation):
                 if var_name:
                     self.__write_box.setData(var_name)
                 if not self.__validator:
-                    self.__validator = Validator(self._workbench, self)
+                    self.__validator = Validator(self.workbench, self)
                     self.__write_box.widget.setValidator(self.__validator)
                     self.__write_box.widget.textEdited.connect(self.testInput)
 

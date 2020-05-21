@@ -50,7 +50,7 @@ class CopyOp(InputGraphOperation):
                 return [name]
 
             def setOptions(self, selected_name: Optional[str]) -> None:
-                self.__selection_box.setModel(self._workbench)
+                self.__selection_box.setModel(self.workbench)
                 if selected_name is not None:
                     self.__selection_box.setCurrentIndex(
                         self.__selection_box.findText(selected_name, Qt.MatchExactly))

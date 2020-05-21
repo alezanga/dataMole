@@ -18,7 +18,7 @@ def test_cat_toNumeric():
 
     op = ToNumericOp()
     op.addInputShape(f.shape, pos=0)
-    op.setOptions(attribute_index=0)
+    op.setOptions(attribute_indexes=0)
 
     # Predict output shape
     os = copy.deepcopy(f.shape)
@@ -31,7 +31,7 @@ def test_cat_toNumeric():
     op.addInputShape(f.shape, pos=0)
     op.unsetOptions()
     assert op.getOutputShape() is None
-    op.setOptions(attribute_index=0)
+    op.setOptions(attribute_indexes=0)
     assert op.getOutputShape() == os  # Re-adding everything
 
     g = op.execute(f)
@@ -53,7 +53,7 @@ def test_str_toNumeric():
 
     op = ToNumericOp()
     op.addInputShape(f.shape, pos=0)
-    op.setOptions(attribute_index=2)
+    op.setOptions(attribute_indexes=2)
 
     # Predict output shape
     os = copy.deepcopy(f.shape)
@@ -66,7 +66,7 @@ def test_str_toNumeric():
     op.addInputShape(f.shape, pos=0)
     op.unsetOptions()
     assert op.getOutputShape() is None
-    op.setOptions(attribute_index=2)
+    op.setOptions(attribute_indexes=2)
     assert op.getOutputShape() == os  # Re-adding everything
 
     g = op.execute(f)
@@ -85,7 +85,7 @@ def test_unsetOptions_toNumeric():
     op = ToNumericOp()
     op.addInputShape(f.shape, pos=0)
     assert op.getOptions() == [None] and not op.hasOptions()
-    op.setOptions(attribute_index=0)
+    op.setOptions(attribute_indexes=0)
     assert op.getOptions() == [0]
     assert op._shape[0] == f.shape
 
@@ -97,7 +97,7 @@ def test_unsetOptions_toNumeric():
     assert op.getOptions() == [None]
     assert op._shape == [None]
 
-    op.setOptions(attribute_index=1)
+    op.setOptions(attribute_indexes=1)
     assert op.getOptions() == [1]
     assert op._shape == [None]
 
@@ -115,7 +115,7 @@ def test_unsetOptions_toCategory():
 
     op = ToCategoricalOp()
     op.addInputShape(f.shape, pos=0)
-    op.setOptions(attribute_index=0)
+    op.setOptions(attribute_indexes=0)
     assert op.getOptions() == [0]
     assert op._shape == [f.shape]
 
@@ -127,7 +127,7 @@ def test_unsetOptions_toCategory():
     assert op.getOptions() == [None]
     assert op._shape == [None]
 
-    op.setOptions(attribute_index=1)
+    op.setOptions(attribute_indexes=1)
     assert op.getOptions() == [1]
     assert op._shape == [None]
 
@@ -147,7 +147,7 @@ def test_str_toCategory():
 
     op = ToCategoricalOp()
     op.addInputShape(f.shape, pos=0)
-    op.setOptions(attribute_index=2)
+    op.setOptions(attribute_indexes=2)
 
     # Predict output shape
     os = copy.deepcopy(f.shape)
@@ -160,7 +160,7 @@ def test_str_toCategory():
     op.addInputShape(f.shape, pos=0)
     op.unsetOptions()
     assert op.getOutputShape() is None
-    op.setOptions(attribute_index=2)
+    op.setOptions(attribute_indexes=2)
     assert op.getOutputShape() == os  # Re-adding everything
 
     g = op.execute(f)
@@ -182,7 +182,7 @@ def test_num_toCategory():
 
     op = ToCategoricalOp()
     op.addInputShape(f.shape, pos=0)
-    op.setOptions(attribute_index=1)
+    op.setOptions(attribute_indexes=1)
 
     # Predict output shape
     os = copy.deepcopy(f.shape)
@@ -195,7 +195,7 @@ def test_num_toCategory():
     op.addInputShape(f.shape, pos=0)
     op.unsetOptions()
     assert op.getOutputShape() is None
-    op.setOptions(attribute_index=1)
+    op.setOptions(attribute_indexes=1)
     assert op.getOutputShape() == os  # Re-adding everything
 
     g = op.execute(f)
@@ -219,7 +219,7 @@ def test_date_toCategory():
 
     op = ToCategoricalOp()
     op.addInputShape(f.shape, pos=0)
-    op.setOptions(attribute_index=3)
+    op.setOptions(attribute_indexes=3)
 
     # Predict output shape which should not change
     os = copy.deepcopy(f.shape)

@@ -1,32 +1,38 @@
-from typing import List, Union, Iterable, Optional
+import logging
+from operator import itemgetter
+from typing import List, Union, Iterable
 
 from PySide2.QtWidgets import QWidget
 
-import data_preprocessor.gui.editor.optionwidget as opw
 from data_preprocessor import data
 from data_preprocessor.data.types import Types, inv_type_dict
 from data_preprocessor.gui.editor.interface import AbsOperationEditor
 from .interface.graph import GraphOperation
+from ..gui.frame import SearchableAttributeTableWidget, FrameModel
 
 
 class ToNumericOp(GraphOperation):
     def __init__(self):
         super().__init__()
-        self.__attribute: Optional[int] = None
+        self.__attributes: List[int] = list()
 
     def hasOptions(self) -> bool:
-        if self.__attribute is not None:
+        if self.__attributes:
             return True
         return False
 
     def execute(self, df: data.Frame) -> data.Frame:
         # If type of attribute is not accepted
-        if df.shape.col_types[self.__attribute] not in self.acceptedTypes():
+        columns = df.shape.col_types
+        items = itemgetter(*self.__attributes)(columns)
+        if not all(map(lambda x: x in self.acceptedTypes(),
+                       items if isinstance(items, tuple) else (items,))):
+            logging.debug('Type not supported for operation {}'.format(self.name()))
             return df
         # Deep copy
         raw_df = df.getRawFrame().copy(deep=True)
-        raw_df.iloc[:, [self.__attribute]] = raw_df.iloc[:, [self.__attribute]].astype(
-            dtype=inv_type_dict[Types.Numeric], copy=False, errors='raise')
+        raw_df.iloc[:, self.__attributes] = raw_df.iloc[:, self.__attributes] \
+            .apply(lambda c: c.astype(dtype=inv_type_dict[Types.Numeric], errors='raise'))
         return data.Frame(raw_df)
 
     @staticmethod
@@ -39,17 +45,17 @@ class ToNumericOp(GraphOperation):
     def acceptedTypes(self) -> List[Types]:
         return [Types.String, Types.Categorical]
 
-    def setOptions(self, attribute_index: Optional[int]) -> None:
-        self.__attribute = attribute_index
+    def setOptions(self, attribute_indexes: List[int]) -> None:
+        self.__attributes = attribute_indexes
 
     def unsetOptions(self) -> None:
-        self.__attribute = None
+        self.__attributes = list()
 
     def needsOptions(self) -> bool:
         return True
 
     def getOptions(self) -> Iterable:
-        return [self.__attribute]
+        return [self.__attributes]
 
     def getEditor(self) -> AbsOperationEditor:
         return _SelectAttribute()
@@ -57,11 +63,15 @@ class ToNumericOp(GraphOperation):
     def getOutputShape(self) -> Union[data.Shape, None]:
         if not self.hasOptions() or not self._shape[0]:
             return None
-        # If type of attribute is not accepted
-        if self._shape[0].col_types[self.__attribute] not in self.acceptedTypes():
-            return self._shape[0]
+        # If type is not accepted
+        columns = self._shape[0].col_types
+        items = itemgetter(*self.__attributes)(columns)
+        if not all(map(lambda x: x in self.acceptedTypes(),
+                       items if isinstance(items, tuple) else (items,))):
+            return None
         s = self._shape[0].copy()
-        s.col_types[self.__attribute] = Types.Numeric
+        for i in self.__attributes:
+            s.col_types[i] = Types.Numeric
         return s
 
     @staticmethod
@@ -88,21 +98,25 @@ class ToNumericOp(GraphOperation):
 class ToCategoricalOp(GraphOperation):
     def __init__(self):
         super().__init__()
-        self.__attribute: Optional[int] = None
+        self.__attributes: List[int] = list()
 
     def hasOptions(self) -> bool:
-        if self.__attribute is not None:
+        if self.__attributes:
             return True
         return False
 
     def execute(self, df: data.Frame) -> data.Frame:
         # If type of attribute is not accepted
-        if df.shape.col_types[self.__attribute] not in self.acceptedTypes():
+        columns = df.shape.col_types
+        items = itemgetter(*self.__attributes)(columns)
+        if not all(map(lambda x: x in self.acceptedTypes(),
+                       items if isinstance(items, tuple) else (items,))):
+            logging.debug('Type not supported for operation {}'.format(self.name()))
             return df
         # Deep copy
         raw_df = df.getRawFrame().copy(deep=True)
-        raw_df.iloc[:, [self.__attribute]] = raw_df.iloc[:, [self.__attribute]].astype(
-            dtype=inv_type_dict[Types.Categorical], copy=False, errors='raise')
+        raw_df.iloc[:, self.__attributes] = raw_df.iloc[:, self.__attributes] \
+            .apply(lambda c: c.astype(dtype=inv_type_dict[Types.Categorical], errors='raise'))
         return data.Frame(raw_df)
 
     @staticmethod
@@ -116,17 +130,17 @@ class ToCategoricalOp(GraphOperation):
     def acceptedTypes(self) -> List[Types]:
         return [Types.String, Types.Numeric]
 
-    def setOptions(self, attribute_index: Optional[int]) -> None:
-        self.__attribute = attribute_index
+    def setOptions(self, attribute_indexes: List[int]) -> None:
+        self.__attributes = attribute_indexes
 
     def unsetOptions(self) -> None:
-        self.__attribute = None
+        self.__attributes = list()
 
     def needsOptions(self) -> bool:
         return True
 
     def getOptions(self) -> Iterable:
-        return [self.__attribute]
+        return [self.__attributes]
 
     def getEditor(self) -> AbsOperationEditor:
         return _SelectAttribute()
@@ -135,10 +149,14 @@ class ToCategoricalOp(GraphOperation):
         if not self.hasOptions() or not self._shape[0]:
             return None
         # If type is not accepted
-        if self._shape[0].col_types[self.__attribute] not in self.acceptedTypes():
-            return self._shape[0]
+        columns = self._shape[0].col_types
+        items = itemgetter(*self.__attributes)(columns)
+        if not all(map(lambda x: x in self.acceptedTypes(),
+                       items if isinstance(items, tuple) else (items,))):
+            return None
         s = self._shape[0].copy()
-        s.col_types[self.__attribute] = Types.Categorical
+        for a in self.__attributes:
+            s.col_types[a] = Types.Categorical
         return s
 
     @staticmethod
@@ -164,15 +182,19 @@ class ToCategoricalOp(GraphOperation):
 
 class _SelectAttribute(AbsOperationEditor):
     def editorBody(self) -> QWidget:
-        self.__selection_box = opw.AttributeComboBox(self._inputShapes[0], self._acceptedTypes,
-                                                     parent=self)
-        return self.__selection_box
+        self.__searchableTable = SearchableAttributeTableWidget(checkable=True,
+                                                                showTypes=True,
+                                                                filterTypes=self.acceptedTypes)
+        # self.__selection_box = opw.AttributeComboBox(self.inputShapes[0], self.acceptedTypes,
+        #                                              parent=self)
+        self.__searchableTable.setSourceFrameModel(FrameModel(self, self.inputShapes[0]))
+        return self.__searchableTable
 
-    def getOptions(self) -> List[Optional[int]]:
-        return [self.__selection_box.getData()]
+    def getOptions(self) -> List[List[int]]:
+        return [self.__searchableTable.model().checkedAttributes]
 
-    def setOptions(self, selected_index: Optional[int]) -> None:
-        self.__selection_box.setData(selected_index)
+    def setOptions(self, selected_indexes: List[int]) -> None:
+        self.__searchableTable.model().checkedAttributes = selected_indexes
 
 
 # class TypeOp(GraphOperation):

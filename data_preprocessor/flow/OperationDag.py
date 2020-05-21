@@ -35,11 +35,11 @@ class OperationDag:
                 child_node.addInputShape(newParentOutputShape, parent_id)
                 self.__update_descendants(child_id)
 
-    def updateNodeOptions(self, node_id: int, *options: Any, **kwoptions: Any) -> bool:
+    def updateNodeOptions(self, node_id: int, *options: Any) -> bool:
         """ Set/updates the options of a node.
 
         :param node_id: the id of the node to update
-        :param options, kwoptions: any argument to pass to
+        :param options: any argument to pass to
             :func:`~data_preprocessor.operation.interface.GraphOperation.setOptions`
         :return True if the options were set, False otherwise
         :raise ValueError: if the node is not in the graph
@@ -49,7 +49,7 @@ class OperationDag:
             return False
         # Set options for operation
         node: OperationNode = self[node_id]
-        node.operation.setOptions(*options, **kwoptions)
+        node.operation.setOptions(*options)
         # if node.operation.maxInputNumber() == 0:  # if it's an input op
         #     node.operation.inferInputShape()
         # Update every connected node
@@ -89,14 +89,22 @@ class OperationDag:
         to_max_in = target_node.operation.maxInputNumber()
         if (0 <= from_max_out <= self.__G.out_degree(source_id)) or (
                 0 <= to_max_in <= self.__G.in_degree(target_id)):
+            logging.debug('Edge ({}->{}) not created because of degree constraints'.format(source_id,
+                                                                                           target_id))
             return False
 
         if not source_node.operation.isOutputShapeKnown() and \
-                target_node.operation.minOutputNumber() != 0:
+                target_node.operation.minOutputNumber() != 0 and \
+                target_node.operation.isOutputShapeKnown():
+            logging.debug('Edge ({}->{}) not created because source node output shape is unknown and '
+                          'target node is not an output node and has known output shape'
+                          .format(source_id, target_id))
             return False
 
         if self.__G.has_edge(source_id, target_id):
             # Avoid connecting the same node twice (debatable)
+            logging.debug(
+                'Edge ({}->{}) not created because already exists'.format(source_id, target_id))
             return False
 
         # Add connection
@@ -104,6 +112,8 @@ class OperationDag:
         # If the edge forms a cycle do nothing and return False
         if not nx.is_directed_acyclic_graph(self.__G):
             self.__G.remove_edge(source_id, target_id)
+            logging.debug(
+                'Edge ({}->{}) not created because it creates a cycle'.format(source_id, target_id))
             return False
 
         target_node.setSourceOperationInputPosition(source_id, slot)
@@ -111,6 +121,8 @@ class OperationDag:
 
         # Update input shapes in descendants
         self.__update_descendants(target_id)
+
+        logging.debug('Edge ({}->{}) was created'.format(source_id, target_id))
         return True
 
     def removeConnection(self, source_id: int, target_id: int) -> bool:

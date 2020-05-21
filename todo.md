@@ -39,3 +39,9 @@
     - [ ] Remove selection (two inputs: selection and table)
 - [x] Add Signal object to communicate operation status to the View
 - [x] Add methods to launch specific signals in Operation
+
+- Today:
+    - [x] Add logging to graph
+    - [x] Add validation to operation
+    - [ ] Fix all editors
+    - [ ] Add operations

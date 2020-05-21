@@ -1,15 +1,13 @@
 import abc
-import uuid
-from typing import Iterable, List, Optional
+from typing import Iterable, List, Optional, Dict, Callable, Tuple
 
-from PySide2.QtCore import Signal, Slot
+from PySide2.QtCore import Signal
 from PySide2.QtGui import QCloseEvent, Qt, QCursor
 from PySide2.QtWidgets import QWidget, QPushButton, QHBoxLayout, QVBoxLayout, QLabel, QWhatsThis, \
     QSizePolicy
 
 from data_preprocessor import data
 from data_preprocessor.data.types import Types
-from data_preprocessor.gui.waitingspinnerwidget import QtWaitingSpinner
 
 
 class AbsOperationEditor(QWidget):
@@ -34,12 +32,12 @@ class AbsOperationEditor(QWidget):
         # self._custom_widget = self.editorBody()
 
         # Standard options
-        self._acceptedTypes: List[Types] = list()
-        self._inputShapes: List[Optional[data.Shape]] = list()
-        self._workbench: 'WorkbenchModel' = None
+        self.errorHandlers: Dict[str, Callable] = dict()
+        self.acceptedTypes: List[Types] = list()
+        self.inputShapes: List[Optional[data.Shape]] = list()
+        self.workbench: 'WorkbenchModel' = None
 
         # Set up buttons
-        self.__id: str = uuid.uuid4().hex
         self.__butOk = QPushButton('Ok')
         butCancel = QPushButton('Cancel')
         self.butLayout = QHBoxLayout()
@@ -57,28 +55,8 @@ class AbsOperationEditor(QWidget):
         self.setLayout(self._layout)
         self.setFocusPolicy(Qt.StrongFocus)
 
-        self.__butOk.pressed.connect(self.onAccept)
+        self.__butOk.pressed.connect(self.acceptAndClose)
         butCancel.pressed.connect(self.rejectAndClose)
-
-    @property
-    def id(self) -> str:
-        """
-        The random unique identifier of the editor
-
-        :return: the identifier as string
-        """
-        return self.__id
-
-    def setTypes(self, types: List[Types]) -> None:
-        """ Set the accepted types in the editor """
-        self._acceptedTypes: List[Types] = types
-
-    def setInputShapes(self, sh: List[Optional[data.Shape]]) -> None:
-        """ Sets the input shapes in the editor """
-        self._inputShapes: List[Optional[data.Shape]] = sh
-
-    def setWorkbench(self, wor: 'WorkbenchModel') -> None:
-        self._workbench: 'WorkbenchModel' = wor
 
     def setDescription(self, short: str, long: str) -> None:
         self.__descLabel.setText(short)
@@ -91,6 +69,27 @@ class AbsOperationEditor(QWidget):
             whatsThisButton.clicked.connect(
                 lambda: QWhatsThis.showText(QCursor.pos(), long, self))
 
+    def closeEvent(self, event: QCloseEvent) -> None:
+        """"""
+        # Reject changes and close editor if the close button is pressed
+        self.rejectAndClose.emit()
+
+    def setUpEditor(self):
+        """ Calls editorBody and add the returned widget """
+        self._layout.insertWidget(1, self.editorBody())
+
+    def handleErrors(self, errors: List[Tuple[str, str]]) -> None:
+        """ Provide a list of readable errors to be shown in the widget
+
+        :param errors: list of (errorName, errorMessage). If 'errorName' is available in
+        the widget errorHandlers field the corresponding callback will be fired with the 'errorMessage'
+        This is useful to show custom error messages in specific parts of the editor widget
+        """
+        for (field, message) in errors:
+            handler = self.errorHandlers.get(field, None)
+            if handler:
+                handler(message)
+
     def disableOkButton(self) -> None:
         """ Makes the accept button unclickable.
             Useful to prevent user from saving invalid changes """
@@ -99,21 +98,6 @@ class AbsOperationEditor(QWidget):
     def enableOkButton(self) -> None:
         """ Enable the accept button """
         self.__butOk.setEnabled(True)
-
-    def closeEvent(self, event: QCloseEvent) -> None:
-        """"""
-        # Reject changes and close editor if the close button is pressed
-        self.rejectAndClose.emit()
-
-    @Slot()
-    def onAccept(self) -> None:
-        ok = self.validate(*self.getOptions())
-        if ok:
-            self.acceptAndClose.emit()
-
-    def setUpEditor(self):
-        """ Calls editorBody and add the returned widget """
-        self._layout.insertWidget(1, self.editorBody())
 
     # ----------------------------------------------------------------------------
     # --------------------------- PURE VIRTUAL METHODS ---------------------------
@@ -149,23 +133,3 @@ class AbsOperationEditor(QWidget):
         :param kwargs: any keyword argument
         """
         pass
-
-    def validate(self, *args) -> bool:
-        """
-        Validates the options returned by 'getOptions'. This method should be used to show error
-        messages if some fields were not imputed correctly. If this method returns False, the editor
-        will not be closed. The Ok button may be disabled to force the user to correct fields.
-        Default implementation does nothing and returns True.
-
-        :param args: the arguments returned by 'getOptions'
-        :return: True if options are ok, False otherwise. Defaults to True
-        """
-        return True
-
-
-def withSpinner(editor: AbsOperationEditor) -> AbsOperationEditor:
-    """ Adds a spinner which can be shown next to the Ok button. Disable the editor when started """
-    editor.spinner = QtWaitingSpinner(editor, centerOnParent=False, disableParentWhenSpinning=True)
-    editor.butLayout.insertWidget(1, editor.spinner, alignment=Qt.AlignRight)
-    editor.spinner.setInnerRadius(6)
-    return editor

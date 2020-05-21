@@ -350,7 +350,7 @@ class Node(QtWidgets.QGraphicsItem):
         :type event: :class:`QtWidgets.QMouseEvent`
 
         """
-        print("MOUSE PRESS NODE!")
+        # print("MOUSE PRESS NODE!")
 
         buttons = event.buttons()
         # modifiers = event.modifiers()
@@ -398,7 +398,7 @@ class Node(QtWidgets.QGraphicsItem):
         buttons = event.buttons()
         # modifiers = event.modifiers()
 
-        print("%s : mouse move event. Hover slot: %s" % (self._name, self._hover_slot))
+        # print("%s : mouse move event. Hover slot: %s" % (self._name, self._hover_slot))
 
         if buttons == QtCore.Qt.LeftButton:
             if self.scene().is_interactive_edge:

@@ -6,7 +6,8 @@ from PySide2.QtWidgets import QWidget, QButtonGroup, QLabel, QRadioButton, QSlid
 
 from data_preprocessor import data
 from data_preprocessor.gui import AbsOperationEditor
-from data_preprocessor.operation.interface.graph import GraphOperation, InvalidOption
+from data_preprocessor.operation.interface.exceptions import InvalidOptions
+from data_preprocessor.operation.interface.graph import GraphOperation
 
 
 class RemoveNanRows(GraphOperation):
@@ -20,7 +21,7 @@ class RemoveNanRows(GraphOperation):
     def execute(self, df: data.Frame) -> data.Frame:
         # Assume everything to go is set
         if self.__thresholdPercentage is not None and self.__thresholdNumber is not None:
-            raise InvalidOption('Can\'t have both threshold set')
+            raise InvalidOptions('Can\'t have both threshold set')
         pf = df.getRawFrame().copy()
         if self.__thresholdPercentage:
             # By percentage
@@ -103,7 +104,7 @@ class RemoveNanColumns(GraphOperation):
     def execute(self, df: data.Frame) -> data.Frame:
         # Assume everything to go is set
         if self.__thresholdPercentage is not None and self.__thresholdNumber is not None:
-            raise InvalidOption('Can\'t have both threshold set')
+            raise InvalidOptions('Can\'t have both threshold set')
         pf = df.getRawFrame().copy()
         if self.__thresholdPercentage:
             # By percentage
@@ -231,14 +232,14 @@ class _RemoveNanEditor(AbsOperationEditor):
             return
         self.__currId = bid
         if bid == 0:
-            if not self._inputShapes[0] and self.__mode == 'row':
+            if not self.inputShapes[0] and self.__mode == 'row':
                 self.__slider.setDisabled(True)
                 self._onValueChanged(self.__slider.value())
             elif not self.__slider.isEnabled():
                 self.__slider.setEnabled(True)
             else:
                 if self.__mode == 'row':
-                    self.__slider.setMaximum(self._inputShapes[0].n_columns)
+                    self.__slider.setMaximum(self.inputShapes[0].n_columns)
                     self._onValueChanged(self.__slider.value())
                 else:
                     self.__bodyLayout.replaceWidget(self.__slider, self.__numBox)

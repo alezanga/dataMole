@@ -30,8 +30,12 @@ class FrameModel(QAbstractTableModel):
 
     def __init__(self, parent: QWidget = None, frame: Union[Frame, Shape] = Frame(), nrows: int = 10):
         super().__init__(parent)
-        self.__frame: Frame = frame if isinstance(frame, Frame) else Frame.fromShape(frame)
-        self.__shape: Shape = self.__frame.shape
+        if isinstance(frame, Frame):
+            self.__frame: Frame = frame
+            self.__shape: Shape = self.__frame.shape
+        else:  # it's a Shape
+            self.__frame: Frame = Frame()
+            self.__shape: Shape = frame
         self.__n_rows: int = nrows
         self.__loadedCols: int = self.COL_BATCH_SIZE
         # Dictionary { attributeIndex: value }
