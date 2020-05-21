@@ -1,7 +1,6 @@
 from typing import Optional, Iterable
 
-from PySide2.QtCore import QObject, Slot
-from PySide2.QtGui import QValidator
+from PySide2.QtCore import Slot
 from PySide2.QtWidgets import QWidget
 
 import data_preprocessor.gui.workbench as wb
@@ -18,6 +17,8 @@ class ToVariableOp(OutputGraphOperation):
 
     def execute(self, df: data.Frame) -> None:
         self._workbench.appendNewRow(self.__var_name, df)
+        # Reset since now that variable is taken
+        self.__var_name = None
 
     @staticmethod
     def name() -> str:
@@ -39,20 +40,9 @@ class ToVariableOp(OutputGraphOperation):
         return [self.__var_name]
 
     def getEditor(self) -> AbsOperationEditor:
-        class Validator(QValidator):
-            def __init__(self, workbench: wb.WorkbenchModel, parent: QObject):
-                super().__init__(parent)
-                self.__w = workbench
-
-            def validate(self, input: str, pos: int) -> QValidator.State:
-                if input in self.__w.keys:
-                    return QValidator.Intermediate
-                return QValidator.Acceptable
-
         class WriteEditor(AbsOperationEditor):
             def editorBody(self) -> QWidget:
                 self.__write_box = opw.TextOptionWidget()
-                self.__validator = None
                 return self.__write_box
 
             def getOptions(self) -> Iterable:
@@ -60,16 +50,13 @@ class ToVariableOp(OutputGraphOperation):
                 return [text]
 
             def setOptions(self, var_name: str) -> None:
+                self.__write_box.widget.textChanged.connect(self.testInput)
                 if var_name:
                     self.__write_box.setData(var_name)
-                if not self.__validator:
-                    self.__validator = Validator(self.workbench, self)
-                    self.__write_box.widget.setValidator(self.__validator)
-                    self.__write_box.widget.textEdited.connect(self.testInput)
 
             @Slot(str)
             def testInput(self, new_text: str):
-                if self.__validator.validate(new_text, 0) == QValidator.Acceptable:
+                if new_text not in self.workbench.keys:
                     self.__write_box.unsetError()
                     self.enableOkButton()
                 else:

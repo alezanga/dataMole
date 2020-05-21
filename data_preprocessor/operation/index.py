@@ -1,5 +1,8 @@
-from typing import Iterable, List, Union
+from typing import Iterable, List, Union, Optional
 
+from PySide2.QtWidgets import QWidget
+
+import data_preprocessor.gui.editor.optionwidget as opw
 from data_preprocessor import data
 from data_preprocessor.data.types import Types, ALL_TYPES
 from data_preprocessor.gui import AbsOperationEditor
@@ -20,6 +23,10 @@ class SetIndexOp(GraphOperation):
 
     def shortDescription(self) -> str:
         return 'Sets the column index of a table'
+
+    def longDescription(self) -> str:
+        return 'Some operations like Join does not preserve the index, so you may want to ' \
+               'set it again if it is required. Setting it twice does nothing. '
 
     def acceptedTypes(self) -> List[Types]:
         return ALL_TYPES
@@ -47,7 +54,19 @@ class SetIndexOp(GraphOperation):
         return [self.__index_col]
 
     def getEditor(self) -> AbsOperationEditor:
-        pass
+        class Editor(AbsOperationEditor):
+            def editorBody(self) -> QWidget:
+                self.__attributeComboBox = opw.AttributeComboBox(self.inputShapes[0], self.acceptedTypes,
+                                                                 'Select an attribute')
+                return self.__attributeComboBox
+
+            def getOptions(self) -> Iterable:
+                return [self.__attributeComboBox.getData()]
+
+            def setOptions(self, index: Optional[int]) -> None:
+                self.__attributeComboBox.setData(index)
+
+        return Editor()
 
     @staticmethod
     def isOutputShapeKnown() -> bool:

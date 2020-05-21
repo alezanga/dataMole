@@ -1,9 +1,12 @@
 from enum import Enum, unique
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Iterable
+
+from PySide2.QtWidgets import QWidget
 
 from data_preprocessor import data
-from data_preprocessor.data.types import Types, ALL_TYPES
+from data_preprocessor.data.types import Types
 from data_preprocessor.gui.editor.interface import AbsOperationEditor
+from .interface.exceptions import OptionValidationError
 from .interface.graph import GraphOperation
 
 
@@ -29,6 +32,8 @@ class JoinOp(GraphOperation):
         self.__type: JoinType = jt.Left
 
     def execute(self, dfl: data.Frame, dfr: data.Frame) -> data.Frame:
+        # sr = dfr.shape
+        # sl = dfl.shape
         if self.__on_index:
             return data.Frame(dfl.getRawFrame().join(dfr.getRawFrame(), how=self.__type.value,
                                                      lsuffix=self.__lsuffix,
@@ -51,10 +56,13 @@ class JoinOp(GraphOperation):
         return 'Allows to join two tables. Can handle four type of join: left, right, outer and inner'
 
     def acceptedTypes(self) -> List[Types]:
-        return ALL_TYPES
+        return [Types.Numeric, Types.Categorical, Types.String]
 
     def setOptions(self, ls: str, rs: str, onindex: bool, onleft: int, onright: int,
                    join_type: JoinType) -> None:
+        if onindex and (not self.shapes[0].index or not self.shapes[1].index):
+            raise OptionValidationError([('index', 'You selected on index but index is not set for '
+                                                   'some inputs')])
         self.__lsuffix = ls
         self.__rsuffix = rs
         self.__on_index = onindex
@@ -66,9 +74,9 @@ class JoinOp(GraphOperation):
         self.__left_on: int = None
         self.__right_on: int = None
 
-    def getOptions(self) -> Tuple[str, str, bool, int, int, JoinType, List[Optional[data.Shape]]]:
+    def getOptions(self) -> Tuple[str, str, bool, int, int, JoinType]:
         return (self.__lsuffix, self.__rsuffix, self.__on_index, self.__left_on, self.__right_on,
-                self.__type, self._shape)
+                self.__type)
 
     def needsOptions(self) -> bool:
         return True
@@ -100,6 +108,19 @@ class JoinOp(GraphOperation):
     @staticmethod
     def maxOutputNumber() -> int:
         return -1
+
+
+class _JoinEditor(AbsOperationEditor):
+    # TODO
+    def editorBody(self) -> QWidget:
+        pass
+
+    def getOptions(self) -> Iterable:
+        pass
+
+    def setOptions(self, lsuffix: str, rsuffix: str, on_index: bool, left_on: int, right_on: int,
+                   type: JoinType) -> None:
+        pass
 
 
 export = JoinOp

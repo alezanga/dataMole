@@ -51,6 +51,7 @@ class AbsOperationEditor(QWidget):
         self._layout = QVBoxLayout()
         # layout.addWidget(self._custom_widget)
         self._layout.addLayout(self.__helpLayout)
+        self._layout.addWidget(QLabel('<hr>'))
         self._layout.addLayout(self.butLayout)
         self.setLayout(self._layout)
         self.setFocusPolicy(Qt.StrongFocus)
@@ -76,7 +77,7 @@ class AbsOperationEditor(QWidget):
 
     def setUpEditor(self):
         """ Calls editorBody and add the returned widget """
-        self._layout.insertWidget(1, self.editorBody())
+        self._layout.insertWidget(2, self.editorBody())
 
     def handleErrors(self, errors: List[Tuple[str, str]]) -> None:
         """ Provide a list of readable errors to be shown in the widget
@@ -124,12 +125,11 @@ class AbsOperationEditor(QWidget):
         pass
 
     @abc.abstractmethod
-    def setOptions(self, *args, **kwargs) -> None:
+    def setOptions(self, *args) -> None:
         """
         Set the data to be visualized in the editor.
         Useful to show an existing configuration.
 
         :param args: any positional argument
-        :param kwargs: any keyword argument
         """
         pass

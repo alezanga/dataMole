@@ -52,6 +52,7 @@ class OperationAction(QObject):
         self.editor.rejectAndClose.connect(self.destroyEditor)
         self.editor.acceptedTypes = self.operation.acceptedTypes()
         self.editor.inputShapes = [i.shape for i in self._inputs]
+        self.editor.setDescription(self.operation.shortDescription(), self.operation.longDescription())
         self.editor.setUpEditor()
         self.editor.setOptions(*self.operation.getOptions())
         self.editor.setParent(None)
