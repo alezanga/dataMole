@@ -56,8 +56,8 @@ class GraphOperation(Operation):
     def getOutputShape(self) -> Union[data.Shape, None]:
         """
         Computes what will the frame shape be after execution of the step.
-        Be careful with references. This function should not be modify the input shape.
-        If the shape cannot be predicted (for every column) it must return
+        Be careful with references. This function should not modify the input shape.
+        If the shape cannot be predicted it must return
         None. This is also the case when not all options are set. By default it returns None if any
         options/input shapes are not set, and otherwise it tries to infer the output shapes by running
         the 'execute' method with dummy frames.
@@ -80,6 +80,32 @@ class GraphOperation(Operation):
         :return The list of types the operation can handle. Defaults to all types.
         """
         return ALL_TYPES
+
+    @staticmethod
+    def isOutputShapeKnown() -> bool:
+        """
+        Must return True if the number of columns and their types can be inferred with
+        'getOutputShape'. Thus if this function returns False, then
+        :func:`~data_preprocessor.operation.interface.GraphOperation.getOutputShape` must always return None
+
+        :return True if the output shape cannot be predicted, False otherwise. Defaults to True
+        """
+        return True
+
+    @staticmethod
+    def needsInputShapeKnown() -> bool:
+        """
+        Tells if the operation needs the input shape set to be configured. If the operation has no
+        options depending on the input shape, this method should return False. When this method returns
+        True only operations with :func:`~data_preprocessor.operation.interface.GraphOperation
+        .isOutputShapeKnown` set to True can be used as its input. Otherwise all operations can be
+        used, regardless of their output shape. One should consider that the input shape is set
+        regardless of the result of this method, which is only used when determining if a graph
+        connection can be added.
+
+        :return True if the operation needs the input shape, otherwise False. Defaults to True
+        """
+        return True
 
     # ----------------------------------------------------------------------------
     # --------------------------- PURE VIRTUAL METHODS ---------------------------
@@ -190,16 +216,6 @@ class GraphOperation(Operation):
 
     @staticmethod
     @abstractmethod
-    def isOutputShapeKnown() -> bool:
-        """
-        Must return True if the number of columns and their types can be inferred with
-        'getOutputShape'. Thus if this function returns False, then
-        :func:`~data_preprocessor.operation.interface.GraphOperation.getOutputShape` must always return None
-        """
-        pass
-
-    @staticmethod
-    @abstractmethod
     def minInputNumber() -> int:
         """ Yields the minimum number of inputs required by the operation
 
@@ -293,6 +309,11 @@ class InputGraphOperation(GraphOperation):
         return True
 
     @staticmethod
+    def needsInputShapeKnown() -> bool:
+        """ Reimplements and does nothing, since this method doesn't apply to input operations """
+        pass
+
+    @staticmethod
     def minInputNumber() -> int:
         """ Returns 0 """
         return 0
@@ -350,6 +371,11 @@ class OutputGraphOperation(GraphOperation):
     def isOutputShapeKnown() -> bool:
         """ Returns True """
         return True
+
+    @staticmethod
+    def needsInputShapeKnown() -> bool:
+        """ Reimplements to allow every operation to be connected """
+        return False
 
     @staticmethod
     def minInputNumber() -> int:

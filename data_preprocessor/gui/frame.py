@@ -33,11 +33,15 @@ class FrameModel(QAbstractTableModel):
         if isinstance(frame, Frame):
             self.__frame: Frame = frame
             self.__shape: Shape = self.__frame.shape
-        else:  # it's a Shape
+        elif isinstance(frame, Shape):  # it's a Shape
             self.__frame: Frame = Frame()
             self.__shape: Shape = frame
+        else:
+            self.__frame: Frame = Frame()
+            self.__shape: Shape = Shape()
         self.__n_rows: int = nrows
-        self.__loadedCols: int = self.COL_BATCH_SIZE
+        # Change this to COL_BATCH_SIZE to reactivate fetchMore
+        self.__loadedCols: int = self.__shape.n_columns
         # Dictionary { attributeIndex: value }
         self._statistics: Dict[int, Dict[str, object]] = dict()
         self._histogram: Dict[int, Dict[Any, int]] = dict()
@@ -62,9 +66,11 @@ class FrameModel(QAbstractTableModel):
         if parent.isValid():
             return 0
         allCols = self.__shape.n_columns
-        if allCols < self.__loadedCols:
-            return allCols
-        return self.__loadedCols
+        # NOTE: incremental loading is disabled
+        # if allCols < self.__loadedCols:
+        #     return allCols
+        # return self.__loadedCols
+        return allCols
 
     def data(self, index: QModelIndex, role: int = ...) -> Any:
         if index.isValid() and index.row() < self.__n_rows:
@@ -375,7 +381,7 @@ class SearchableAttributeTableWidget(QWidget):
         self.__model = AttributeTableModel(parent=self, checkable=checkable, editable=editable,
                                            showTypes=showTypes)
         self.tableView = IncrementalAttributeTableView(parent=self, namecol=self.__model.name_pos)
-        typeFilteredModel = self.setupFilteredModel(filterTypes)
+        typeFilteredModel = self.__setupFilteredModel(filterTypes)
         self._searchableModel = QSortFilterProxyModel(self)
         self._searchableModel.setSourceModel(typeFilteredModel)
         self._searchableModel.setFilterCaseSensitivity(Qt.CaseInsensitive)
@@ -396,14 +402,10 @@ class SearchableAttributeTableWidget(QWidget):
         layout.addWidget(self.tableView)
         self.setLayout(layout)
 
-    def setupFilteredModel(self, typesToShow: List[Types]) -> QAbstractItemModel:
+    def __setupFilteredModel(self, typesToShow: List[Types]) -> QAbstractItemModel:
         typesToShow: List[Types] = typesToShow if typesToShow else list()
         if typesToShow:
             typeFilteredModel = TypeFilteredTableModel(typesToShow, self)
-            # typeFilteredModel.setFilterKeyColumn(self.__model.type_pos)
-            # regex = QRegularExpression(
-            #     QRegularExpression.anchoredPattern('|'.join(map(lambda x: str(x.value), typesToShow))))
-            # typeFilteredModel.setFilterRegularExpression(regex)
             typeFilteredModel.setSourceModel(self.__model)
             return typeFilteredModel
         return self.__model
@@ -425,7 +427,7 @@ class SearchableAttributeTableWidget(QWidget):
         if self.__model:
             self.__model.deleteLater()
         self.__model = model
-        typeFilteredModel = self.setupFilteredModel(filterTypes)
+        typeFilteredModel = self.__setupFilteredModel(filterTypes)
         self._searchableModel.setSourceModel(typeFilteredModel)
         if self.__model.sourceModel():
             self.setSourceFrameModel(self.__model.sourceModel())
@@ -450,7 +452,7 @@ class SearchableAttributeTableWidget(QWidget):
 class IncrementalAttributeTableView(QTableView):
     selectedAttributeChanged = Signal(int)
 
-    def __init__(self, namecol: int, period: int = 50, parent: QWidget = None):
+    def __init__(self, namecol: int, period: int = 0, parent: QWidget = None):
         super().__init__(parent)
         self.__timer = QBasicTimer()
         self.__timerPeriodMs = period
@@ -467,8 +469,11 @@ class IncrementalAttributeTableView(QTableView):
             logging.debug('Model about to be set. Fetch timer stopped')
         super().setModel(model)
         # Add timer to periodically fetch more rows
-        self.__timer.start(self.__timerPeriodMs, self)
-        logging.debug('Model set. Fetch timer started')
+        if self.__timerPeriodMs:
+            self.__timer.start(self.__timerPeriodMs, self)
+            logging.debug('Model set. Fetch timer started')
+        else:
+            logging.debug('Model set. Timer not activated (period=0)')
 
     def timerEvent(self, event: QTimerEvent) -> None:
         if event.timerId() == self.__timer.timerId():
@@ -485,9 +490,12 @@ class IncrementalAttributeTableView(QTableView):
             self.__timer.stop()
             logging.debug('Model about to be reset. Fetch timer stopped')
         super().reset()
-        # Restart timer
-        self.__timer.start(self.__timerPeriodMs, self)
-        logging.debug('Model reset. Fetch timer started')
+        if self.__timerPeriodMs:
+            # Restart timer
+            self.__timer.start(self.__timerPeriodMs, self)
+            logging.debug('Model reset. Fetch timer started')
+        else:
+            logging.debug('Model reset. Timer not activated (period=0)')
 
     def __fetchMoreRows(self, parent: QModelIndex = QModelIndex()) -> bool:
         """

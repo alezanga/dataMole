@@ -1,6 +1,7 @@
 # TODO
 - [ ] CHECK: race condition when connecting QRunnable to same slot? (onWorkerSuccess)
 - [ ] CHECK: why sometimes flow does not add edge
+- [x] FIX: frame fetchMore creates problem with checkbox
 - [ ] IMPROVE: look into the possibility of doing a lazy loading from big csv (maybe with a hdf5 store)
 - [ ] IMPROVE: Add method to compare options in Operation
 - [x] New export method for operations
@@ -39,9 +40,3 @@
     - [ ] Remove selection (two inputs: selection and table)
 - [x] Add Signal object to communicate operation status to the View
 - [x] Add methods to launch specific signals in Operation
-
-- Today:
-    - [x] Add logging to graph
-    - [x] Add validation to operation
-    - [ ] Fix all editors
-    - [ ] Add operations

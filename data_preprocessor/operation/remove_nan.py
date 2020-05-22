@@ -148,6 +148,10 @@ class RemoveNanColumns(GraphOperation):
     def isOutputShapeKnown() -> bool:
         return False
 
+    @staticmethod
+    def needsInputShapeKnown() -> bool:
+        return False
+
     def getOutputShape(self) -> Union[data.Shape, None]:
         return None
 

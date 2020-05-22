@@ -94,10 +94,9 @@ class OperationDag:
             return False
 
         if not source_node.operation.isOutputShapeKnown() and \
-                target_node.operation.minOutputNumber() != 0 and \
-                target_node.operation.isOutputShapeKnown():
+                target_node.operation.needsInputShapeKnown():
             logging.debug('Edge ({}->{}) not created because source node output shape is unknown and '
-                          'target node is not an output node and has known output shape'
+                          'target node needs an input shape'
                           .format(source_id, target_id))
             return False
 
