@@ -58,7 +58,7 @@ class RenameOp(GraphOperation):
             return None
 
         # Shape is the same as before with name changed
-        s = copy.deepcopy(self._shape[0])
+        s = copy.deepcopy(self._shapes[0])
         for index, name in self.__names.items():
             s.col_names[index] = name
 

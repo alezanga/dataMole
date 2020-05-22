@@ -34,8 +34,8 @@ def test_add_removeInputShape():
     mop.addInputShape(f.shape, pos=1)
     mop.addInputShape(gs, pos=0)
 
-    assert mop._shape == [gs, f.shape]
-    assert mop._shape != [f.shape, gs]
+    assert mop._shapes == [gs, f.shape]
+    assert mop._shapes != [f.shape, gs]
 
     # Test if exception is thrown
     with pytest.raises(IndexError):
@@ -46,18 +46,18 @@ def test_add_removeInputShape():
         DummyOp().addInputShape(gs, pos=1)
 
     # Adding / removing input shape should preserve the list length
-    ss = mop._shape.copy()
+    ss = mop._shapes.copy()
     mop.removeInputShape(pos=0)
-    assert mop._shape == [None, ss[1]]
+    assert mop._shapes == [None, ss[1]]
 
     mop.addInputShape(gs, pos=0)
-    assert mop._shape == [gs, f.shape]
+    assert mop._shapes == [gs, f.shape]
 
 
 def test_hasAttributeShape():
     b = DummyOp()
-    assert hasattr(b, '_shape')
-    assert isinstance(b._shape, list)
+    assert hasattr(b, '_shapes')
+    assert isinstance(b._shapes, list)
 
-    del b._shape
-    assert not hasattr(b, '_shape')
+    del b._shapes
+    assert not hasattr(b, '_shapes')

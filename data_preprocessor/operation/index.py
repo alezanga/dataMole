@@ -44,9 +44,9 @@ class SetIndexOp(GraphOperation):
         return True
 
     def getOutputShape(self) -> Union[data.Shape, None]:
-        if not self.hasOptions() or not self._shape[0]:
+        if not self.hasOptions() or not self._shapes[0]:
             return None
-        s = self._shape[0].copy()
+        s = self._shapes[0].copy()
         s.index = s.col_names[self.__index_col]
         return s
 

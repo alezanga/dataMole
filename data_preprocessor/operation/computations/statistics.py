@@ -18,13 +18,13 @@ class AttributeStatistics(Operation):
         for k, v in centiles:
             desc['Centile ' + k] = desc.pop(k)
         # Rename Top and Freq
-        if desc.get('top', None) and desc.get('freq', None):
+        if desc.get('top', None) is not None and desc.get('freq', None) is not None:
             desc['Most frequent'] = '{} (n={})'.format(desc.pop('top'), desc.pop('freq'))
         # Add Nan count
         nan_count = df.nRows - int(desc['count'])
         del desc['count']
         desc['Nan count'] = '{:d} ({:.2f}%)'.format(nan_count, nan_count / df.nRows * 100)
-        if desc.get('mean', None) and desc.get('std', None):
+        if desc.get('mean', None) is not None and desc.get('std', None) is not None:
             desc['Mean'] = '{:.3f}'.format(desc.pop('mean'))
             desc['Std'] = '{:.3f}'.format(desc.pop('std'))
         # Uppercase letter

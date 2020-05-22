@@ -16,7 +16,7 @@ class GraphOperation(Operation):
     def __init__(self):
         """ Initialises an operation """
         # Holds the input shapes
-        self._shape: List[Optional[data.Shape]] = [None] * self.maxInputNumber()
+        self._shapes: List[Optional[data.Shape]] = [None] * self.maxInputNumber()
 
     # ----------------------------------------------------------------------------
     # ---------------------- FINAL METHODS (PLS NO OVERRIDE) ---------------------
@@ -24,7 +24,7 @@ class GraphOperation(Operation):
 
     @property
     def shapes(self) -> List[Optional[data.Shape]]:
-        return self._shape
+        return self._shapes
 
     def addInputShape(self, shape: data.Shape, pos: int) -> None:
         """ Setter method for the shape input
@@ -36,7 +36,7 @@ class GraphOperation(Operation):
         """
         if pos < 0:
             raise ValueError('Position must be non-negative')
-        self._shape[pos] = shape
+        self._shapes[pos] = shape
 
     def removeInputShape(self, pos: int) -> None:
         """ Remove the input shape at given position, replacing it with None
@@ -47,7 +47,7 @@ class GraphOperation(Operation):
         """
         if pos < 0:
             raise ValueError('Position must be non-negative')
-        self._shape[pos] = None
+        self._shapes[pos] = None
 
     # ---------------------------------------------------------
     # -------------------- VIRTUAL METHODS --------------------
@@ -65,10 +65,10 @@ class GraphOperation(Operation):
         See :func:`~data_preprocessor.operation.interface.GraphOperation.isOutputShapeKnown`
         """
         # If shapes or options are not set
-        if not all(self._shape) or not self.hasOptions():
+        if not all(self._shapes) or not self.hasOptions():
             return None
             # Try to execute the operation with dummy frames
-        dummy_frames = map(data.Frame.fromShape, self._shape)
+        dummy_frames = map(data.Frame.fromShape, self._shapes)
         result = self.execute(*dummy_frames)
         return result.shape
 
@@ -361,7 +361,7 @@ class OutputGraphOperation(GraphOperation):
 
     def getOutputShape(self) -> Union[data.Shape, None]:
         """ Returns the single input shape unchanged """
-        return self._shape[0]
+        return self._shapes[0]
 
     def unsetOptions(self) -> None:
         """ Does nothing by default, but may be overridden if options depends on the input shape """

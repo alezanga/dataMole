@@ -61,15 +61,15 @@ class ToNumericOp(GraphOperation):
         return _SelectAttribute()
 
     def getOutputShape(self) -> Union[data.Shape, None]:
-        if not self.hasOptions() or not self._shape[0]:
+        if not self.hasOptions() or not self._shapes[0]:
             return None
         # If type is not accepted
-        columns = self._shape[0].col_types
+        columns = self._shapes[0].col_types
         items = itemgetter(*self.__attributes)(columns)
         if not all(map(lambda x: x in self.acceptedTypes(),
                        items if isinstance(items, tuple) else (items,))):
             return None
-        s = self._shape[0].copy()
+        s = self._shapes[0].copy()
         for i in self.__attributes:
             s.col_types[i] = Types.Numeric
         return s
@@ -146,15 +146,15 @@ class ToCategoricalOp(GraphOperation):
         return _SelectAttribute()
 
     def getOutputShape(self) -> Union[data.Shape, None]:
-        if not self.hasOptions() or not self._shape[0]:
+        if not self.hasOptions() or not self._shapes[0]:
             return None
         # If type is not accepted
-        columns = self._shape[0].col_types
+        columns = self._shapes[0].col_types
         items = itemgetter(*self.__attributes)(columns)
         if not all(map(lambda x: x in self.acceptedTypes(),
                        items if isinstance(items, tuple) else (items,))):
             return None
-        s = self._shape[0].copy()
+        s = self._shapes[0].copy()
         for a in self.__attributes:
             s.col_types[a] = Types.Categorical
         return s
@@ -230,7 +230,7 @@ class _SelectAttribute(AbsOperationEditor):
 #         self.__types = dict()
 #
 #     def getOptions(self) -> Any:
-#         return copy.deepcopy(self.__types), self._shape[0].copy()
+#         return copy.deepcopy(self.__types), self._shapes[0].copy()
 #
 #     def needsOptions(self) -> bool:
 #         return True
@@ -240,8 +240,8 @@ class _SelectAttribute(AbsOperationEditor):
 #
 #     def getOutputShape(self) -> Union[data.Shape, None]:
 #         if not self.__types:
-#             return copy.deepcopy(self._shape[0])
-#         s = copy.deepcopy(self._shape[0])
+#             return copy.deepcopy(self._shapes[0])
+#         s = copy.deepcopy(self._shapes[0])
 #         for k, v in self.__types.items():
 #             s.col_types[k] = v
 #         return s

@@ -272,27 +272,27 @@ def test_GraphAdd():
 
     # Rename -> Type
     assert dag.addConnection(node1.uid, node2.uid, 0) is True
-    assert op2._shape == [None]
-    assert op1._shape == [None]
+    assert op2._shapes == [None]
+    assert op1._shapes == [None]
 
     # Input -> Rename
     assert dag.addConnection(node0.uid, node1.uid, 0) is True
-    assert op1._shape == [f.shape]
-    assert op2._shape == [f.shape]
-    assert op3._shape == [None]
+    assert op1._shapes == [f.shape]
+    assert op2._shapes == [f.shape]
+    assert op3._shapes == [None]
 
     assert dag.addConnection(node2.uid, node3.uid, 0) is True
-    assert op3._shape == [f.shape]
+    assert op3._shapes == [f.shape]
     assert dag.addConnection(node2.uid, node1.uid, 0) is False
     assert dag.addConnection(node1.uid, node3.uid, 1) is False
 
     # Rename
     dag.updateNodeOptions(node1.uid, {1: 'name_test'})
-    assert op1._shape == [f.shape]
+    assert op1._shapes == [f.shape]
     new_shape = copy.deepcopy(f.shape)
     new_shape.col_names = ['col1', 'name_test']
-    assert op2._shape == [new_shape]
-    assert op3._shape == [new_shape]
+    assert op2._shapes == [new_shape]
+    assert op3._shapes == [new_shape]
 
     output2 = {1: data.Frame()}
     dag.updateNodeOptions(node3.uid, output2)
@@ -301,15 +301,15 @@ def test_GraphAdd():
     dag.updateNodeOptions(node2.uid, 0)
     new_shape1 = copy.deepcopy(new_shape)
     new_shape1.col_types[0] = Types.Numeric
-    assert op2._shape == [new_shape1]  # Does nothing since col is already Numeric
-    assert op3._shape == [new_shape1]
+    assert op2._shapes == [new_shape1]  # Does nothing since col is already Numeric
+    assert op3._shapes == [new_shape1]
 
     output1: Dict[int, data.Frame] = {1: data.Frame()}
     op4 = GiveOutOp()
     node4 = OperationNode(op4)
     dag.addNode(node4)
     dag.addConnection(node1.uid, node4.uid, 0)
-    assert [op1.getOutputShape()] == node4.operation._shape
+    assert [op1.getOutputShape()] == node4.operation._shapes
     dag.updateNodeOptions(node4.uid, output1)
 
     handler = OperationHandler(dag)
@@ -357,10 +357,10 @@ def test_removeNode():
     dag.updateNodeOptions(node1.uid, {0: 'cola'})
     dag.updateNodeOptions(node3.uid, {})
     dag.updateNodeOptions(node2.uid, 1)
-    node3_is = copy.deepcopy(node3.operation._shape)
-    node2_is = copy.deepcopy(node2.operation._shape)
-    node1_is = copy.deepcopy(node1.operation._shape)
-    node0_is = copy.deepcopy(node0.operation._shape)
+    node3_is = copy.deepcopy(node3.operation._shapes)
+    node2_is = copy.deepcopy(node2.operation._shapes)
+    node1_is = copy.deepcopy(node1.operation._shapes)
+    node0_is = copy.deepcopy(node0.operation._shapes)
     node0_os = copy.deepcopy(node0.operation.getOutputShape())
     node1_os = copy.deepcopy(node1.operation.getOutputShape())
     node2_os = copy.deepcopy(node2.operation.getOutputShape())
@@ -379,10 +379,10 @@ def test_removeNode():
     assert dag.updateNodeOptions(node3.uid, {})
     assert dag.updateNodeOptions(node2.uid, 1)
     # See if everything is as before
-    assert node0.operation._shape == node0_is
-    assert node1.operation._shape == node1_is
-    assert node2.operation._shape == node2_is
-    assert node3.operation._shape == node3_is
+    assert node0.operation._shapes == node0_is
+    assert node1.operation._shapes == node1_is
+    assert node2.operation._shapes == node2_is
+    assert node3.operation._shapes == node3_is
     assert node0.operation.getOutputShape() == node0_os
     assert node1.operation.getOutputShape() == node1_os
     assert node2.operation.getOutputShape() == node2_os

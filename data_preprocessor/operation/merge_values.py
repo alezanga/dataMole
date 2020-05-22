@@ -97,7 +97,7 @@ class MergeValuesOp(GraphOperation):
             return False
 
         errors = list()
-        if attribute is not None and self._shape[0].col_types[attribute] == Types.Numeric:
+        if attribute is not None and self._shapes[0].col_types[attribute] == Types.Numeric:
             if any_not_float(values_to_merge):
                 errors.append(
                     ('mergelist', 'You selected a numeric attribute, but merge values include non '

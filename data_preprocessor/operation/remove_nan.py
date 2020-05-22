@@ -61,7 +61,7 @@ class RemoveNanRows(GraphOperation):
         self.__thresholdNumber = None
 
     def getOutputShape(self) -> Union[data.Shape, None]:
-        return self._shape[0]
+        return self._shapes[0]
 
     def needsOptions(self) -> bool:
         return True

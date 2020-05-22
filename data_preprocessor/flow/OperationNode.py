@@ -23,7 +23,7 @@ class OperationNode:
 
     def inputShapeFrom(self, node_id: int) -> Optional[Shape]:
         """ Get the input shape set from specified source node, if set """
-        return self.operation._shape[self.__input_order[node_id]]
+        return self.operation.shapes[self.__input_order[node_id]]
 
     @property
     def nInputs(self) -> int:

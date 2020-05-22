@@ -87,23 +87,23 @@ def test_unsetOptions_toNumeric():
     assert op.getOptions() == [None] and not op.hasOptions()
     op.setOptions(attribute_indexes=0)
     assert op.getOptions() == [0]
-    assert op._shape[0] == f.shape
+    assert op._shapes[0] == f.shape
 
     op.unsetOptions()
     assert op.getOptions() == [None]
-    assert op._shape[0] == f.shape
+    assert op._shapes[0] == f.shape
 
     op.removeInputShape(0)
     assert op.getOptions() == [None]
-    assert op._shape == [None]
+    assert op._shapes == [None]
 
     op.setOptions(attribute_indexes=1)
     assert op.getOptions() == [1]
-    assert op._shape == [None]
+    assert op._shapes == [None]
 
     op.addInputShape(f.shape, pos=0)
     assert op.getOptions() == [1]
-    assert op._shape[0] == f.shape
+    assert op._shapes[0] == f.shape
 
 
 # toCATEGORY
@@ -117,23 +117,23 @@ def test_unsetOptions_toCategory():
     op.addInputShape(f.shape, pos=0)
     op.setOptions(attribute_indexes=0)
     assert op.getOptions() == [0]
-    assert op._shape == [f.shape]
+    assert op._shapes == [f.shape]
 
     op.unsetOptions()
     assert op.getOptions() == [None]
-    assert op._shape == [f.shape]
+    assert op._shapes == [f.shape]
 
     op.removeInputShape(0)
     assert op.getOptions() == [None]
-    assert op._shape == [None]
+    assert op._shapes == [None]
 
     op.setOptions(attribute_indexes=1)
     assert op.getOptions() == [1]
-    assert op._shape == [None]
+    assert op._shapes == [None]
 
     op.addInputShape(f.shape, pos=0)
     assert op.getOptions() == [1]
-    assert op._shape == [f.shape]
+    assert op._shapes == [f.shape]
 
 
 def test_str_toCategory():

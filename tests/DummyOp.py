@@ -35,7 +35,7 @@ class DummyOp(GraphOperation):
         pass
 
     def getOutputShape(self) -> Union[data.Shape, None]:
-        return self._shape[0]
+        return self._shapes[0]
 
     def unsetOptions(self) -> None:
         pass

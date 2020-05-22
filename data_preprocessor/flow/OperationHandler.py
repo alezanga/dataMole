@@ -21,7 +21,7 @@ class OperationHandler:
         self.graph: nx.DiGraph = graph.getNxGraph()
         self.__qtSlots = _HandlerSlots(self)
         self.signals = HandlerSignals()
-        self.taskIdSet = set()
+        self.toExecute = set()
 
         # self.__memoryContext = Memory(cachedir='/tmp', verbose=1)
 
@@ -36,10 +36,8 @@ class OperationHandler:
         input_nodes = [node for node in map(lambda nid: self.graph.nodes[nid]['op'], start_nodes_id) if
                        node.operation.maxInputNumber() == 0]
         self._canExecute(input_nodes)
-        self.taskIdSet = set(self.graph.nodes)
 
-        for node_id in start_nodes_id:
-            node: OperationNode = self.graph.nodes[node_id]['op']
+        for node in input_nodes:
             self.startNode(node)
 
     def startNode(self, node: OperationNode):
@@ -52,7 +50,8 @@ class OperationHandler:
 
     def _canExecute(self, input_nodes: List[OperationNode]) -> bool:
         """
-        Check if there are input nodes and if options are set
+        Check if there are input nodes and if options are set. Additionally sets the set of nodes to
+        be executed in field 'toExecute'
 
         :raise HandlerException if the flow is not ready for execution
         """
@@ -71,6 +70,7 @@ class OperationHandler:
                     node.operation.name(), node.uid))
                 raise HandlerException(
                     'GraphOperation {} has options to set'.format(node.operation.name()))
+        self.toExecute = reachable | set(map(lambda x: x.uid, input_nodes))
         return True
 
 
@@ -99,9 +99,9 @@ class _HandlerSlots(QObject):
         node = self.handler.graph.nodes[node_id]['op']
         node.clearInputArgument()
         # Remove from task list
-        self.handler.taskIdSet.remove(node_id)
+        self.handler.toExecute.remove(node_id)
         # Check if it was the last one
-        if not len(self.handler.taskIdSet):
+        if not len(self.handler.toExecute):
             # All tasks were completed
             self.handler.signals.allFinished.emit()
             return
