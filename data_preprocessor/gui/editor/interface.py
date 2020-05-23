@@ -47,14 +47,22 @@ class AbsOperationEditor(QWidget):
         self.__helpLayout = QHBoxLayout()
         self.__descLabel = QLabel()
         self.__helpLayout.addWidget(self.__descLabel, 7)
+        self.__descLabel.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.Maximum)
+
+        self.errorLabel = QLabel(self)
+        self.errorLabel.setWordWrap(True)
+        self.errorLabel.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Maximum)
 
         self._layout = QVBoxLayout()
-        # layout.addWidget(self._custom_widget)
-        self._layout.addLayout(self.__helpLayout)
-        self._layout.addWidget(QLabel('<hr>'))
-        self._layout.addLayout(self.butLayout)
+        self._layout.addLayout(self.__helpLayout, 1)
+        self._layout.addWidget(self.errorLabel, 1)
+        ll = QLabel('<hr>')
+        ll.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
+        self._layout.addWidget(ll, 1)
+        self._layout.addLayout(self.butLayout, 1)
         self.setLayout(self._layout)
         self.setFocusPolicy(Qt.StrongFocus)
+        self.errorLabel.hide()
 
         self.__butOk.pressed.connect(self.acceptAndClose)
         butCancel.pressed.connect(self.rejectAndClose)
@@ -64,7 +72,7 @@ class AbsOperationEditor(QWidget):
         self.__descLabel.setWordWrap(True)
         if long:
             whatsThisButton = QPushButton('More')
-            whatsThisButton.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.MinimumExpanding)
+            whatsThisButton.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Maximum)
             self.__helpLayout.addWidget(whatsThisButton, 1)
             self.setWhatsThis(long)
             whatsThisButton.clicked.connect(
@@ -77,7 +85,9 @@ class AbsOperationEditor(QWidget):
 
     def setUpEditor(self):
         """ Calls editorBody and add the returned widget """
-        self._layout.insertWidget(2, self.editorBody())
+        w = self.editorBody()
+        w.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.MinimumExpanding)
+        self._layout.insertWidget(2, w)
 
     def handleErrors(self, errors: List[Tuple[str, str]]) -> None:
         """ Provide a list of readable errors to be shown in the widget
@@ -86,10 +96,20 @@ class AbsOperationEditor(QWidget):
         the widget errorHandlers field the corresponding callback will be fired with the 'errorMessage'
         This is useful to show custom error messages in specific parts of the editor widget
         """
+        self.errorLabel.hide()
+        text = ''
         for (field, message) in errors:
             handler = self.errorHandlers.get(field, None)
             if handler:
                 handler(message)
+            else:
+                text += '<br>' + message
+        text = text.strip('<br>')
+        if text:
+            # Default message on bottom
+            self.errorLabel.setText(text)
+            self.errorLabel.setStyleSheet('color: red;')
+            self.errorLabel.show()
 
     def disableOkButton(self) -> None:
         """ Makes the accept button unclickable.

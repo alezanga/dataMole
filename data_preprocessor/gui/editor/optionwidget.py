@@ -1,8 +1,9 @@
 from abc import abstractmethod, ABCMeta
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Dict
 
 from PySide2.QtCore import QObject
-from PySide2.QtWidgets import QWidget, QVBoxLayout, QLineEdit, QComboBox, QCompleter, QLabel, QSizePolicy
+from PySide2.QtWidgets import QWidget, QVBoxLayout, QLineEdit, QComboBox, QCompleter, QLabel, \
+    QSizePolicy, QButtonGroup, QGridLayout, QRadioButton
 
 from data_preprocessor import data
 from data_preprocessor.data.types import Types
@@ -100,7 +101,8 @@ class AttributeComboBox(OptionWidget):
         self._inputShape: data.Shape = shape
         self._typesFilter: List[Types] = typesFilter
         if shape:
-            self._attributelist = [n for n, t in zip(shape.col_names, shape.col_types) if
+            self._attributelist = ['{} ({})'.format(n, str(t.value)) for n, t in zip(shape.col_names,
+                                                                                     shape.col_types) if
                                    t in typesFilter]
         else:
             self._attributelist = list()
@@ -124,3 +126,47 @@ class AttributeComboBox(OptionWidget):
             self._attribute.setCurrentIndex(selected)
         else:
             self._attribute.setCurrentIndex(0)
+
+
+class RadioButtonGroup(OptionWidget):
+    _MAX_BUTTONS_ROW = 4
+
+    def __init__(self, label: str, parent=None):
+        super().__init__(parent)
+        wlabel = QLabel(label, self)
+        self.group = QButtonGroup(self)
+        self.group.setExclusive(True)
+        self.glayout = QGridLayout(self)
+        self.glayout.setVerticalSpacing(20)
+        self.glayout.addWidget(wlabel, 0, 0, 1, -1)
+        self.__row = 1
+        self.__col = 0
+        # dict {buttonId: value}
+        self.valueDict: Dict[int, Any] = dict()
+
+    @property
+    def widget(self) -> QWidget:
+        return self.group
+
+    def addRadioButton(self, label: str, value: Any, checked: bool) -> None:
+        but = QRadioButton(text=label, parent=self)
+        self.group.addButton(but)
+        self.valueDict[self.group.id(but)] = value
+        if checked or len(self.group.buttons()) == 1:
+            but.setChecked(True)
+        self.glayout.addWidget(but, self.__row, self.__col, 1, 1)
+        self.__col += 1
+        if self.__col % self._MAX_BUTTONS_ROW == 0:
+            self.__row += 1
+            self.__col = 0
+
+    def getData(self) -> Any:
+        """ Return value associated to selected button """
+        cid = self.group.checkedId()
+        return self.valueDict[cid] if cid != -1 else None
+
+    def setData(self, data: Any) -> None:
+        for bid, d in self.valueDict.items():
+            if d == data:
+                self.group.button(bid).setChecked(True)
+                break
