@@ -65,9 +65,9 @@ class GraphOperation(Operation):
         See :func:`~data_preprocessor.operation.interface.GraphOperation.isOutputShapeKnown`
         """
         # If shapes or options are not set
-        if not all(self._shapes) or not self.hasOptions():
+        if not all(self._shapes) or (self.needsOptions() and not self.hasOptions()):
             return None
-            # Try to execute the operation with dummy frames
+        # Try to execute the operation with dummy frames
         dummy_frames = map(data.Frame.fromShape, self._shapes)
         result = self.execute(*dummy_frames)
         return result.shape
@@ -119,6 +119,7 @@ class GraphOperation(Operation):
         it. Returning the input dataframe is allowed if the operation does nothing.
         If the method is called to operate on attribute types which are not accepted, it must do nothing.
         See :func:`~data_preprocessor.operation.interface.GraphOperation.acceptedTypes`
+        This method should avoid checking options or input shapes.
 
         :param df: input dataframe
         :return: the new dataframe modified as specified by the operation
@@ -360,7 +361,9 @@ class OutputGraphOperation(GraphOperation):
         return ALL_TYPES
 
     def getOutputShape(self) -> Union[data.Shape, None]:
-        """ Returns the single input shape unchanged """
+        """ Returns the single input shape unchanged or None if input shapes or options are not set """
+        if not all(self._shapes) or (self.needsOptions() and not self.hasOptions()):
+            return None
         return self._shapes[0]
 
     def unsetOptions(self) -> None:

@@ -6,6 +6,8 @@ import networkx as nx
 from data_preprocessor.flow.OperationNode import OperationNode
 
 
+# TODO add exception class to handle dag/flow errors
+
 class OperationDag:
     """ Provides adding and removing functionality over a NetworkX directed graph intended to store
     nodes of computation. In particular it takes care to update descendants whenever some ancestor node

@@ -2,7 +2,6 @@
 import pytest
 
 from data_preprocessor.data import Frame
-from data_preprocessor.operation.type import ToNumericOp
 from .DummyOp import DummyOp
 
 
@@ -11,7 +10,7 @@ def test_addInputShape_exc():
          'date': ['05-09-1988', '22-12-1994', '21-11-1995', '22-06-1994', '12-12-2012']}
 
     f = Frame(d)
-    op = ToNumericOp()
+    op = DummyOp()
     with pytest.raises(ValueError):
         op.addInputShape(f.shape, pos=-1)
 

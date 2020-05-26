@@ -4,9 +4,10 @@ from typing import Any, List, Union, Dict, Tuple
 
 from PySide2 import QtGui
 from PySide2.QtCore import QAbstractTableModel, QModelIndex, Qt, Signal, Slot, QAbstractItemModel, \
-    QSortFilterProxyModel, QBasicTimer, QTimerEvent, QItemSelection, QThreadPool
+    QSortFilterProxyModel, QBasicTimer, QTimerEvent, QItemSelection, QThreadPool, QEvent, QRect, QPoint
 from PySide2.QtWidgets import QWidget, QTableView, QLineEdit, QVBoxLayout, QHeaderView, QLabel, \
-    QHBoxLayout
+    QHBoxLayout, QStyleOptionViewItem, QStyleOptionButton, QStyle, QApplication, \
+    QStyledItemDelegate
 
 from data_preprocessor.data import Frame, Shape
 from data_preprocessor.data.types import Types
@@ -293,7 +294,9 @@ class AttributeTableModel(QAbstractTableModel):
         if not index.isValid():
             return None
 
-        if (role == Qt.DisplayRole or role == Qt.EditRole) and index.column() != self.checkbox_pos:
+        if role == Qt.DisplayRole or role == Qt.EditRole:
+            if index.column() == self.checkbox_pos:
+                return self._checked[index.row()]
             name: str
             col_type: Types
             name, col_type = self._sourceModel.headerData(index.row(), orientation=Qt.Horizontal,
@@ -304,12 +307,6 @@ class AttributeTableModel(QAbstractTableModel):
             elif index.column() == self.type_pos:
                 value = col_type.value
             return value
-        # Return the correct value for checkbox
-        elif role == Qt.CheckStateRole and index.column() == self.checkbox_pos:
-            if self._checked[index.row()]:
-                return Qt.Checked
-            else:
-                return Qt.Unchecked
         elif role == Qt.TextAlignmentRole:
             return Qt.AlignCenter
         return None
@@ -320,15 +317,15 @@ class AttributeTableModel(QAbstractTableModel):
             return False
 
         # Change attribute name
-        if role == Qt.EditRole and index.column() == self.name_pos and value != index.data(
-                Qt.DisplayRole):
-            return self._sourceModel.setHeaderData(index.row(), Qt.Horizontal, value, Qt.EditRole)
-        # Toggle checkbox state
-        elif role == Qt.CheckStateRole and index.column() == self.checkbox_pos:
-            i: int = index.row()
-            self._checked[i] = not self._checked[i]
-            self.dataChanged.emit(index, index)
-            return True
+        if role == Qt.EditRole:
+            if index.column() == self.name_pos and value != index.data(Qt.DisplayRole):
+                return self._sourceModel.setHeaderData(index.row(), Qt.Horizontal, value, Qt.EditRole)
+            # Toggle checkbox state
+            elif index.column() == self.checkbox_pos:
+                i: int = index.row()
+                self._checked[i] = value
+                self.dataChanged.emit(index, index)
+                return True
         return False
 
     def headerData(self, section: int, orientation: Qt.Orientation, role: int = ...) -> Any:
@@ -346,7 +343,7 @@ class AttributeTableModel(QAbstractTableModel):
         if self._editable and index.column() == self.name_pos:
             flags |= Qt.ItemIsEditable
         elif self._checkable and index.column() == self.checkbox_pos:
-            flags |= Qt.ItemIsUserCheckable
+            flags |= Qt.ItemIsEditable
         return flags
 
     def canFetchMore(self, parent: QModelIndex) -> bool:
@@ -474,6 +471,10 @@ class IncrementalAttributeTableView(QTableView):
             logging.debug('Model set. Fetch timer started')
         else:
             logging.debug('Model set. Timer not activated (period=0)')
+        checkable: int = model.sourceModel().sourceModel().checkbox_pos \
+            if self.__filtered else model.sourceModel().checkbox_pos
+        if checkable is not None:
+            self.setItemDelegateForColumn(checkable, BooleanBoxDelegate(self))
 
     def timerEvent(self, event: QTimerEvent) -> None:
         if event.timerId() == self.__timer.timerId():
@@ -526,6 +527,60 @@ class IncrementalAttributeTableView(QTableView):
         index = self.indexAt(event.pos())
         if not index.isValid():
             self.selectedAttributeChanged.emit(-1)
+
+
+class BooleanBoxDelegate(QStyledItemDelegate):
+    # TODO: use QStyledItemDelegate
+    def createEditor(self, parent: QWidget, option: QStyleOptionViewItem, index: QModelIndex) -> QWidget:
+        return None
+
+    def paint(self, painter: QtGui.QPainter, option: QStyleOptionViewItem, index: QModelIndex) -> None:
+        checked: bool = index.data(Qt.DisplayRole)
+
+        options = QStyleOptionButton()
+        if (index.flags() & Qt.ItemIsEditable) > 0:
+            options.state |= QStyle.State_Enabled
+        else:
+            options.state |= QStyle.State_ReadOnly
+        if checked:
+            options.state |= QStyle.State_On
+        else:
+            options.state |= QStyle.State_Off
+
+        options.rect = self.__getCheckboxRect(option)
+        if not (index.flags() & Qt.ItemIsEditable):
+            options.state |= QStyle.State_ReadOnly
+        QApplication.style().drawControl(QStyle.CE_CheckBox, options, painter)
+
+    def editorEvent(self, event: QEvent, model: QAbstractItemModel, option: QStyleOptionViewItem,
+                    index: QModelIndex) -> bool:
+        if not (index.flags() & Qt.ItemIsEditable) > 0:
+            return False
+        if event.type() == QEvent.MouseButtonRelease:
+            if event.button() != Qt.LeftButton:
+                # or not self.__getCheckboxRect(option).contains(event.pos()):
+                return False
+            if event.type() == QEvent.MouseButtonDblClick:
+                return True
+        elif event.type() == QEvent.KeyPress:
+            if event.key() != Qt.Key_Space and event.key() != Qt.Key_Select:
+                return False
+        else:
+            return False
+        self.setModelData(None, model, index)
+        return True  # super().editorEvent(event, model, option, index)
+
+    def setModelData(self, editor: QWidget, model: QAbstractItemModel, index: QModelIndex) -> None:
+        model.setData(index, not index.data(Qt.EditRole))
+
+    @staticmethod
+    def __getCheckboxRect(option: QStyleOptionViewItem) -> QRect:
+        check_options = QStyleOptionButton()
+        check_rect = QApplication.style().subElementRect(QStyle.SE_CheckBoxIndicator, check_options,
+                                                         None)
+        check_point = QPoint(option.rect.x() + option.rect.width() / 2 - check_rect.width() / 2,
+                             option.rect.y() + option.rect.height() / 2 - check_rect.height() / 2)
+        return QRect(check_point, check_rect.size())
 
 # class ShapeAttributeNamesListModel(QAbstractListModel):
 #     def __init__(self, shape: Shape, parent: QWidget = None):

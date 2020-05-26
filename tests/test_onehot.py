@@ -15,11 +15,12 @@ def test_ohe():
     s = f.shape.copy()
     del s.col_names[2]
     del s.col_types[2]
-    s.col_names.extend(['col3_2', 'col3_q', 'col3_nan'])
-    s.col_types.extend([Types.Categorical, Types.Categorical, Types.Categorical])
-    s.n_columns = 6
+    s = s.col_type_dict
+    s['col3_2'] = Types.Categorical
+    s['col3_nan'] = Types.Categorical
+    s['col3_q'] = Types.Categorical
     assert op.getOutputShape() is None
 
     g = op.execute(f)
 
-    assert g != f and g.shape == s
+    assert g != f and g.shape.col_type_dict == s

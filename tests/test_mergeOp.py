@@ -1,26 +1,65 @@
 import numpy as np
 import pandas as pd
+import pytest
 
 from data_preprocessor import data
 from data_preprocessor.data.types import Types
+from data_preprocessor.operation.interface.exceptions import *
 from data_preprocessor.operation.merge_values import MergeValuesOp
+
+
+def test_exception():
+    d = {'col1': [1, 2, 3, 4.0, 10], 'col2': [3, 4, 5, 6, 0], 'col3': ['q', '2', 'c', '4', 'x'],
+         'date': ['05-09-1988', '22-12-1994', '21-11-1995', '22-06-1994', '12-12-2012']}
+    f = data.Frame(d)
+    op = MergeValuesOp()
+
+    op.addInputShape(f.shape, 0)
+
+    with pytest.raises(OptionValidationError):
+        op.setOptions(attribute=1, values_to_merge=['q', 2], value=0.02)
+
+    with pytest.raises(OptionValidationError):
+        op.setOptions(attribute=1, values_to_merge=[2, 3, 0.1], value='_1')
 
 
 def test_merge():
     d = {'col1': [1, 2, 3, 4.0, 10], 'col2': [3, 4, 5, 6, 0], 'col3': ['q', '2', 'c', '4', 'x'],
          'date': ['05-09-1988', '22-12-1994', '21-11-1995', '22-06-1994', '12-12-2012']}
     f = data.Frame(d)
-
     op = MergeValuesOp()
-    op.setOptions(attribute=2, values_to_merge=['q', 'x', 2, 'wq'], value=0.02)
 
     op.addInputShape(f.shape, 0)
+    op.setOptions(attribute=2, values_to_merge=['q', 'x', 2, 'wq'], value=0.02)
+
     s = f.shape.copy()
     s.col_types[2] = Types.String
     assert op.getOutputShape() == s
 
     g = op.execute(f)
 
+    assert g != f and g.shape == s
+
+
+def test_merge_category():
+    d = {'col1': [1, 2, 3, 4.0, 10], 'col2': pd.Categorical([3, 4, 5, 6, 0]),
+         'col3': ['q', '2', 'c', '4', 'x'],
+         'date': ['05-09-1988', '22-12-1994', '21-11-1995', '22-06-1994', '12-12-2012']}
+    f = data.Frame(d)
+    op = MergeValuesOp()
+
+    op.addInputShape(f.shape, 0)
+    op.setOptions(attribute=1, values_to_merge=[3, 4, 5], value=1)
+
+    s = f.shape.copy()
+    assert op.getOutputShape() == s
+
+    g = op.execute(f)
+
+    assert g.to_dict() == {'col1': [1, 2, 3, 4.0, 10], 'col2': [1, 1, 1, 6, 0],
+                           'col3': ['q', '2', 'c', '4', 'x'],
+                           'date': ['05-09-1988', '22-12-1994', '21-11-1995', '22-06-1994',
+                                    '12-12-2012']}
     assert g != f and g.shape == s
 
 
@@ -33,9 +72,9 @@ def test_merge_nan():
     f = f.setIndex('col3')
 
     op = MergeValuesOp()
+    op.addInputShape(f.shape, 0)
     op.setOptions(attribute=1, values_to_merge=[3, 0, 'q', 'x', 2, 'wq'], value=np.nan)
 
-    op.addInputShape(f.shape, 0)
     s = f.shape.copy()
     assert f.shape.col_types[1] == Types.Categorical
     assert op.getOutputShape() == s
@@ -54,9 +93,9 @@ def test_merge_index_val():
     f = f.setIndex('col2')
 
     op = MergeValuesOp()
+    op.addInputShape(f.shape, 0)
     op.setOptions(attribute=1, values_to_merge=[3, 0], value=88)
 
-    op.addInputShape(f.shape, 0)
     s = f.shape.copy()
     os = op.getOutputShape()
     assert f.shape.col_types[1] == Types.Categorical == os.col_types[1]
@@ -77,9 +116,9 @@ def test_merge_date():
     f = data.Frame(d)
     f = f.setIndex('col3')
     op = MergeValuesOp()
+    op.addInputShape(f.shape, 0)
     op.setOptions(attribute=3, values_to_merge=['05-09-1988', '22-12-1994'], value=88)
 
-    op.addInputShape(f.shape, 0)
     s = f.shape.copy()
     os = op.getOutputShape()
     assert f.shape.col_types[3] == Types.Datetime == os.col_types[3]

@@ -18,12 +18,12 @@ def test_cat_toNumeric():
 
     op = ToNumericOp()
     op.addInputShape(f.shape, pos=0)
-    op.setOptions(attribute_indexes=0)
+    op.setOptions(attribute_indexes=[0])
 
     # Predict output shape
-    os = copy.deepcopy(f.shape)
-    os.col_types = [Types.Numeric, Types.Numeric, Types.String]
-    assert op.getOutputShape() == os
+    os = copy.deepcopy(f.shape).col_type_dict
+    os['col1'] = Types.Numeric
+    assert op.getOutputShape().col_type_dict == os
 
     # Removing options/input_shape causes None to be returned
     op.removeInputShape(0)
@@ -31,15 +31,15 @@ def test_cat_toNumeric():
     op.addInputShape(f.shape, pos=0)
     op.unsetOptions()
     assert op.getOutputShape() is None
-    op.setOptions(attribute_indexes=0)
-    assert op.getOutputShape() == os  # Re-adding everything
+    op.setOptions(attribute_indexes=[0])
+    assert op.getOutputShape().col_type_dict == os  # Re-adding everything
 
     g = op.execute(f)
     gd = {'col1': [3.0, 0.0, 5.0, 6.0, 0.0],
           'col2': [3, 4, 5, 6, 0],
           'col3': ['123', '2', '0.43', '4', '90']}
     assert g.to_dict() == gd
-    assert g.shape == os
+    assert g.shape.col_type_dict == os
 
 
 def test_str_toNumeric():
@@ -53,12 +53,13 @@ def test_str_toNumeric():
 
     op = ToNumericOp()
     op.addInputShape(f.shape, pos=0)
-    op.setOptions(attribute_indexes=2)
+    op.setOptions(attribute_indexes=[0, 2])
 
     # Predict output shape
-    os = copy.deepcopy(f.shape)
-    os.col_types = [Types.Categorical, Types.Numeric, Types.Numeric]
-    assert op.getOutputShape() == os
+    os = copy.deepcopy(f.shape).col_type_dict
+    os['col1'] = Types.Numeric
+    os['col3'] = Types.Numeric
+    assert op.getOutputShape().col_type_dict == os
 
     # Removing options/input_shape causes None to be returned
     op.removeInputShape(0)
@@ -66,15 +67,15 @@ def test_str_toNumeric():
     op.addInputShape(f.shape, pos=0)
     op.unsetOptions()
     assert op.getOutputShape() is None
-    op.setOptions(attribute_indexes=2)
-    assert op.getOutputShape() == os  # Re-adding everything
+    op.setOptions(attribute_indexes=[0, 2])
+    assert op.getOutputShape().col_type_dict == os  # Re-adding everything
 
     g = op.execute(f)
     gd = {'col1': [3, 0, 5, 6, 0],
           'col2': [3, 4, 5, 6, 0],
           'col3': [123.0, 2.0, 0.43, 4.0, 90.0]}
     assert g.to_dict() == gd
-    assert g.shape == os
+    assert g.shape.col_type_dict == os
 
 
 def test_unsetOptions_toNumeric():
@@ -84,25 +85,25 @@ def test_unsetOptions_toNumeric():
 
     op = ToNumericOp()
     op.addInputShape(f.shape, pos=0)
-    assert op.getOptions() == [None] and not op.hasOptions()
-    op.setOptions(attribute_indexes=0)
-    assert op.getOptions() == [0]
+    assert op.getOptions() == [list()] and not op.hasOptions()
+    op.setOptions(attribute_indexes=[0])
+    assert op.getOptions() == [[0]]
     assert op._shapes[0] == f.shape
 
     op.unsetOptions()
-    assert op.getOptions() == [None]
+    assert op.getOptions() == [list()]
     assert op._shapes[0] == f.shape
 
     op.removeInputShape(0)
-    assert op.getOptions() == [None]
+    assert op.getOptions() == [list()]
     assert op._shapes == [None]
 
-    op.setOptions(attribute_indexes=1)
-    assert op.getOptions() == [1]
+    op.setOptions(attribute_indexes=[1])
+    assert op.getOptions() == [[1]]
     assert op._shapes == [None]
 
     op.addInputShape(f.shape, pos=0)
-    assert op.getOptions() == [1]
+    assert op.getOptions() == [[1]]
     assert op._shapes[0] == f.shape
 
 
@@ -115,24 +116,24 @@ def test_unsetOptions_toCategory():
 
     op = ToCategoricalOp()
     op.addInputShape(f.shape, pos=0)
-    op.setOptions(attribute_indexes=0)
-    assert op.getOptions() == [0]
+    op.setOptions(attribute_indexes=[0])
+    assert op.getOptions() == [[0]]
     assert op._shapes == [f.shape]
 
     op.unsetOptions()
-    assert op.getOptions() == [None]
+    assert op.getOptions() == [list()]
     assert op._shapes == [f.shape]
 
     op.removeInputShape(0)
-    assert op.getOptions() == [None]
+    assert op.getOptions() == [list()]
     assert op._shapes == [None]
 
-    op.setOptions(attribute_indexes=1)
-    assert op.getOptions() == [1]
+    op.setOptions(attribute_indexes=[1])
+    assert op.getOptions() == [[1]]
     assert op._shapes == [None]
 
     op.addInputShape(f.shape, pos=0)
-    assert op.getOptions() == [1]
+    assert op.getOptions() == [[1]]
     assert op._shapes == [f.shape]
 
 
@@ -147,12 +148,12 @@ def test_str_toCategory():
 
     op = ToCategoricalOp()
     op.addInputShape(f.shape, pos=0)
-    op.setOptions(attribute_indexes=2)
+    op.setOptions(attribute_indexes=[2])
 
     # Predict output shape
-    os = copy.deepcopy(f.shape)
-    os.col_types = [Types.Categorical, Types.Numeric, Types.Categorical]
-    assert op.getOutputShape() == os
+    os = copy.deepcopy(f.shape).col_type_dict
+    os['col3'] = Types.Categorical
+    assert op.getOutputShape().col_type_dict == os
 
     # Removing options/input_shape causes None to be returned
     op.removeInputShape(0)
@@ -160,15 +161,15 @@ def test_str_toCategory():
     op.addInputShape(f.shape, pos=0)
     op.unsetOptions()
     assert op.getOutputShape() is None
-    op.setOptions(attribute_indexes=2)
-    assert op.getOutputShape() == os  # Re-adding everything
+    op.setOptions(attribute_indexes=[2])
+    assert op.getOutputShape().col_type_dict == os  # Re-adding everything
 
     g = op.execute(f)
     gd = {'col1': [3, 0, 5, 6, 0],
           'col2': [3, 4, 5.1, 6, 0],
           'col3': ['123', '2', '0.43', '4', '90']}
     assert g.to_dict() == gd
-    assert g.shape == os
+    assert g.shape.col_type_dict == os
 
 
 def test_num_toCategory():
@@ -182,12 +183,12 @@ def test_num_toCategory():
 
     op = ToCategoricalOp()
     op.addInputShape(f.shape, pos=0)
-    op.setOptions(attribute_indexes=1)
+    op.setOptions(attribute_indexes=[1])
 
     # Predict output shape
-    os = copy.deepcopy(f.shape)
-    os.col_types = [Types.Categorical, Types.Categorical, Types.String]
-    assert op.getOutputShape() == os
+    os = copy.deepcopy(f.shape).col_type_dict
+    os['col2'] = Types.Categorical
+    assert op.getOutputShape().col_type_dict == os
 
     # Removing options/input_shape causes None to be returned
     op.removeInputShape(0)
@@ -195,15 +196,15 @@ def test_num_toCategory():
     op.addInputShape(f.shape, pos=0)
     op.unsetOptions()
     assert op.getOutputShape() is None
-    op.setOptions(attribute_indexes=1)
-    assert op.getOutputShape() == os  # Re-adding everything
+    op.setOptions(attribute_indexes=[1])
+    assert op.getOutputShape().col_type_dict == os  # Re-adding everything
 
     g = op.execute(f)
     gd = {'col1': [3, 0, 5, 6, 0],
           'col2': [3, 4, 5.1, 6, 0],
           'col3': ['123', '2', '0.43', '4', '90']}
     assert g.to_dict() == gd
-    assert g.shape == os
+    assert g.shape.col_type_dict == os
 
 
 def test_date_toCategory():
@@ -219,12 +220,12 @@ def test_date_toCategory():
 
     op = ToCategoricalOp()
     op.addInputShape(f.shape, pos=0)
-    op.setOptions(attribute_indexes=3)
+    op.setOptions(attribute_indexes=[3])
 
-    # Predict output shape which should not change
+    # Predict output shape
     os = copy.deepcopy(f.shape)
     os.col_types = [Types.Categorical, Types.Numeric, Types.String, Types.Datetime]
-    assert op.getOutputShape() == os
+    assert op.getOutputShape() is None
 
     g = op.execute(f)  # changes nothing
     gd = {'col1': [3, 0, 5, 6, 0],
