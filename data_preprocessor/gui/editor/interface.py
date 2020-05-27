@@ -87,7 +87,7 @@ class AbsOperationEditor(QWidget):
         """ Calls editorBody and add the returned widget """
         w = self.editorBody()
         w.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.MinimumExpanding)
-        self._layout.insertWidget(2, w)
+        self._layout.insertWidget(1, w)
 
     def handleErrors(self, errors: List[Tuple[str, str]]) -> None:
         """ Provide a list of readable errors to be shown in the widget

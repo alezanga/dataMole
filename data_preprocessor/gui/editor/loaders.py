@@ -1,13 +1,16 @@
-# from ..frame import AttributeTableModel
 import os
-from typing import Iterable, Optional
+from typing import Iterable, Optional, List
 
-from PySide2.QtCore import Slot, Qt
+import pandas as pd
+from PySide2.QtCore import Slot, Qt, QThread, Signal
 from PySide2.QtGui import QIntValidator
 from PySide2.QtWidgets import QWidget, QButtonGroup, QRadioButton, QFileDialog, QLineEdit, QHBoxLayout, \
-    QPushButton, QLabel, QVBoxLayout, QTableView, QCheckBox
+    QPushButton, QLabel, QVBoxLayout, QCheckBox
 
 from .interface import AbsOperationEditor
+from ..frame import SearchableAttributeTableWidget, FrameModel
+from ..waitingspinnerwidget import QtWaitingSpinner
+from ...data import Frame
 
 
 class LoadCSVEditor(AbsOperationEditor):
@@ -17,7 +20,7 @@ class LoadCSVEditor(AbsOperationEditor):
                 super().__init__(parent)
                 self.buttons_id_value = {
                     1: ('comma', ','),
-                    2: ('space', '\\s'),
+                    2: ('space', '\s+'),
                     3: ('tab', '\t'),
                     4: ('semicolon', ';')
                 }
@@ -31,9 +34,10 @@ class LoadCSVEditor(AbsOperationEditor):
                 button_layout = QHBoxLayout()
                 for button in self.separator.buttons():
                     button_layout.addWidget(button)
+                self.default_button.click()
 
                 openFileChooser = QPushButton('Choose')
-                fileChooser = QFileDialog(self, 'Open csv', str(os.getcwd()), 'Csv (*.csv)')
+                fileChooser = QFileDialog(self, 'Open csv', str(os.getcwd()), 'Csv (*.csv *.tsv *.dat)')
                 fileChooser.setFileMode(QFileDialog.ExistingFile)
                 self.filePath = QLineEdit()
                 openFileChooser.released.connect(fileChooser.show)
@@ -48,8 +52,8 @@ class LoadCSVEditor(AbsOperationEditor):
                 nameRowLayout = QHBoxLayout()
                 fileChooserLayout.addWidget(openFileChooser)
                 fileChooserLayout.addWidget(self.filePath)
-                nameRowLayout.addWidget(nameLabel, 1, Qt.AlignLeft)
-                nameRowLayout.addWidget(self.nameField, 2, Qt.AlignRight)
+                nameRowLayout.addWidget(nameLabel)
+                nameRowLayout.addWidget(self.nameField)
                 self.fileErrorLabel = QLabel(self)
                 self.file_layout.addLayout(fileChooserLayout)
                 self.file_layout.addWidget(self.fileErrorLabel)
@@ -57,7 +61,9 @@ class LoadCSVEditor(AbsOperationEditor):
                 self.file_layout.addWidget(self.nameErrorLabel)
                 self.fileErrorLabel.hide()
                 self.nameErrorLabel.hide()
-                table_preview = QTableView()
+                self.tablePreview = SearchableAttributeTableWidget(self, True)
+                self.tableSpinner = QtWaitingSpinner(self.tablePreview, centerOnParent=True,
+                                                     disableParentWhenSpinning=True)
                 self.nameField.textEdited.connect(self.nameErrorLabel.hide)
 
                 # Split file by row
@@ -76,8 +82,44 @@ class LoadCSVEditor(AbsOperationEditor):
                 layout.addLayout(button_layout)
                 layout.addLayout(splitRowLayout)
                 layout.addWidget(QLabel('Preview'))
-                layout.addWidget(table_preview)
+                layout.addWidget(self.tablePreview)
                 self.setLayout(layout)
+
+                self.filePath.textChanged.connect(self.loadPreview)
+                self.separator.buttonClicked.connect(self.loadPreview)
+
+            @Slot(object)
+            def loadPreview(self) -> None:
+                if not os.path.isfile(self.filePath.text()):
+                    return
+
+                class WorkerThread(QThread):
+                    resultReady = Signal(Frame)
+
+                    def __init__(self, path: str, separ: str, parent=None):
+                        super().__init__(parent)
+                        self.__path = path
+                        self.__sep = separ
+
+                    def run(self):
+                        header = pd.read_csv(self.__path, sep=self.__sep, index_col=False, nrows=0)
+                        self.resultReady.emit(Frame(header))
+
+                sep: int = self.separator.checkedId()
+                sep_s: str = self.buttons_id_value[sep][1] if sep != -1 else None
+                assert sep_s is not None
+
+                # Async call to load header
+                worker = WorkerThread(path=self.filePath.text(), separ=sep_s, parent=self)
+                worker.resultReady.connect(self.onPreviewComputed)
+                worker.finished.connect(worker.deleteLater)
+                self.tableSpinner.start()
+                worker.start()
+
+            @Slot(Frame)
+            def onPreviewComputed(self, header: Frame):
+                self.tablePreview.setSourceFrameModel(FrameModel(self, header))
+                self.tableSpinner.stop()
 
             @Slot(str)
             def checkFileExists(self, path: str) -> None:
@@ -123,10 +165,11 @@ class LoadCSVEditor(AbsOperationEditor):
         chunksize = int(self.mywidget.numberRowsChunk.text()) if self.mywidget.checkSplit.isChecked() \
             else None
         varName: str = self.mywidget.nameField.text()
-        return path, sep_s, varName, chunksize
+        selectedColumns = self.mywidget.tablePreview.model().checkedAttributes
+        return path, sep_s, varName, chunksize, selectedColumns
 
     def setOptions(self, path: Optional[str], sep: Optional[str], name: Optional[str],
-                   splitByRow: Optional[int]) -> None:
+                   splitByRow: Optional[int], selectedColumns: List[int]) -> None:
         # Filepath
         self.mywidget.filePath.setText(path if path else '')
         # Separator
@@ -137,11 +180,13 @@ class LoadCSVEditor(AbsOperationEditor):
                 break
         button = self.mywidget.separator.button(button_id)
         if button:
-            button.setChecked(True)
+            button.click()
         else:
-            self.mywidget.default_button.setChecked(True)
+            self.mywidget.default_button.click()
         # Variable name
         self.mywidget.nameField.setText(name if name else '')
         # Split by row
         self.mywidget.checkSplit.setChecked(bool(splitByRow and splitByRow > 0))
         self.mywidget.toggleSplitRows(self.mywidget.checkSplit.checkState())
+        # Checked attributes (not needed)
+        # self.mywidget.tablePreview.model().checkedAttributes = selectedColumns

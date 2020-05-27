@@ -1,4 +1,4 @@
-from typing import Iterable, Union
+from typing import Iterable, Union, List
 
 import pandas as pd
 
@@ -16,6 +16,7 @@ class CsvLoader(InputGraphOperation):
         self.__separator: str = None
         self.__wName: str = None
         self.__splitByRowN: int = None
+        self.__selectedColumns: List[int] = list()
 
     def hasOptions(self) -> bool:
         return self.__file is not None and self.__separator is not None and self.__wName
@@ -26,7 +27,10 @@ class CsvLoader(InputGraphOperation):
     def execute(self) -> None:
         if not self.hasOptions():
             raise InvalidOptions('Options are not set')
-        pd_df = pd.read_csv(self.__file, sep=self.__separator, chunksize=self.__splitByRowN)
+        pd_df = pd.read_csv(self.__file, sep=self.__separator,
+                            index_col=False,
+                            usecols=self.__selectedColumns,
+                            chunksize=self.__splitByRowN)
         if self.__splitByRowN is not None:
             # pd_df is a chunk iterator
             for i, chunk in enumerate(pd_df):
@@ -50,19 +54,26 @@ class CsvLoader(InputGraphOperation):
                'each one with the specified number of rows. This allows to load big files which are ' \
                'too memory consuming to load with pandas'
 
-    def setOptions(self, file: str, separator: str, name: str, splitByRow: int) -> None:
+    def setOptions(self, file: str, separator: str, name: str, splitByRow: int,
+                   selectedCols: List[int]) -> None:
+        errors = list()
         if not name:
-            raise OptionValidationError([('nameError', 'A valid name must be specified')])
+            errors.append(('nameError', 'Error: a valid name must be specified'))
+        if not selectedCols:
+            errors.append(('noSelection', 'Error: at least 1 attribute must be selected'))
+        if errors:
+            raise OptionValidationError(errors)
         self.__file = file
         self.__separator = separator
         self.__wName = name
         self.__splitByRowN = splitByRow if (splitByRow and splitByRow > 0) else None
+        self.__selectedColumns = selectedCols
 
     def needsOptions(self) -> bool:
         return True
 
     def getOptions(self) -> Iterable:
-        return self.__file, self.__separator, self.__wName, self.__splitByRowN
+        return self.__file, self.__separator, self.__wName, self.__splitByRowN, self.__selectedColumns
 
     def getEditor(self) -> AbsOperationEditor:
         return LoadCSVEditor()
