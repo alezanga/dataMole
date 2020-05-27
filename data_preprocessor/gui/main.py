@@ -83,7 +83,8 @@ class MainWindow(QMainWindow):
         flowMenu = menuBar.addMenu('Flow')
         addAction = QAction('Add frame', fileMenu)
         addAction.setStatusTip('Create an empty dataframe in the workbench')
-        self._loadAction = OperationAction(CsvLoader(None), fileMenu, 'Load csv', self.rect().center())
+        self._loadAction = OperationAction(CsvLoader(central_w.workbench_model), fileMenu, 'Load csv',
+                                           self.rect().center())
         loadCsvAction = self._loadAction.createAction()
         fileMenu.addAction(addAction)
         fileMenu.addAction(loadCsvAction)
@@ -101,8 +102,8 @@ class MainWindow(QMainWindow):
         addAction.triggered.connect(central_w.workbench_model.appendEmptyRow)
         exec_flow.triggered.connect(self.centralWidget().controller.executeFlow)
         reset_flow.triggered.connect(self.centralWidget().controller.resetFlowStatus)
-        self._loadAction.success.connect(self.loadCsv)
+        # self._loadAction.success.connect(self.loadCsv)
 
-    @Slot()
-    def loadCsv(self) -> None:
-        self.centralWidget().workbench_model.appendNewRow('new_frame', self._loadAction.output)
+    # @Slot()
+    # def loadCsv(self) -> None:
+    #     self.centralWidget().workbench_model.appendNewRow('new_frame', self._loadAction.output)

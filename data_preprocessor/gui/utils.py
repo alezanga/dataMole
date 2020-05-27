@@ -2,10 +2,12 @@ import logging
 from typing import Optional, Tuple
 
 from PySide2.QtCore import Slot, QObject, Signal, QPoint
-from PySide2.QtWidgets import QMessageBox, QAction, QWidget, QMainWindow, QApplication
+from PySide2.QtWidgets import QMessageBox, QAction, QMainWindow, QApplication
 
 from data_preprocessor import data
 from data_preprocessor import threads
+from data_preprocessor.gui.editor.interface import AbsOperationEditor
+from data_preprocessor.operation.interface.exceptions import OptionValidationError
 from data_preprocessor.operation.interface.graph import GraphOperation
 
 
@@ -25,7 +27,7 @@ class OperationAction(QObject):
         # handler = SingleOperation(op, parent.rect().center(), parent)
         self._action = QAction(parent) if not name else QAction(name, parent)
         self.operation = op
-        self.editor: Optional[QWidget] = None
+        self.editor: Optional[AbsOperationEditor] = None
         self._editorPos = editorPosition
         self._inputs: Tuple[data.Frame] = tuple()
         self._output: Optional[data.Frame] = None
@@ -48,6 +50,7 @@ class OperationAction(QObject):
     @Slot()
     def start(self):
         self.editor = self.operation.getEditor()
+        self.editor.setWindowTitle(self.operation.name())
         self.editor.acceptAndClose.connect(self.onAcceptEditor)
         self.editor.rejectAndClose.connect(self.destroyEditor)
         self.editor.acceptedTypes = self.operation.acceptedTypes()
@@ -67,18 +70,24 @@ class OperationAction(QObject):
     @Slot()
     def onAcceptEditor(self) -> None:
         mainWindow = getMainWindow()
-        mainWindow.statusBar().startSpinner()
-        mainWindow.statusBar().showMessage('Executing operation...')
-        self.operation.setOptions(*self.editor.getOptions())
-        # Prepare worker
-        worker = threads.Worker(self.operation, args=self._inputs)
-        # Connect
-        worker.signals.result.connect(self._setOutput)
-        worker.signals.error.connect(self._showError)
-        worker.signals.finished.connect(self._finished)
-        # Start worker
-        mainWindow.threadPool.start(worker)
-        self.editor.hide()
+        try:
+            self.operation.setOptions(*self.editor.getOptions())
+        except OptionValidationError as e:
+            self.editor.handleErrors(e.invalid)
+            mainWindow.statusBar().showMessage('Some fields are not correct')
+        else:
+            # Start spinner
+            mainWindow.statusBar().startSpinner()
+            mainWindow.statusBar().showMessage('Executing operation...')
+            # Prepare worker
+            worker = threads.Worker(self.operation, args=self._inputs)
+            # Connect
+            worker.signals.result.connect(self._setOutput)
+            worker.signals.error.connect(self._showError)
+            worker.signals.finished.connect(self._finished)
+            # Start worker
+            mainWindow.threadPool.start(worker)
+            self.editor.hide()
 
     @Slot(object, object)
     def _setOutput(self, _, f: data.Frame) -> None:
@@ -102,7 +111,7 @@ class OperationAction(QObject):
             msg_short += '... (see all in log)'
         msgbox = QMessageBox(QMessageBox.Icon.Critical, 'Critical error', msg_short, QMessageBox.Ok,
                              self.editor)
-        logging.critical('GraphOperation {} failed with exception {}: {} - trace: {}'.format(
+        logging.error('GraphOperation {} failed with exception {}: {} - trace: {}'.format(
             self.operation.name(), str(error[0]), msg, error[2]))
         self.editor.show()
         msgbox.exec_()

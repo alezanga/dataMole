@@ -1,6 +1,8 @@
 import re
 from typing import Dict
 
+import pandas as pd
+
 from ..interface.operation import Operation
 from ... import data
 from ...data.types import Types
@@ -45,7 +47,10 @@ class Hist(Operation):
     def execute(self, df: data.Frame) -> Dict[object, int]:
         col = df.getRawFrame().iloc[:, self.__attribute]
         if self.__type == Types.Numeric:
-            values = col.value_counts(bins=self.__nBins, sort=False)
+            # Differently from value_counts, this handles the case where all values are nan
+            cuts = pd.cut(col, bins=self.__nBins, duplicates='drop')
+            values = cuts.value_counts(sort=False)
+            # values = col.value_counts(bins=self.__nBins, sort=False)
             values.index = values.index.map(lambda i: '{:.2f}'.format(i.left))
             return values.to_dict()
         else:

@@ -2,9 +2,10 @@
 import os
 from typing import Iterable, Optional
 
-from PySide2.QtCore import Slot
+from PySide2.QtCore import Slot, Qt
+from PySide2.QtGui import QIntValidator
 from PySide2.QtWidgets import QWidget, QButtonGroup, QRadioButton, QFileDialog, QLineEdit, QHBoxLayout, \
-    QPushButton, QLabel, QVBoxLayout, QTableView
+    QPushButton, QLabel, QVBoxLayout, QTableView, QCheckBox
 
 from .interface import AbsOperationEditor
 
@@ -38,21 +39,42 @@ class LoadCSVEditor(AbsOperationEditor):
                 openFileChooser.released.connect(fileChooser.show)
                 fileChooser.fileSelected.connect(self.filePath.setText)
                 self.filePath.textChanged.connect(self.checkFileExists)
+                nameLabel = QLabel('Select a name:', self)
+                self.nameField = QLineEdit(self)
+                self.nameErrorLabel = QLabel(self)
 
                 self.file_layout = QVBoxLayout()
                 fileChooserLayout = QHBoxLayout()
+                nameRowLayout = QHBoxLayout()
                 fileChooserLayout.addWidget(openFileChooser)
                 fileChooserLayout.addWidget(self.filePath)
-                self.error_label = QLabel(self)
+                nameRowLayout.addWidget(nameLabel, 1, Qt.AlignLeft)
+                nameRowLayout.addWidget(self.nameField, 2, Qt.AlignRight)
+                self.fileErrorLabel = QLabel(self)
                 self.file_layout.addLayout(fileChooserLayout)
-                self.file_layout.addWidget(self.error_label)
-                self.error_label.hide()
+                self.file_layout.addWidget(self.fileErrorLabel)
+                self.file_layout.addLayout(nameRowLayout)
+                self.file_layout.addWidget(self.nameErrorLabel)
+                self.fileErrorLabel.hide()
+                self.nameErrorLabel.hide()
                 table_preview = QTableView()
+                self.nameField.textEdited.connect(self.nameErrorLabel.hide)
+
+                # Split file by row
+                splitRowLayout = QHBoxLayout()
+                self.checkSplit = QCheckBox('Split file by rows', self)
+                self.numberRowsChunk = QLineEdit(self)
+                self.numberRowsChunk.setPlaceholderText('Number of rows per chunk')
+                self.numberRowsChunk.setValidator(QIntValidator(self))
+                splitRowLayout.addWidget(self.checkSplit)
+                splitRowLayout.addWidget(self.numberRowsChunk)
+                self.checkSplit.stateChanged.connect(self.toggleSplitRows)
 
                 layout = QVBoxLayout()
                 layout.addLayout(self.file_layout)
                 layout.addWidget(lab)
                 layout.addLayout(button_layout)
+                layout.addLayout(splitRowLayout)
                 layout.addWidget(QLabel('Preview'))
                 layout.addWidget(table_preview)
                 self.setLayout(layout)
@@ -61,20 +83,36 @@ class LoadCSVEditor(AbsOperationEditor):
             def checkFileExists(self, path: str) -> None:
                 file_exists = os.path.isfile(path)
                 if not file_exists:
-                    self.error_label.setText('File does not exists!')
-                    self.error_label.setStyleSheet('color: red')
+                    self.fileErrorLabel.setText('File does not exists!')
+                    self.fileErrorLabel.setStyleSheet('color: red')
                     self.filePath.setToolTip('File does not exists!')
                     self.filePath.setStyleSheet('border: 1px solid red')
-                    # self.file_layout.addWidget(self.error_label)
+                    # self.file_layout.addWidget(self.fileErrorLabel)
                     self.parentWidget().disableOkButton()
-                    self.error_label.show()
+                    self.fileErrorLabel.show()
                 else:
-                    # self.file_layout.removeWidget(self.error_label)
-                    self.error_label.hide()
+                    # self.file_layout.removeWidget(self.fileErrorLabel)
+                    self.fileErrorLabel.hide()
                     self.filePath.setStyleSheet('')
                     self.parentWidget().enableOkButton()
+                    if not self.nameField.text():
+                        name: str = os.path.splitext(os.path.basename(path))[0]
+                        self.nameField.setText(name)
+
+            @Slot(Qt.CheckState)
+            def toggleSplitRows(self, state: Qt.CheckState) -> None:
+                if state == Qt.Checked:
+                    self.numberRowsChunk.setEnabled(True)
+                else:
+                    self.numberRowsChunk.setDisabled(True)
+
+            def showNameError(self, msg: str) -> None:
+                self.nameErrorLabel.setText(msg)
+                self.nameErrorLabel.setStyleSheet('color: red')
+                self.nameErrorLabel.show()
 
         self.mywidget = MyWidget(self)
+        self.errorHandlers['nameError'] = self.mywidget.showNameError
         return self.mywidget
 
     def getOptions(self) -> Iterable:
@@ -82,10 +120,16 @@ class LoadCSVEditor(AbsOperationEditor):
         sep: int = self.mywidget.separator.checkedId()
         path = path if path else None
         sep_s: str = self.mywidget.buttons_id_value[sep][1] if sep != -1 else None
-        return path, sep_s
+        chunksize = int(self.mywidget.numberRowsChunk.text()) if self.mywidget.checkSplit.isChecked() \
+            else None
+        varName: str = self.mywidget.nameField.text()
+        return path, sep_s, varName, chunksize
 
-    def setOptions(self, path: Optional[str], sep: Optional[str]) -> None:
+    def setOptions(self, path: Optional[str], sep: Optional[str], name: Optional[str],
+                   splitByRow: Optional[int]) -> None:
+        # Filepath
         self.mywidget.filePath.setText(path if path else '')
+        # Separator
         button_id: int = -1
         for bid, v in self.mywidget.buttons_id_value.items():
             if v == sep:
@@ -96,3 +140,8 @@ class LoadCSVEditor(AbsOperationEditor):
             button.setChecked(True)
         else:
             self.mywidget.default_button.setChecked(True)
+        # Variable name
+        self.mywidget.nameField.setText(name if name else '')
+        # Split by row
+        self.mywidget.checkSplit.setChecked(bool(splitByRow and splitByRow > 0))
+        self.mywidget.toggleSplitRows(self.mywidget.checkSplit.checkState())

@@ -112,6 +112,7 @@ class GraphController(QWidget):
             self.__editor_widget.rejectAndClose.connect(self.cleanupEditor)
             # Show the editor in new window
             self.__editor_widget.setParent(None)
+            self.__editor_widget.setWindowTitle(node.operation.name())
             self.__editor_widget.move(self._view.rect().center())
             self.__editor_widget.show()
         else:

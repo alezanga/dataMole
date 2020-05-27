@@ -120,7 +120,6 @@ class MergeValuesOp(GraphOperation):
 
 class _MergeValEditor(AbsOperationEditor):
     def editorBody(self) -> QWidget:
-        self.setWindowTitle('Merge values')
         self.__attributeComboBox = opw.AttributeComboBox(self.inputShapes[0], self.acceptedTypes,
                                                          'Select an attribute')
         self.__mergeList = opw.TextOptionWidget('Add values to replace (separated by comma)')

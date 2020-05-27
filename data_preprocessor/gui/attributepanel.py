@@ -36,6 +36,8 @@ class AttributePanel(QWidget):
 
     @Slot(int)
     def onFrameSelectionChanged(self, frameIndex: int) -> None:
+        if frameIndex == -1:
+            return
         if self._frameModel:
             # Disconnect everything from old model
             self._frameModel.disconnect(self)

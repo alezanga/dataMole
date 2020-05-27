@@ -112,7 +112,8 @@ class WorkbenchModel(QAbstractListModel):
     def appendNewRow(self, name: str, frame: d.Frame) -> bool:
         self.beginInsertRows(QModelIndex(), self.rowCount(), self.rowCount())
         # Create a dummy entry
-        self.__workbench.append((name, FrameModel(self, frame)))
+        self.__workbench.append((name, FrameModel(None, frame)))
+        # NOTE: no parent is set
         self.endInsertRows()
         return True
 
