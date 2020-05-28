@@ -1,10 +1,11 @@
 import logging
 from enum import Enum
-from typing import Any, List, Union, Dict, Tuple
+from typing import Any, List, Union, Dict, Tuple, Optional
 
 from PySide2 import QtGui
 from PySide2.QtCore import QAbstractTableModel, QModelIndex, Qt, Signal, Slot, QAbstractItemModel, \
     QSortFilterProxyModel, QBasicTimer, QTimerEvent, QItemSelection, QThreadPool, QEvent, QRect, QPoint
+from PySide2.QtGui import QPainter
 from PySide2.QtWidgets import QWidget, QTableView, QLineEdit, QVBoxLayout, QHeaderView, QLabel, \
     QHBoxLayout, QStyleOptionViewItem, QStyleOptionButton, QStyle, QApplication, \
     QStyledItemDelegate
@@ -192,10 +193,13 @@ class AttributeTableModel(QAbstractTableModel):
     @property
     def type_pos(self) -> int:
         """ Return the column index for type """
-        if self._checkable:
-            return 2
+        if self._showTypes:
+            if self._checkable:
+                return 2
+            else:
+                return 1
         else:
-            return 1
+            return None
 
     @property
     def name_pos(self) -> int:
@@ -223,7 +227,16 @@ class AttributeTableModel(QAbstractTableModel):
             self._checked = [False] * self.rowCount()
         for v in values:
             qindex = self.index(v, self.checkbox_pos, QModelIndex())
-            self.dataChanged.emit(qindex, qindex, [Qt.CheckStateRole])
+            self.dataChanged.emit(qindex, qindex, [Qt.DisplayRole, Qt.EditRole])
+
+    def setAllChecked(self, value: bool) -> None:
+        """ Set all rows checked or unchecked """
+        self.beginResetModel()
+        if value is True:
+            self._checked = [True] * self.rowCount()
+        else:
+            self._checked = [False] * self.rowCount()
+        self.endResetModel()
 
     def setSourceModel(self, sourceModel: QAbstractItemModel) -> None:
         if self._sourceModel is sourceModel:
@@ -334,6 +347,8 @@ class AttributeTableModel(QAbstractTableModel):
                 return 'Attribute'
             elif section == self.type_pos:
                 return 'Type'
+            elif section == self.checkbox_pos:
+                return all(self._checked)
         return None
 
     def flags(self, index: QModelIndex) -> Qt.ItemFlags:
@@ -354,6 +369,15 @@ class AttributeTableModel(QAbstractTableModel):
         if self._checkable:
             new_rows = self.rowCount() - len(self._checked)
             self._checked.extend([False] * new_rows)
+
+    @Slot(int)
+    def onHeaderClicked(self, section: int) -> None:
+        if section == self.checkbox_pos:
+            checked = self.headerData(section, Qt.Horizontal, Qt.DisplayRole)
+            if checked is True:
+                self.setAllChecked(False)
+            else:
+                self.setAllChecked(True)
 
 
 class TypeFilteredTableModel(QSortFilterProxyModel):
@@ -382,17 +406,22 @@ class SearchableAttributeTableWidget(QWidget):
         self._searchableModel = QSortFilterProxyModel(self)
         self._searchableModel.setSourceModel(typeFilteredModel)
         self._searchableModel.setFilterCaseSensitivity(Qt.CaseInsensitive)
+        # Table Header
+        # hh = TableHeader(self.__model.checkbox_pos, Qt.Horizontal, self.tableView)
+        # self.tableView.setHorizontalHeader(hh)
+        # hh.show()
 
         self._searchBar = QLineEdit(self)
         self._searchBar.setPlaceholderText('Search')
-        searchLabel = QLabel('Attribute search')
-        titleLabel = QLabel('Attribute list')
+        searchLabel = QLabel('Attribute search', self)
+        # titleLabel = QLabel('Attribute list')
         searchLayout = QHBoxLayout()
-        searchLayout.addWidget(titleLabel, 0, alignment=Qt.AlignRight)
-        searchLayout.addStretch(1)
-        searchLayout.addWidget(searchLabel, 0, alignment=Qt.AlignLeft)
-        searchLayout.addSpacing(20)
-        searchLayout.addWidget(self._searchBar, 0, alignment=Qt.AlignLeft)
+        # searchLayout.addWidget(titleLabel, 0, alignment=Qt.AlignRight)
+        # searchLayout.addStretch(1)
+        # searchLayout.addSpacing(200)
+        searchLayout.addWidget(searchLabel, 1, alignment=Qt.AlignRight)
+        searchLayout.addSpacing(30)
+        searchLayout.addWidget(self._searchBar, 0, alignment=Qt.AlignRight)
 
         layout = QVBoxLayout()
         layout.addLayout(searchLayout)
@@ -428,22 +457,28 @@ class SearchableAttributeTableWidget(QWidget):
         self._searchableModel.setSourceModel(typeFilteredModel)
         if self.__model.sourceModel():
             self.setSourceFrameModel(self.__model.sourceModel())
+        # hh = TableHeader(model.checkbox_pos, Qt.Horizontal, self.tableView)
+        # self.tableView.setHorizontalHeader(hh)
+        # hh.sectionClicked.connect(self.__model.onHeaderClicked)
+        # hh.show()
 
     def setSourceFrameModel(self, source: FrameModel) -> None:
         self.__model.setSourceModel(source)
         if self.tableView.model() is not self._searchableModel:
             self.tableView.setModel(self._searchableModel, filtered=self.__typeFiltered)
-            hh = self.tableView.horizontalHeader()
             check_pos = self.__model.checkbox_pos
+            hh = self.tableView.horizontalHeader()
+            hh.setSectionsClickable(True)
             if check_pos is not None:
                 hh.resizeSection(check_pos, 5)
                 hh.setSectionResizeMode(check_pos, QHeaderView.Fixed)
             hh.setSectionResizeMode(self.__model.name_pos, QHeaderView.Stretch)
-            hh.setSectionResizeMode(self.__model.type_pos, QHeaderView.Fixed)
+            if self.__model.type_pos:
+                hh.setSectionResizeMode(self.__model.type_pos, QHeaderView.Fixed)
             hh.setStretchLastSection(False)
             self._searchableModel.setFilterKeyColumn(self.__model.name_pos)
-            self.tableView.setHorizontalHeader(hh)
             self._searchBar.textChanged.connect(self._searchableModel.setFilterRegExp)
+            hh.sectionClicked.connect(self.__model.onHeaderClicked)
 
 
 class IncrementalAttributeTableView(QTableView):
@@ -530,7 +565,6 @@ class IncrementalAttributeTableView(QTableView):
 
 
 class BooleanBoxDelegate(QStyledItemDelegate):
-    # TODO: use QStyledItemDelegate
     def createEditor(self, parent: QWidget, option: QStyleOptionViewItem, index: QModelIndex) -> QWidget:
         return None
 
@@ -582,17 +616,26 @@ class BooleanBoxDelegate(QStyledItemDelegate):
                              option.rect.y() + option.rect.height() / 2 - check_rect.height() / 2)
         return QRect(check_point, check_rect.size())
 
-# class ShapeAttributeNamesListModel(QAbstractListModel):
-#     def __init__(self, shape: Shape, parent: QWidget = None):
-#         super().__init__(parent)
-#         self.__shape = shape if shape else Shape()
-#
-#     def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:
-#         if parent.isValid():
-#             return 0
-#         return self.__shape.n_columns
-#
-#     def data(self, index: QModelIndex, role: int = Qt.DisplayRole) -> Optional[str]:
-#         if index.isValid():
-#             return self.__shape.col_names[index.row()]
-#         return None
+
+class TableHeader(QHeaderView):
+    # TODO: use this to paint a checkbox in header
+    def __init__(self, checkboxSection: Optional[int], orientation: Qt.Orientation, parent=None):
+        super().__init__(orientation, parent)
+        self.__checkboxSection = checkboxSection
+        self.setSectionsClickable(True)
+
+    def paintSection(self, painter: QPainter, rect: QRect, logicalIndex: int) -> None:
+        if not self.__checkboxSection:
+            return super().paintSection(painter, rect, logicalIndex)
+        painter.save()
+        super().paintSection(painter, rect, logicalIndex)
+        painter.restore()
+        if self.__checkboxSection == logicalIndex:
+            option = QStyleOptionButton()
+            option.rect = QRect(10, 10, 10, 10)
+            option.state = QStyle.State_Enabled | QStyle.State_Active
+            if self.__isChecked:
+                option.state |= QStyle.State_On
+            else:
+                option.state |= QStyle.State_Off
+            QApplication.style().drawControl(QStyle.CE_CheckBox, option, painter)

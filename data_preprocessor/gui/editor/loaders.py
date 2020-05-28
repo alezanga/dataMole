@@ -171,22 +171,27 @@ class LoadCSVEditor(AbsOperationEditor):
     def setOptions(self, path: Optional[str], sep: Optional[str], name: Optional[str],
                    splitByRow: Optional[int], selectedColumns: List[int]) -> None:
         # Filepath
-        self.mywidget.filePath.setText(path if path else '')
-        # Separator
-        button_id: int = -1
-        for bid, v in self.mywidget.buttons_id_value.items():
-            if v == sep:
-                button_id = bid
-                break
-        button = self.mywidget.separator.button(button_id)
-        if button:
-            button.click()
-        else:
-            self.mywidget.default_button.click()
-        # Variable name
-        self.mywidget.nameField.setText(name if name else '')
-        # Split by row
-        self.mywidget.checkSplit.setChecked(bool(splitByRow and splitByRow > 0))
-        self.mywidget.toggleSplitRows(self.mywidget.checkSplit.checkState())
+        # self.mywidget.filePath.setText(path if path else '')
+        # # Separator
+        # button_id: int = -1
+        # for bid, v in self.mywidget.buttons_id_value.items():
+        #     if v == sep:
+        #         button_id = bid
+        #         break
+        # button = self.mywidget.separator.button(button_id)
+        # if button:
+        #     button.click()
+        # else:
+        #     self.mywidget.default_button.click()
+        # # Variable name
+        # self.mywidget.nameField.setText(name if name else '')
+        # # Split by row
+        # self.mywidget.checkSplit.setChecked(bool(splitByRow and splitByRow > 0))
+        # self.mywidget.toggleSplitRows(self.mywidget.checkSplit.checkState())
         # Checked attributes (not needed)
         # self.mywidget.tablePreview.model().checkedAttributes = selectedColumns
+        self.mywidget.filePath.setText('')
+        self.mywidget.default_button.click()
+        self.mywidget.nameField.setText('')
+        self.mywidget.checkSplit.setChecked(False)
+        self.mywidget.toggleSplitRows(self.mywidget.checkSplit.checkState())

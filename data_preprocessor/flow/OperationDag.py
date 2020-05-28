@@ -52,11 +52,8 @@ class OperationDag:
         # Set options for operation
         node: OperationNode = self[node_id]
         node.operation.setOptions(*options)
-        # if node.operation.maxInputNumber() == 0:  # if it's an input op
-        #     node.operation.inferInputShape()
         # Update every connected node
         self.__update_descendants(node_id)
-        # TOCHECK: else clause should not update since shape is the same
         return True
 
     def addNode(self, node: OperationNode) -> bool:
@@ -68,10 +65,6 @@ class OperationDag:
         if node.uid in self.__G:
             return False
         self.__G.add_node(node.uid, op=node)
-        # if node.operation.maxInputNumber() == 0:
-        # Then it's an input operation and the shape can be inferred
-        # in_op: 'InputGraphOperation' = node.operation
-        # in_op.inferInputShape()
         # self.__update_descendants(node.uid)  # TOCHECK: is it needed?
         return True
 
@@ -154,7 +147,6 @@ class OperationDag:
         :param op_id: the id of the node to remove
         :return: True if the node was removed, False otherwise
         """
-        # TOCHECK
         # Remove all incoming edges
         for u in list(self.__G.predecessors(op_id)):
             self.removeConnection(u, op_id)
