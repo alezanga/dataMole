@@ -28,7 +28,7 @@ class JoinOp(GraphOperation):
         super().__init__()
         self.__lsuffix: str = '_l'
         self.__rsuffix: str = '_r'
-        self.__on_index: bool = True
+        self.__on_index: bool = False
         self.__left_on: int = None
         self.__right_on: int = None
         self.__type: JoinType = jt.Left
@@ -44,7 +44,7 @@ class JoinOp(GraphOperation):
             # onleft and onright must be set
             suffixes = (self.__lsuffix, self.__rsuffix)
             l_col = dfl.shape.col_names[self.__left_on]
-            r_col = dfl.shape.col_names[self.__right_on]
+            r_col = dfr.shape.col_names[self.__right_on]
             return data.Frame(dfl.getRawFrame().merge(dfr.getRawFrame(), how=self.__type.value,
                                                       left_on=l_col,
                                                       right_on=r_col,
