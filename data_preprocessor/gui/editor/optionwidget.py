@@ -137,7 +137,7 @@ class RadioButtonGroup(OptionWidget):
         self.group = QButtonGroup(self)
         self.group.setExclusive(True)
         self.glayout = QGridLayout(self)
-        self.glayout.setVerticalSpacing(20)
+        self.glayout.setVerticalSpacing(10)
         self.glayout.addWidget(wlabel, 0, 0, 1, -1)
         self.__row = 1
         self.__col = 0

@@ -178,7 +178,6 @@ class AttributeTableModel(QAbstractTableModel):
         # Keeps track of checked items
         self._checked: List[bool] = list()
         self._sourceModel: QAbstractItemModel = None
-        self._statistics: Dict[str, Dict[str, object]] = dict()
 
     @property
     def checkbox_pos(self) -> Union[int, None]:
@@ -468,14 +467,14 @@ class SearchableAttributeTableWidget(QWidget):
             self.tableView.setModel(self._searchableModel, filtered=self.__typeFiltered)
             check_pos = self.__model.checkbox_pos
             hh = self.tableView.horizontalHeader()
+            hh.setStretchLastSection(False)
             hh.setSectionsClickable(True)
             if check_pos is not None:
                 hh.resizeSection(check_pos, 5)
                 hh.setSectionResizeMode(check_pos, QHeaderView.Fixed)
             hh.setSectionResizeMode(self.__model.name_pos, QHeaderView.Stretch)
             if self.__model.type_pos:
-                hh.setSectionResizeMode(self.__model.type_pos, QHeaderView.Fixed)
-            hh.setStretchLastSection(False)
+                hh.setSectionResizeMode(self.__model.type_pos, QHeaderView.Stretch)
             self._searchableModel.setFilterKeyColumn(self.__model.name_pos)
             self._searchBar.textChanged.connect(self._searchableModel.setFilterRegExp)
             hh.sectionClicked.connect(self.__model.onHeaderClicked)

@@ -37,7 +37,7 @@ class OperationDag:
                 child_node.addInputShape(newParentOutputShape, parent_id)
                 self.__update_descendants(child_id)
 
-    def updateNodeOptions(self, node_id: int, *options: Any) -> bool:
+    def updateNodeOptions(self, node_id: int, *options: Any, **kwoptions: Any) -> bool:
         """ Set/updates the options of a node.
 
         :param node_id: the id of the node to update
@@ -51,7 +51,7 @@ class OperationDag:
             return False
         # Set options for operation
         node: OperationNode = self[node_id]
-        node.operation.setOptions(*options)
+        node.operation.setOptions(*options, **kwoptions)
         # Update every connected node
         self.__update_descendants(node_id)
         return True

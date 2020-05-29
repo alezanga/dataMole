@@ -145,7 +145,7 @@ class AbsOperationEditor(QWidget):
         pass
 
     @abc.abstractmethod
-    def setOptions(self, *args) -> None:
+    def setOptions(self, *args, **kwargs) -> None:
         """
         Set the data to be visualized in the editor.
         Useful to show an existing configuration.

@@ -106,7 +106,11 @@ class GraphController(QWidget):
             self.__editor_widget.setUpEditor()
             self.__editor_widget.setDescription(node.operation.shortDescription(),
                                                 node.operation.longDescription())
-            self.__editor_widget.setOptions(*node.operation.getOptions())
+            options = node.operation.getOptions()
+            if isinstance(options, dict):
+                self.__editor_widget.setOptions(**options)
+            else:
+                self.__editor_widget.setOptions(*options)
             # Connect editor signals to slots which handle accept/reject
             self.__editor_widget.acceptAndClose.connect(self.onEditAccept)
             self.__editor_widget.rejectAndClose.connect(self.cleanupEditor)
@@ -123,7 +127,10 @@ class GraphController(QWidget):
     def onEditAccept(self) -> None:
         options = self.__editor_widget.getOptions()
         try:
-            graphUpdated = self._operation_dag.updateNodeOptions(self.__editor_node_id, *options)
+            if isinstance(options, dict):
+                graphUpdated = self._operation_dag.updateNodeOptions(self.__editor_node_id, **options)
+            else:
+                graphUpdated = self._operation_dag.updateNodeOptions(self.__editor_node_id, *options)
         except OptionValidationError as e:
             self.__editor_widget.handleErrors(e.invalid)
         else:

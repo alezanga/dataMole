@@ -17,9 +17,10 @@
 - [x] FIX WORKBENCH AND FRAME
 - [ ] Remove attribute types from signal
 - [x] Remove tracking from slider
+- [ ] IMPORTANT: Define delegate for factory editor (with Validators)
 - [ ] Add many operations
     - [x] Decide how to handle unknown shape
-    - [ ] Finish type change editor with table model (for toNumeric)
+    - [x] Finish type change editor with table model (for toNumeric)
     - [x] Merge values of one attribute (also to Nan)
     - [x] Remove Nan rows (by % or number)
     - [x] Load CSV
@@ -30,10 +31,11 @@
         - [ ] Fix merge on "datetime"
     - [ ] Append
     - [ ] Discretize numbers
+        - [ ] Define execute
     - [ ] Discretize dates
     - [ ] Remove attribute(s)
     - [ ] Add instance numbers (1, 2, 3, 4, ...)
-    - [ ] One hot encoding
+    - [x] One hot encoding
     - [ ] Scaling
     - [ ] Select rows based on condition
     - [ ] Select attributes based on condition

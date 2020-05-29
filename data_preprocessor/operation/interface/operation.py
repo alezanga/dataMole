@@ -18,7 +18,7 @@ class Operation(ABC):
         pass
 
     @abstractmethod
-    def setOptions(self, *args) -> None:
+    def setOptions(self, *args, **kwargs) -> None:
         """
         Called to configure a step with the required data. If necessary it may validate the passed
         options. In order to comunicate a specific error to a widget it should use
