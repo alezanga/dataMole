@@ -30,6 +30,10 @@ class OperationNode:
         inputs = [i for i in self.__inputs if i is not None]
         return len(inputs)
 
+    @property
+    def inputs(self) -> List[Frame]:
+        return self.__inputs
+
     def setSourceOperationInputPosition(self, op_id: int, pos: int) -> None:
         """ Call this method to ensure that the output of one parent (source) operation is always passed
         at a specified position when the execute method is called
@@ -93,11 +97,5 @@ class OperationNode:
             raise ValueError(
                 '{}.execute(input=...), input argument not correctly set'.format(
                     self.__class__.__name__))
-
-        # Check if options are set
-        msg: bool = op.hasOptions()
-        if not msg:
-            raise ValueError('{}.execute(input=...), options check failed with message: {}'.format(
-                self.__class__.__name__, msg))
 
         return op.execute(*inputs)

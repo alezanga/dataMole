@@ -53,7 +53,7 @@ class GraphOperation(Operation):
     # -------------------- VIRTUAL METHODS --------------------
     # ---------------------------------------------------------
 
-    def getOutputShape(self) -> Union[data.Shape, None]:
+    def getOutputShape(self) -> Optional[data.Shape]:
         """
         Computes what will the frame shape be after execution of the step.
         Be careful with references. This function should not modify the input shape.

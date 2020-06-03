@@ -1,9 +1,10 @@
-from typing import Dict, List, Callable, Tuple, Any, Iterable
+import copy
+from typing import Dict, List, Callable, Tuple, Any, Iterable, Optional
 
 from PySide2.QtCore import Qt, QModelIndex
 from PySide2.QtGui import QValidator
 from PySide2.QtWidgets import QLineEdit, QCheckBox, \
-    QWidget, QFormLayout
+    QWidget, QFormLayout, QStyledItemDelegate
 
 from data_preprocessor.decorators.generic import singleton
 from data_preprocessor.gui.editor.interface import AbsOperationEditor
@@ -15,7 +16,7 @@ class AttributeTableWithOptions(AttributeTableModel):
     def __init__(self, parent: QWidget = None, checkable: bool = False,
                  editable: bool = False, showTypes: bool = True, options: Dict = None):
         super().__init__(parent, checkable, editable, showTypes)
-        # options description { key, (label, validator_type) }
+        # options description { key, (label, qvalidator) }
         self._optionsDesc: Dict[str, Tuple[str, QValidator]] = options
         # Column position for each option column
         self._optionsPos: Dict[int, str] = dict()
@@ -35,14 +36,20 @@ class AttributeTableWithOptions(AttributeTableModel):
     #     qIndex = self.index(row, self._inverseOptionsPos[colKey], QModelIndex())
     #     self.setData(qIndex, value, Qt.EditRole)
 
+    def validatorColumn(self, column: int) -> Optional[QValidator]:
+        # If column is not an option then no validator
+        if column not in self._optionsPos.keys():
+            return None
+        return self._optionsDesc[self._optionsPos[column]][1]
+
     def options(self) -> Dict[int, Dict[str, str]]:
         selectedRows = self.checkedAttributes
         opt = {k: v for k, v in self._options.items() if k in selectedRows}
         return opt
 
     def setOptions(self, opt: Dict[int, Dict[str, str]]) -> None:
-        self._options = opt
-        self.checkedAttributes = list(opt.keys())
+        self._options = copy.deepcopy(opt)
+        self.checkedAttributes = list(self._options.keys())
 
     def columnCount(self, parent: QModelIndex = QModelIndex()) -> int:
         if parent.isValid():
@@ -103,6 +110,20 @@ class AttributeTableWithOptions(AttributeTableModel):
         return f
 
 
+class OptionValidatorDelegate(QStyledItemDelegate):
+    """ Delegate object used to set a QValidator for every option editor """
+
+    def __init__(self, validator, parent=None):
+        super().__init__(parent)
+        self.__validator: QValidator = validator
+
+    def createEditor(self, parent: QWidget, option, index: QModelIndex) -> QWidget:
+        editor = QLineEdit(parent)
+        self.__validator.setParent(parent)
+        editor.setValidator(self.__validator)
+        return editor
+
+
 @singleton
 class OptionsEditorFactory:
     def __init__(self):
@@ -113,10 +134,16 @@ class OptionsEditorFactory:
         self.__editorWidgets: List[Tuple[str, QWidget]] = list()
 
     def withAttributeTable(self, key: str, checkbox: bool, nameEditable: bool, showTypes: bool,
-                           options: Dict[str, Tuple[str, QValidator]]):
+                           options: Dict[str, Tuple[str, QValidator]], types: List):
         tableWidget = SearchableAttributeTableWidget(self.__body)
         tableModel = AttributeTableWithOptions(self.__body, checkbox, nameEditable, showTypes, options)
-        tableWidget.setModel(tableModel)
+        tableWidget.setModel(tableModel, filterTypes=types)
+        # Set up validator for every option columns
+        for col in range(tableModel.columnCount()):
+            validator = tableModel.validatorColumn(col)
+            if validator:
+                tableWidget.tableView.setItemDelegateForColumn(col, OptionValidatorDelegate(validator,
+                                                                                            tableWidget.tableView))
         self.__layout.addRow(tableWidget)
         self.__optionsGetter[key] = tableModel.options
         self.__optionsSetter[key] = tableModel.setOptions
@@ -171,9 +198,6 @@ class OptionsEditorFactory:
     #     self.__layout.addWidget(combo, row, 1)
     #     self.__optionsGetter.append(combo.currentText)
 
-    # def setSizeHint(self, width: int, height: int):
-    #     self.__body.sizeHint = lambda: QSize(width, height)
-
     def getEditor(self) -> AbsOperationEditor:
         class Editor(AbsOperationEditor):
             def editorBody(self) -> QWidget:
@@ -182,7 +206,7 @@ class OptionsEditorFactory:
             def getOptions(self) -> Iterable:
                 pass
 
-            def setOptions(self, *args) -> None:
+            def setOptions(self, *args, **kwargs) -> None:
                 pass
 
         def getOptions() -> Dict:
@@ -192,7 +216,7 @@ class OptionsEditorFactory:
             return options
 
         def setOptions(*args, **kwargs) -> None:
-            assert bool(kwargs)
+            assert bool(kwargs)  # factory editors must use kwargs
             for k, v in kwargs.items():
                 self.__optionsSetter[k](v)
 

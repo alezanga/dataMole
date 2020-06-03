@@ -17,7 +17,7 @@
 - [x] FIX WORKBENCH AND FRAME
 - [ ] Remove attribute types from signal
 - [x] Remove tracking from slider
-- [ ] IMPORTANT: Define delegate for factory editor (with Validators)
+- [x] IMPORTANT: Define delegate for factory editor (with Validators)
 - [ ] Add many operations
     - [x] Decide how to handle unknown shape
     - [x] Finish type change editor with table model (for toNumeric)

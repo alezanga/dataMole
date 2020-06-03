@@ -1,7 +1,10 @@
 import copy
+import logging
+from collections import OrderedDict
 from enum import Enum
-from typing import Iterable, List, Dict
+from typing import Iterable, List, Dict, Optional
 
+import sklearn.preprocessing as skp
 from PySide2.QtGui import QIntValidator
 from PySide2.QtWidgets import QHeaderView
 
@@ -27,8 +30,30 @@ class BinsDiscretizer(GraphOperation):
         self.__attributes: Dict[int, int] = dict()
 
     def execute(self, df: data.Frame) -> data.Frame:
-        # TODO: define this
-        pass
+        log = logging.getLogger('graph')
+        frame = copy.deepcopy(df)
+        sortedAttr = OrderedDict(sorted(self.__attributes.items(), key=lambda t: t[0]))
+        columnList = list(sortedAttr.keys())
+        binsList = list(sortedAttr.values())
+        options = 'OPTIONS:\nColumns: ' + str(columnList) + '\n' + 'NBins: ' + str(binsList)
+        f = frame.getRawFrame()
+        # Operation ignores nan values
+        nanRows = f.iloc[:, columnList].isnull()
+        # For every column, transform every non-nan row
+        edges = '\nCOMPUTED BINS:\n'
+        columns = f.columns
+        for col, bins in zip(columnList, binsList):
+            nr = nanRows.loc[:, columns[col]]
+            discretizer = skp.KBinsDiscretizer(n_bins=bins, encode='ordinal',
+                                               strategy=self.__strategy.value)
+            f.iloc[(~nr).to_list(), [col]] = discretizer.fit_transform(f.iloc[(~nr).to_list(), [col]])
+            edges += 'Bin edges for col {:d}: [{}]\n'.format(col, ', '.join(
+                [str(x) for x in discretizer.bin_edges_[0].tolist()]))
+        edges = edges.strip('\n')
+        sample = '\nSAMPLE:\nOriginal columns:\n' + df.getRawFrame().iloc[:5, columnList].to_string() + \
+                 '\nTransformed columns\n: ' + f.iloc[:5, columnList].to_string()
+        log.info(options + edges + sample)
+        return data.Frame(f)
 
     def acceptedTypes(self) -> List[Types]:
         return [Types.Numeric]
@@ -51,7 +76,9 @@ class BinsDiscretizer(GraphOperation):
 
     def getOptions(self) -> Iterable:
         options = dict()
-        options['attributes'] = copy.deepcopy(self.__attributes)
+        options['attributes'] = dict()
+        for r, bins in self.__attributes.items():
+            options['attributes'][r] = {'bins': bins}
         options['strategy'] = self.__strategy
         return options
 
@@ -69,7 +96,8 @@ class BinsDiscretizer(GraphOperation):
 
         errors = list()
         if not attributes:
-            errors.append(('Nooption', 'Error: Select at least one attribute'))
+            errors.append(('Nooption', 'Error: At least one attribute should be selected and filled '
+                                       'with options'))
         for r, options in attributes.items():
             bins = options['bins']
             if not isPositiveInteger(bins):
@@ -78,6 +106,8 @@ class BinsDiscretizer(GraphOperation):
             errors.append(('missingStrategy', 'Error: Strategy must be set'))
         if errors:
             raise OptionValidationError(errors)
+        # Clear attributes
+        self.__attributes = dict()
         # Set options
         for r, options in attributes.items():
             k = int(options['bins'])
@@ -88,7 +118,8 @@ class BinsDiscretizer(GraphOperation):
         factory = OptionsEditorFactory()
         factory.initEditor()
         factory.withAttributeTable('attributes', True, False, True,
-                                   {'bins': ('K', QIntValidator(0, 10000000))})
+                                   {'bins': ('K', QIntValidator(0, 10000000))},
+                                   types=self.acceptedTypes())
         values = [(s.name, s) for s in BinStrategy]
         factory.withRadioGroup('Select strategy:', 'strategy', values)
         e = factory.getEditor()
@@ -97,6 +128,12 @@ class BinsDiscretizer(GraphOperation):
         # Stretch new section
         e.attributes.tableView.horizontalHeader().setSectionResizeMode(3, QHeaderView.Stretch)
         return e
+
+    def getOutputShape(self) -> Optional[data.Shape]:
+        if not self.hasOptions() or self.shapes[0] is None:
+            return None
+        # Shape does not change
+        return self.shapes[0]
 
     @staticmethod
     def minInputNumber() -> int:

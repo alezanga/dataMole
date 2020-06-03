@@ -328,8 +328,8 @@ class AttributeTableModel(QAbstractTableModel):
         if not index.isValid():
             return False
 
-        # Change attribute name
         if role == Qt.EditRole:
+            # Change attribute name
             if index.column() == self.name_pos and value != index.data(Qt.DisplayRole):
                 return self._sourceModel.setHeaderData(index.row(), Qt.Horizontal, value, Qt.EditRole)
             # Toggle checkbox state
@@ -337,6 +337,7 @@ class AttributeTableModel(QAbstractTableModel):
                 i: int = index.row()
                 self._checked[i] = value
                 self.dataChanged.emit(index, index)
+                self.headerDataChanged.emit(Qt.Horizontal, index.column(), index.column())
                 return True
         return False
 

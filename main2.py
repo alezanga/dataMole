@@ -7,7 +7,7 @@ import data_preprocessor.logger as logger
 from data_preprocessor.gui.main import MainWindow
 
 if __name__ == "__main__":
-    logger.setUpLogger()
+    logger.setUpAppLogger()
     QtCore.qInstallMessageHandler(logger.qtMessageHandler)
     app = QApplication([])
     window = MainWindow()
