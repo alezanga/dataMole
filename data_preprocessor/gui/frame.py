@@ -349,6 +349,8 @@ class AttributeTableModel(QAbstractTableModel):
                 return 'Type'
             elif section == self.checkbox_pos:
                 return all(self._checked)
+        elif orientation == Qt.Vertical and role == Qt.DisplayRole:
+            return section
         return None
 
     def flags(self, index: QModelIndex) -> Qt.ItemFlags:
@@ -479,6 +481,7 @@ class SearchableAttributeTableWidget(QWidget):
             self._searchableModel.setFilterKeyColumn(self.__model.name_pos)
             self._searchBar.textChanged.connect(self._searchableModel.setFilterRegExp)
             hh.sectionClicked.connect(self.__model.onHeaderClicked)
+            self.tableView.verticalHeader().setDefaultAlignment(Qt.AlignHCenter)
 
 
 class IncrementalAttributeTableView(QTableView):

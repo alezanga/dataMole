@@ -8,13 +8,13 @@ from PySide2.QtCore import QThreadPool, Slot, QObject, Signal, Qt
 from data_preprocessor import data, logger
 from data_preprocessor.flow.OperationDag import OperationDag, OperationNode
 from data_preprocessor.logger import dataframeDiffLog
+from data_preprocessor.operation.interface.executionlog import ExecutionLog
 from data_preprocessor.status import NodeStatus
 from data_preprocessor.threads import Worker
 
 
 # NOTE: Eventualmente memorizzare con joblib
 # from joblib import Memory
-# TODO: log should be done only when finished
 
 class OperationHandler:
     """ Executes a DAG """
@@ -42,14 +42,12 @@ class OperationHandler:
         # Create a logger for the execution
         logger.setUpGraphLogger()
         logging.getLogger('graph').info('OPERATION LOG')
+        logging.getLogger('graph').info('Execution time: {}\n'.format(datetime.now()))
 
         for node in input_nodes:
             self.startNode(node)
 
     def startNode(self, node: OperationNode):
-        # Log operation name id
-        logging.getLogger('graph').info('### {} - {} (ID {:d})'.format(str(datetime.now()),
-                                                                       node.operation.name(), node.uid))
         worker = Worker(node, identifier=node.uid)
         # Connect
         worker.signals.result.connect(self.__qtSlots.nodeCompleted, Qt.QueuedConnection)
@@ -106,10 +104,19 @@ class _HandlerSlots(QObject):
         self.handler.signals.statusChanged.emit(node_id, NodeStatus.SUCCESS)
         # Clear eventual input, since now I have result
         node = self.handler.graph.nodes[node_id]['op']
+        # LOG OPERATION
+        logEntry = ''
+        # Log name id
+        logEntry += '####### {:s} (ID {:d})\nTimestamp: {}\n'.format(node.operation.name(),
+                                                                     node.uid, str(datetime.now()))
+        if isinstance(node.operation, ExecutionLog):
+            # The operation has something to log
+            logEntry += node.operation.logMessage().rstrip('\n')
         if node.nInputs == 1 and result is not None:
             # If the operation transform a single input, then finds out which columns changed
-            diffLog = dataframeDiffLog(node.inputs[0], result)
-            logging.getLogger('graph').info(diffLog + '\n')
+            logEntry += dataframeDiffLog(node.inputs[0], result)
+        logging.getLogger('graph').info(logEntry + '\n')
+        # Delete inputs
         node.clearInputArgument()
         # Remove from task list
         self.handler.toExecute.remove(node_id)

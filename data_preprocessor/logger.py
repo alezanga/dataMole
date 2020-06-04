@@ -7,11 +7,12 @@ from PySide2.QtCore import QtMsgType, QMessageLogContext
 
 LEVEL = logging.DEBUG
 LOG_FOLDER = 'logs'
-# contains path of current file log
+# Contains path of current file log
 LOG_PATH = ''
 
 
 def qtMessageHandler(msg_type: QtMsgType, context: QMessageLogContext, msg: str):
+    """ Redirects Qt messages to logging """
     rec = logging.makeLogRecord({
         'lineno': context.line,
         'filename': context.file,
@@ -30,7 +31,7 @@ def qtMessageHandler(msg_type: QtMsgType, context: QMessageLogContext, msg: str)
 
 
 def setUpGraphLogger():
-    """ Set up a new log file in folder logs/graph to log the execution of a computational graph """
+    """ Set up a new log file in folder logs/graph to log every execution of a computational graph """
     log_path = os.path.join(os.getcwd(), LOG_FOLDER, 'graph')
     if not os.path.exists(log_path):
         os.mkdir(log_path)
@@ -48,6 +49,7 @@ def setUpGraphLogger():
 
 
 def setUpAppLogger() -> None:
+    """ Sets up a root logger with everything """
     log_path = os.path.join(os.getcwd(), LOG_FOLDER, 'app')
     if not os.path.exists(log_path):
         os.mkdir(log_path)
@@ -62,6 +64,11 @@ def setUpAppLogger() -> None:
 
 
 def dataframeDiffLog(df1, df2) -> str:
+    """ Returns a log message with the main differences between the two dataframes
+
+    :param df1: the original Frame
+    :param df2: the transformed Frame
+    """
     shape1 = df1.shape
     shape2 = df2.shape
     cols1 = set(zip(shape1.col_names, shape1.col_types))
@@ -73,10 +80,12 @@ def dataframeDiffLog(df1, df2) -> str:
     newSeries.index.name = 'Column'
     dropSeries = pd.Series({n: t for (n, t) in dropCols})
     dropSeries.index.name = 'Column'
-    msg = 'CHANGES:\nNew columns added: {}\nColumns dropped: {}\n'.format('\n' + str(newSeries) if
-                                                                          not newSeries.empty else None,
-                                                                          '\n' + str(dropSeries) if
-                                                                          not dropSeries.empty else None)
+    msg = '\nCHANGES:\nNew columns added: {}\nColumns dropped: {}\n'.format('\n' + str(newSeries) if
+                                                                            not newSeries.empty else None,
+                                                                            '\n' + str(dropSeries) if
+                                                                            not dropSeries.empty else None)
+    msg += 'Original number of columns: {:d}\nNew number of columns: {:d}\n'.format(shape1.n_columns,
+                                                                                    shape2.n_columns)
     msg += 'Original number of rows: {:d}\nNew number of rows: {:d}'.format(df1.nRows, df2.nRows)
     return msg
 
