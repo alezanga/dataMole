@@ -1,11 +1,12 @@
 import logging
 
-from PySide2.QtCore import Slot, QThreadPool
-from PySide2.QtWidgets import QTreeView, QTabWidget, QWidget, QVBoxLayout, \
-    QHBoxLayout, QMainWindow, QMenuBar, QAction
+from PySide2.QtCore import Slot, QThreadPool, Qt
+from PySide2.QtWidgets import QTabWidget, QWidget, QMainWindow, QMenuBar, QAction, QSplitter, \
+    QHBoxLayout
 
 from data_preprocessor.flow.OperationDag import OperationDag
 from data_preprocessor.gui.attributepanel import AttributePanel
+from data_preprocessor.gui.framepanel import FramePanel
 from data_preprocessor.gui.graph.controller import GraphController
 from data_preprocessor.gui.graph.scene import GraphScene
 from data_preprocessor.gui.graph.view import GraphView
@@ -21,7 +22,7 @@ class MainWidget(QWidget):
         super().__init__(parent)
         self.workbench_model = WorkbenchModel(self)
         self.graph = OperationDag()
-        self.__genericView = QTreeView()
+        self.__genericView = FramePanel(self)
         self.__operationMenu = OperationMenu()
         workbenchView = WorkbenchView()
         workbenchView.setModel(self.workbench_model)
@@ -41,28 +42,32 @@ class MainWidget(QWidget):
         tabs.addTab(flowTab, 'F&low')
         self.__curr_tab = tabs.currentIndex()
 
-        self.__leftSide = QVBoxLayout()
-        self.__leftSide.addWidget(self.__genericView, 0)
-        self.__leftSide.addWidget(workbenchView, 0)
+        self.__leftSide = QSplitter(Qt.Vertical)
+        self.__leftSide.addWidget(self.__genericView)
+        self.__leftSide.addWidget(workbenchView)
 
-        layout = QHBoxLayout()
-        layout.addLayout(self.__leftSide, 2)
-        layout.addWidget(tabs, 8)
+        # layout = QHBoxLayout()
+        # layout.addWidget(leftSplit, 2)
+        # layout.addWidget(tabs, 8)
+        splitter = QSplitter(Qt.Horizontal, self)
+        splitter.addWidget(self.__leftSide)
+        splitter.addWidget(tabs)
+        layout = QHBoxLayout(self)
+        layout.addWidget(splitter)
 
         tabs.currentChanged.connect(self.switch_view)
         workbenchView.selectedRowChanged.connect(attributeTab.onFrameSelectionChanged)
-
-        self.setLayout(layout)
+        workbenchView.selectedRowChanged.connect(attributeTab.onFrameSelectionChanged)
 
     @Slot(int)
     def switch_view(self, tab_index: int) -> None:
         if tab_index == 2:
-            self.__leftSide.replaceWidget(self.__genericView, self.__operationMenu)
+            self.__leftSide.replaceWidget(0, self.__operationMenu)
             self.__genericView.hide()
             self.__operationMenu.show()
             self.__curr_tab = 2
         elif self.__curr_tab == 2 and tab_index != 2:
-            self.__leftSide.replaceWidget(self.__operationMenu, self.__genericView)
+            self.__leftSide.replaceWidget(0, self.__genericView)
             self.__operationMenu.hide()
             self.__genericView.show()
             self.__curr_tab = tab_index

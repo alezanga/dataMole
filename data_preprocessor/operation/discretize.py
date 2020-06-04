@@ -321,7 +321,7 @@ class RangeDiscretizer(GraphOperation, ExecutionLog):
                                'Error: Bin edges are not valid numbers at row {:d}'.format(row)))
             else:
                 edges: List[float] = [float(x) for x in stringEdges]
-            bins: List[str] = opts['labels'].strip(' ').split(' ')
+            bins: List[str] = [b for b in opts['labels'].strip(' ').split(' ') if b]
             labNum = len(stringEdges) - 1
             if len(bins) != labNum:
                 errors.append(('invalidLabels',
