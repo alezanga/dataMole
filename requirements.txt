@@ -1,10 +1,10 @@
-pytest~=5.4.2
+pytest~=5.4.3
 PySide2~=5.14.2.1
 numpy~=1.18.4
 scipy~=1.4.1
 psutil~=5.7.0
 setuptools~=46.4.0
-pandas~=1.0.3
+pandas~=1.0.4
 networkx~=2.4
 dask~=2.12.0
 sklearn~=0.0

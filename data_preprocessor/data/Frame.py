@@ -14,6 +14,16 @@ _mixed = [0.2, 1, 'some', np.nan, 'many']
 _numeric = [0.3, 1, 2, 7, 11.1]
 
 
+def integerToFloat(df: pd.DataFrame) -> pd.DataFrame:
+    """ Converts every integer column to float column """
+    integerCols = df.select_dtypes(include=int).columns.to_list()
+    if not integerCols:
+        return df
+    cdf = df.copy(True)
+    cdf.loc[:, integerCols] = df.loc[:, integerCols].astype(float)
+    return cdf
+
+
 class Frame:
     """
     Interface for common dataframe operations
@@ -26,6 +36,8 @@ class Frame:
             self.__df: pd.DataFrame = data.to_frame()
         else:
             self.__df: pd.DataFrame = pd.DataFrame(data)
+        # For simplicity every int column is treated as float
+        self.__df = integerToFloat(self.__df)
 
     def getRawFrame(self) -> pd.DataFrame:
         return self.__df

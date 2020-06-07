@@ -140,7 +140,7 @@ def test_unsetOptions_toCategory():
 def test_str_toCategory():
     d = {'col1': pd.Categorical([3, 0, 5, 6, 0]),
          'col2': [3, 4, 5.1, 6, 0],
-         'col3': ['123', '2', '0.43', '4', '90']}
+         'col3': ['123', '2', '0.43', 'nan', '90']}
 
     # 'cold': pd.Series(['05-09-1988', '22-12-1994', '21-11-1995', '22-06-1994', '12-12-2012'],
     #                   dtype='datetime64[ns]')}
@@ -167,7 +167,7 @@ def test_str_toCategory():
     g = op.execute(f)
     gd = {'col1': [3, 0, 5, 6, 0],
           'col2': [3, 4, 5.1, 6, 0],
-          'col3': ['123', '2', '0.43', '4', '90']}
+          'col3': ['123', '2', '0.43', 'nan', '90']}
     assert g.to_dict() == gd
     assert g.shape.col_type_dict == os
 
@@ -175,6 +175,7 @@ def test_str_toCategory():
 def test_num_toCategory():
     d = {'col1': pd.Categorical([3, 0, 5, 6, 0]),
          'col2': [3, 4, 5.1, 6, 0],
+         'col4': [1, 2, 3, 4, 5],  # this will become a float
          'col3': ['123', '2', '0.43', '4', '90']}
 
     # 'cold': pd.Series(['05-09-1988', '22-12-1994', '21-11-1995', '22-06-1994', '12-12-2012'],
@@ -183,11 +184,12 @@ def test_num_toCategory():
 
     op = ToCategoricalOp()
     op.addInputShape(f.shape, pos=0)
-    op.setOptions(attribute_indexes=[1])
+    op.setOptions(attribute_indexes=[1, 2])
 
     # Predict output shape
     os = copy.deepcopy(f.shape).col_type_dict
     os['col2'] = Types.Categorical
+    os['col4'] = Types.Categorical
     assert op.getOutputShape().col_type_dict == os
 
     # Removing options/input_shape causes None to be returned
@@ -196,13 +198,14 @@ def test_num_toCategory():
     op.addInputShape(f.shape, pos=0)
     op.unsetOptions()
     assert op.getOutputShape() is None
-    op.setOptions(attribute_indexes=[1])
+    op.setOptions(attribute_indexes=[1, 2])
     assert op.getOutputShape().col_type_dict == os  # Re-adding everything
 
     g = op.execute(f)
     gd = {'col1': [3, 0, 5, 6, 0],
-          'col2': [3, 4, 5.1, 6, 0],
-          'col3': ['123', '2', '0.43', '4', '90']}
+          'col2': ["3.0", "4.0", "5.1", "6.0", "0.0"],
+          'col3': ['123', '2', '0.43', '4', '90'],
+          'col4': ["1.0", "2.0", "3.0", "4.0", "5.0"]}
     assert g.to_dict() == gd
     assert g.shape.col_type_dict == os
 

@@ -15,7 +15,9 @@ def test_discretize_num_uniform():
                   drop=True)
 
     op.addInputShape(f.shape, 0)
-    s = f.shape.copy()
+    s = f.shape.copy(True)
+    s.col_types[0] = Types.Categorical
+    s.col_types[1] = Types.Categorical
     assert op.getOutputShape() == s
 
     g = op.execute(f)
@@ -38,8 +40,8 @@ def test_discretize_num_uniform_nondrop():
     s = f.shape.copy(True)
     s.col_names.append('col1_discretized')
     s.col_names.append('col2_discretized')
-    s.col_types.append(Types.Numeric)
-    s.col_types.append(Types.Numeric)
+    s.col_types.append(Types.Categorical)
+    s.col_types.append(Types.Categorical)
     s.n_columns += 2
     assert op.getOutputShape() == s
 

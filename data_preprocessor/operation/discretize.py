@@ -17,7 +17,7 @@ from data_preprocessor.gui.generic.OptionsEditorFactory import OptionsEditorFact
 from data_preprocessor.operation.interface.exceptions import OptionValidationError
 from data_preprocessor.operation.interface.executionlog import ExecutionLog
 from data_preprocessor.operation.interface.graph import GraphOperation
-from data_preprocessor.operation.validators import NumericListValidator, MixedListValidator
+from data_preprocessor.operation.utils import NumericListValidator, MixedListValidator
 
 
 class BinStrategy(Enum):
@@ -54,10 +54,12 @@ class BinsDiscretizer(GraphOperation, ExecutionLog):
             result = discretizer.fit_transform(f.iloc[(~nr).to_list(), [col]])
             if self.__dropTransformed:
                 f.iloc[(~nr).to_list(), [col]] = result
+                f.iloc[:, col] = f.iloc[:, col].astype('category')
             else:
                 colName: str = self.shapes[0].col_names[col] + '_discretized'
                 f.loc[:, colName] = np.nan
                 f.loc[(~nr).to_list(), [colName]] = result
+                f.loc[:, colName] = f.loc[:, colName].astype('category')
             edges += 'Bin edges for col {:d}: [{}]\n'.format(col, ', '.join(
                 [str(x) for x in discretizer.bin_edges_[0].tolist()]))
         edges = edges.strip('\n')
@@ -150,17 +152,18 @@ class BinsDiscretizer(GraphOperation, ExecutionLog):
     def getOutputShape(self) -> Optional[data.Shape]:
         if not self.hasOptions() or self.shapes[0] is None:
             return None
+        s = self.shapes[0].copy(True)
         if self.__dropTransformed:
             # Shape does not change
-            return self.shapes[0]
+            for col in self.__attributes.keys():
+                s.col_types[col] = Types.Categorical
         else:
-            s = self.shapes[0].copy(True)
             for col in self.__attributes.keys():
                 colName: str = self.shapes[0].col_names[col] + '_discretized'
                 s.col_names.append(colName)  # new column with suffix
-                s.col_types.append(s.col_types[col])  # same type as original column
+                s.col_types.append(Types.Categorical)
                 s.n_columns += 1
-            return s
+        return s
 
     @staticmethod
     def minInputNumber() -> int:

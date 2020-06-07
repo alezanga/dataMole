@@ -115,8 +115,12 @@ class ToCategoricalOp(GraphOperation):
             return df
         # Deep copy
         raw_df = df.getRawFrame().copy(deep=True)
-        raw_df.iloc[:, self.__attributes] = raw_df.iloc[:, self.__attributes] \
-            .apply(lambda c: c.astype(dtype=inv_type_dict[Types.Categorical], errors='raise'))
+        # To string
+        raw_df.iloc[:, self.__attributes] = raw_df.iloc[:, self.__attributes].astype(
+            dtype=str, errors='raise')
+        # To category
+        raw_df.iloc[:, self.__attributes] = raw_df.iloc[:, self.__attributes].astype(
+            dtype=inv_type_dict[Types.Categorical], errors='raise')
         return data.Frame(raw_df)
 
     @staticmethod
