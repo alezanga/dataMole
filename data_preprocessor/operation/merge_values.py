@@ -10,7 +10,8 @@ from data_preprocessor.gui.frame import FrameModel
 from data_preprocessor.gui.generic.OptionsEditorFactory import OptionsEditorFactory
 from data_preprocessor.operation.interface.exceptions import OptionValidationError
 from data_preprocessor.operation.interface.graph import GraphOperation
-from data_preprocessor.operation.utils import ManyMixedListsValidator, MixedListValidator, splitList
+from data_preprocessor.operation.utils import ManyMixedListsValidator, MixedListValidator, splitList, \
+    parseNan, joinList
 
 
 def isValidFloat(x):
@@ -43,21 +44,6 @@ def floatList(values: List, invalid: str) -> List:
         elif invalid == 'nan':
             floatValues.append(np.nan)
     return floatValues
-
-
-def parseNan(values: List):
-    """
-    Converts string values 'nan' as actual pandas nan values
-
-    :param values:
-    :return: new list with nan values
-    """
-    newValues = list()
-    for el in values:
-        if str(el).lower() == 'nan':
-            el = np.nan
-        newValues.append(el)
-    return newValues
 
 
 class MergeValuesOp(GraphOperation):
@@ -126,7 +112,7 @@ class MergeValuesOp(GraphOperation):
                 raise OptionValidationError([('wrongnum', 'Error: number of intervals is not equal to '
                                                           'the number of values to replace at row {:d}'
                                               .format(c))])
-            parsedValues: List[List[str]] = [splitList(s, '\\s') for s in lists]
+            parsedValues: List[List[str]] = [splitList(s, ' ') for s in lists]
             if type_c == Types.Numeric:
                 if not all(map(isValidFloat, replace)):
                     err = ('numericinvalid', 'Error: list of values to replace contains non '
@@ -155,10 +141,10 @@ class MergeValuesOp(GraphOperation):
         options['table'] = dict()
         for c, opt in self.__attributes.items():
             # Convert every internal list into a string separated by spaces
-            s: List[str] = list(map(lambda x: ' '.join(map(str, x)), opt[0]))
+            s: List[str] = list(map(lambda x: joinList(x, sep=' '), opt[0]))
             options['table'][c] = {
-                'values': '; '.join(s),
-                'replace': '; '.join([str(a) for a in opt[1]])
+                'values': joinList(s, sep='; '),
+                'replace': joinList(opt[1], sep='; ')
             }
         options['inverted'] = self.__invertedReplace
         return options
@@ -167,7 +153,7 @@ class MergeValuesOp(GraphOperation):
         factory = OptionsEditorFactory()
         options = {
             'values': ('Values', ManyMixedListsValidator()),
-            'replace': ('Replace with', MixedListValidator(sep=';'))
+            'replace': ('Replace with', MixedListValidator())
         }
         factory.initEditor()
         factory.withAttributeTable('table', True, False, True, options, self.acceptedTypes())

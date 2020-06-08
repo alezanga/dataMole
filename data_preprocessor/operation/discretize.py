@@ -17,7 +17,8 @@ from data_preprocessor.gui.generic.OptionsEditorFactory import OptionsEditorFact
 from data_preprocessor.operation.interface.exceptions import OptionValidationError
 from data_preprocessor.operation.interface.executionlog import ExecutionLog
 from data_preprocessor.operation.interface.graph import GraphOperation
-from data_preprocessor.operation.utils import NumericListValidator, MixedListValidator
+from data_preprocessor.operation.utils import NumericListValidator, MixedListValidator, splitList, \
+    joinList
 
 
 class BinStrategy(Enum):
@@ -51,7 +52,7 @@ class BinsDiscretizer(GraphOperation, ExecutionLog):
             nr = nanRows.loc[:, columns[col]]
             discretizer = skp.KBinsDiscretizer(n_bins=bins, encode='ordinal',
                                                strategy=self.__strategy.value)
-            result = discretizer.fit_transform(f.iloc[(~nr).to_list(), [col]])
+            result = discretizer.fit_transform(f.iloc[(~nr).to_list(), [col]]).astype(str)
             if self.__dropTransformed:
                 f.iloc[(~nr).to_list(), [col]] = result
                 f.iloc[:, col] = f.iloc[:, col].astype('category')
@@ -119,7 +120,7 @@ class BinsDiscretizer(GraphOperation, ExecutionLog):
         for r, options in attributes.items():
             bins = options['bins']
             if not isPositiveInteger(bins):
-                errors.append(('binsNotInt', 'Error: Number of bins must be a positive integer'))
+                errors.append(('binsNotInt', 'Error: Number of bins must be > 1'))
         if strategy is None:
             errors.append(('missingStrategy', 'Error: Strategy must be set'))
         if errors:
@@ -196,26 +197,25 @@ class RangeDiscretizer(GraphOperation, ExecutionLog):
         for c, o in self.__attributes.items():
             result = pd.cut(f.iloc[:, c], bins=o[0], labels=o[1], duplicates='drop')
             colName: str = self.shapes[0].col_names[c]
+            newColName: str = colName if self.__dropTransformed else colName + '_bins'
             self.__logMessage += '\n\'{}\' => bins: {}, labels: {}'.format(colName, o[0], o[1])
-            if self.__dropTransformed:
-                f.iloc[:, c] = result
-            else:
-                f.loc[:, colName + '_bins'] = result
+            f.loc[:, newColName] = result
         return data.Frame(f)
 
     def getOutputShape(self) -> Optional[data.Shape]:
         if self.shapes[0] is None and not self.hasOptions():
             return None
+        s = self.shapes[0].copy(True)
         if self.__dropTransformed:
-            return self.shapes[0]
+            for c in self.__attributes.keys():
+                s.col_types[c] = Types.Categorical
         else:
-            s = self.shapes[0].copy(True)
             for c in self.__attributes.keys():
                 colName: str = s.col_names[c] + '_bins'
                 s.col_names.append(colName)
                 s.col_types.append(Types.Categorical)
                 s.n_columns += 1
-            return s
+        return s
 
     @staticmethod
     def name() -> str:
@@ -261,9 +261,9 @@ class RangeDiscretizer(GraphOperation, ExecutionLog):
         options = dict()
         options['table'] = dict()
         for row, opt in self.__attributes.items():
-            options['table'][row] = {'bins': ' '.join(map(str, opt[0])),
-                                     'labels': ' '.join(map(str, opt[1]))}
-        options['drop'] = self.__dropTransformed
+            options['table'][row] = {'bins': joinList(opt[0], sep=' '),
+                                     'labels': joinList(opt[1], sep=' ')}
+            options['drop'] = self.__dropTransformed
         return options
 
     def getEditor(self) -> AbsOperationEditor:
@@ -317,14 +317,14 @@ class RangeDiscretizer(GraphOperation, ExecutionLog):
             if not opts.get('bins', None) or not opts.get('labels', None):
                 errors.append(('notSet', 'Error: options at row {:d} are not set'.format(row)))
                 raise OptionValidationError(errors)
-            stringList: str = opts['bins'].strip(' ')
-            stringEdges: List[str] = [s for s in stringList.split(' ') if bool(s)]
+            stringList: str = opts['bins']
+            stringEdges: List[str] = splitList(stringList, sep=' ')
             if not all([isValidEdge(v) for v in stringEdges]):
                 errors.append(('invalidFloat',
                                'Error: Bin edges are not valid numbers at row {:d}'.format(row)))
             else:
                 edges: List[float] = [float(x) for x in stringEdges]
-            bins: List[str] = [b for b in opts['labels'].strip(' ').split(' ') if b]
+            bins: List[str] = splitList(opts['labels'], sep=' ')
             labNum = len(stringEdges) - 1
             if len(bins) != labNum:
                 errors.append(('invalidLabels',

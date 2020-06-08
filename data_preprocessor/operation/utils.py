@@ -1,6 +1,7 @@
 import re
 from typing import List
 
+import numpy as np
 from PySide2.QtCore import QRegExp, QLocale
 from PySide2.QtGui import QRegExpValidator, QValidator, QIntValidator, QDoubleValidator
 
@@ -20,8 +21,46 @@ def splitList(string: str, sep: str) -> List[str]:
     # Split on separator
     listS = re.split('({})(?=(?:"[^"]*"|[^"])*$)'.format(sepPattern), string)
     # Filter away separators
-    listS = [s.strip('"') for s in listS if not re.fullmatch(sepPattern, s)]
+    listS = [s.strip('"  \\s') for s in listS if not re.fullmatch(sepPattern, s)]
     return listS
+
+
+def joinList(values: List, sep: str) -> str:
+    """
+    Takes a list of values and a separator and returns a string with every value separated by a separator
+    It's similar to str.join but takes care to add ' " ' around a value if it contains the separator
+
+    :param values: values to join in a string
+    :param sep: the string separator
+    :return: the string representation of the list of values, with 'sep' as separator
+    """
+    result = list()
+    for v in values:
+        s: str
+        if isinstance(v, str):
+            if sep in v:
+                s = '"{}"'.format(v)
+            else:
+                s = v.strip(' \\s')
+        else:
+            s = str(v)
+        result.append(s)
+    return sep.join(result)
+
+
+def parseNan(values: List):
+    """
+    Converts string values 'nan' as actual pandas nan values
+
+    :param values:
+    :return: new list with nan values
+    """
+    newValues = list()
+    for el in values:
+        if str(el).lower() == 'nan':
+            el = np.nan
+        newValues.append(el)
+    return newValues
 
 
 class NumericListValidator(QValidator):
@@ -47,9 +86,8 @@ class NumericListValidator(QValidator):
 class MixedListValidator(QValidator):
     # _regexp = QRegExp('((\\S+)|(\'.+\'))({}((\\S+)|(\'.+\')))*')
 
-    def __init__(self, sep: str, parent=None):
+    def __init__(self, parent=None):
         super().__init__(parent)
-        self.__sep = sep
         self.__regexp = '[^\']*'
 
     def validate(self, inputString: str, pos: int) -> QValidator.State:
@@ -76,7 +114,7 @@ class ManyMixedListsValidator(QValidator):
     def validate(self, inputString: str, pos: int) -> QValidator.State:
         inputString = inputString.strip(' ')
         lists = splitList(inputString, sep=';')
-        val = MixedListValidator(sep='\\s')
+        val = MixedListValidator()
         for s in lists:
             if val.validate(s, 0) == QValidator.Invalid:
                 return QValidator.Invalid

@@ -1,14 +1,18 @@
 import logging
 from operator import itemgetter
-from typing import List, Union, Iterable
+from typing import List, Union, Iterable, Dict, Optional
 
-from PySide2.QtWidgets import QWidget
+from PySide2.QtWidgets import QWidget, QHeaderView
+from pandas.api.types import CategoricalDtype
 
 from data_preprocessor import data
 from data_preprocessor.data.types import Types, inv_type_dict
 from data_preprocessor.gui.editor.interface import AbsOperationEditor
+from .interface.exceptions import OptionValidationError
 from .interface.graph import GraphOperation
+from .utils import MixedListValidator, splitList, joinList
 from ..gui.frame import SearchableAttributeTableWidget, FrameModel
+from ..gui.generic.OptionsEditorFactory import OptionsEditorFactory
 
 
 class ToNumericOp(GraphOperation):
@@ -98,7 +102,7 @@ class ToNumericOp(GraphOperation):
 class ToCategoricalOp(GraphOperation):
     def __init__(self):
         super().__init__()
-        self.__attributes: List[int] = list()
+        self.__attributes: Dict[int, Optional[List[str]]] = dict()
 
     def hasOptions(self) -> bool:
         if self.__attributes:
@@ -106,21 +110,22 @@ class ToCategoricalOp(GraphOperation):
         return False
 
     def execute(self, df: data.Frame) -> data.Frame:
-        # If type of attribute is not accepted
-        columns = df.shape.col_types
-        items = itemgetter(*self.__attributes)(columns)
-        if not all(map(lambda x: x in self.acceptedTypes(),
-                       items if isinstance(items, tuple) else (items,))):
-            logging.debug('Type not supported for operation {}'.format(self.name()))
-            return df
         # Deep copy
         raw_df = df.getRawFrame().copy(deep=True)
         # To string
-        raw_df.iloc[:, self.__attributes] = raw_df.iloc[:, self.__attributes].astype(
+        columnIndexes = list(self.__attributes.keys())
+        isNan = raw_df.iloc[:, columnIndexes].isnull()
+        raw_df.iloc[(~isNan).index, columnIndexes] = raw_df.iloc[(~isNan).index, columnIndexes].astype(
             dtype=str, errors='raise')
+        colNames = df.shape.col_names
         # To category
-        raw_df.iloc[:, self.__attributes] = raw_df.iloc[:, self.__attributes].astype(
-            dtype=inv_type_dict[Types.Categorical], errors='raise')
+        conversions: Dict[str, CategoricalDtype] = dict([
+            (lambda x: (colNames[x[0]], CategoricalDtype(categories=x[1],
+                                                         ordered=False)))(x) for x in
+            self.__attributes.items()
+        ])
+        raw_df.iloc[:, columnIndexes] = raw_df.iloc[:, columnIndexes].astype(
+            dtype=conversions, errors='raise')
         return data.Frame(raw_df)
 
     @staticmethod
@@ -132,22 +137,50 @@ class ToCategoricalOp(GraphOperation):
                'new category'
 
     def acceptedTypes(self) -> List[Types]:
-        return [Types.String, Types.Numeric]
+        return [Types.String, Types.Numeric, Types.Categorical]
 
-    def setOptions(self, attribute_indexes: List[int]) -> None:
-        self.__attributes = attribute_indexes
+    def setOptions(self, attributes: Dict[int, Dict[str, str]]) -> None:
+        if not attributes:
+            raise OptionValidationError([('nooptions', 'Error: options are not set for any attribute')])
+        options: Dict[int, Optional[List[str]]] = dict()
+        for c, opt in attributes.items():
+            # if not opt:
+            #     raise OptionValidationError(
+            #         [('notset', 'Error: options at row {:d} are not fully set'.format(c))])
+            catString: Optional[str] = opt.get('cat', None)
+            categories: Optional[List[str]] = None
+            if catString:
+                categories = splitList(catString, sep=' ')
+                if not categories:
+                    categories = None
+            options[c] = categories
+        # Options are correctly set
+        self.__attributes = options
 
     def unsetOptions(self) -> None:
-        self.__attributes = list()
+        self.__attributes = dict()
 
     def needsOptions(self) -> bool:
         return True
 
     def getOptions(self) -> Iterable:
-        return [self.__attributes]
+        options: Dict[int, Dict[str, str]] = dict()
+        for c, opt in self.__attributes.items():
+            options[c] = {'cat': joinList(opt, sep=' ') if opt else ''}
+        return {'attributes': options}
 
     def getEditor(self) -> AbsOperationEditor:
-        return _SelectAttribute()
+        factory = OptionsEditorFactory()
+        factory.initEditor()
+        factory.withAttributeTable('attributes', True, False, True, {'cat': ('Categories',
+                                                                             MixedListValidator())},
+                                   types=self.acceptedTypes())
+        e = factory.getEditor()
+        # Set frame model
+        e.attributes.setSourceFrameModel(FrameModel(e, self.shapes[0]))
+        # Stretch new section
+        e.attributes.tableView.horizontalHeader().setSectionResizeMode(3, QHeaderView.Stretch)
+        return e
 
     def getOutputShape(self) -> Union[data.Shape, None]:
         if not self.hasOptions() or not self._shapes[0]:
@@ -189,9 +222,8 @@ class _SelectAttribute(AbsOperationEditor):
         self.__searchableTable = SearchableAttributeTableWidget(checkable=True,
                                                                 showTypes=True,
                                                                 filterTypes=self.acceptedTypes)
-        # self.__selection_box = opw.AttributeComboBox(self.inputShapes[0], self.acceptedTypes,
-        #                                              parent=self)
         self.__searchableTable.setSourceFrameModel(FrameModel(self, self.inputShapes[0]))
+
         return self.__searchableTable
 
     def getOptions(self) -> List[List[int]]:

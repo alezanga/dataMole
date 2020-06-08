@@ -79,7 +79,7 @@ class AttributeTableWithOptions(AttributeTableModel):
         # Change option name
         if role == Qt.EditRole:
             if index.column() in self._optionsPos.keys():
-                if value and self.data(index, Qt.DisplayRole) != value:
+                if self.data(index, Qt.DisplayRole) != value:
                     optionsForRow = self._options.get(index.row(), dict())
                     entry = {self._optionsPos[index.column()]: value}
                     optionsForRow.update(entry)
