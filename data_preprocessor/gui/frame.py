@@ -52,6 +52,10 @@ class FrameModel(QAbstractTableModel):
     def frame(self) -> Frame:
         return self.__frame
 
+    @property
+    def shape(self) -> Shape:
+        return self.__shape
+
     def setFrame(self, frame: Frame) -> None:
         self.beginResetModel()
         self.__frame = frame

@@ -1,7 +1,7 @@
 # TODO
 - [ ] CHECK: race condition when connecting QRunnable to same slot? (onWorkerSuccess)
 - [ ] CHECK: why sometimes flow does not add edge
-- [ ] FIX: gridLayout in graph
+- [x] FIX: gridLayout in graph
 - [x] FIX: toCategory asked options even if it shouldn't (validation problem)
 - [ ] FIX !!: checkedAttributes should work also when checking header checkbox in a FILTERED model
 - [ ] IMPROVE: refactor frame models with interfaces??
