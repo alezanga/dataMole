@@ -141,7 +141,7 @@ class ToCategoricalOp(GraphOperation):
 
     def setOptions(self, attributes: Dict[int, Dict[str, str]]) -> None:
         if not attributes:
-            raise OptionValidationError([('nooptions', 'Error: options are not set for any attribute')])
+            raise OptionValidationError([('nooptions', 'Error: select at least one attribute')])
         options: Dict[int, Optional[List[str]]] = dict()
         for c, opt in attributes.items():
             # if not opt:

@@ -115,12 +115,13 @@ class BinsDiscretizer(GraphOperation, ExecutionLog):
 
         errors = list()
         if not attributes:
-            errors.append(('Nooption', 'Error: At least one attribute should be selected and filled '
-                                       'with options'))
+            errors.append(('nosel', 'Error: At least one attribute should be selected'))
         for r, options in attributes.items():
-            bins = options['bins']
-            if not isPositiveInteger(bins):
-                errors.append(('binsNotInt', 'Error: Number of bins must be > 1'))
+            bins = options.get('bins', None)
+            if not bins:
+                errors.append(('nooption', 'Error: Number of bins must be set at row {:d}'.format(r)))
+            elif not isPositiveInteger(bins):
+                errors.append(('binsNotInt', 'Error: Number of bins must be > 1 at row {:d}'.format(r)))
         if strategy is None:
             errors.append(('missingStrategy', 'Error: Strategy must be set'))
         if errors:

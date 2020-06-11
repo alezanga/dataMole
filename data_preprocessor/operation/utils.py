@@ -2,10 +2,11 @@ import re
 from typing import List
 
 import numpy as np
-from PySide2.QtCore import QRegExp, QLocale
-from PySide2.QtGui import QRegExpValidator, QValidator, QIntValidator, QDoubleValidator
+from PySide2.QtCore import QLocale
+from PySide2.QtGui import QValidator, QIntValidator, QDoubleValidator
 
-doubleListValidator = QRegExpValidator(QRegExp('(\\d+(\\.\\d)?\\d*)(\\,\\s?(\\d+(\\.\\d)?\\d*))*'))
+
+# doubleListValidator = QRegExpValidator(QRegExp('(\\d+(\\.\\d)?\\d*)(\\,\\s?(\\d+(\\.\\d)?\\d*))*'))
 
 
 def splitList(string: str, sep: str) -> List[str]:
@@ -21,7 +22,7 @@ def splitList(string: str, sep: str) -> List[str]:
     # Split on separator
     listS = re.split('({})(?=(?:"[^"]*"|[^"])*$)'.format(sepPattern), string)
     # Filter away separators
-    listS = [s.strip('"  \\s') for s in listS if not re.fullmatch(sepPattern, s)]
+    listS = [s.strip('" \b') for s in listS if not re.fullmatch(sepPattern, s)]
     return listS
 
 
@@ -41,7 +42,7 @@ def joinList(values: List, sep: str) -> str:
             if sep in v:
                 s = '"{}"'.format(v)
             else:
-                s = v.strip(' \\s')
+                s = v.strip(' \b')
         else:
             s = str(v)
         result.append(s)

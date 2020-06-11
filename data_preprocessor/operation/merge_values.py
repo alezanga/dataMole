@@ -94,7 +94,7 @@ class MergeValuesOp(GraphOperation):
 
     def setOptions(self, table: Dict[int, Dict[str, str]], inverted: bool) -> None:
         if not table:
-            raise OptionValidationError([('nooptions', 'Error: options are not set for any attribute')])
+            raise OptionValidationError([('nooptions', 'Error: no attributes are selected')])
         options: Dict[int, Tuple[List[List], List]] = dict()
         for c, opt in table.items():
             type_c = self.shapes[0].col_types[c]
@@ -116,7 +116,7 @@ class MergeValuesOp(GraphOperation):
             if type_c == Types.Numeric:
                 if not all(map(isValidFloat, replace)):
                     err = ('numericinvalid', 'Error: list of values to replace contains non '
-                                             'numeric value at row {}, but selected attribute '
+                                             'numeric value at row {:d}, but selected attribute '
                                              'is numeric'.format(c))
                     raise OptionValidationError([err])
                 replace: List[float] = [float(x) for x in replace]

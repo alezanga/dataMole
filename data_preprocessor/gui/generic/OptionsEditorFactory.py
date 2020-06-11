@@ -44,7 +44,7 @@ class AttributeTableWithOptions(AttributeTableModel):
 
     def options(self) -> Dict[int, Dict[str, str]]:
         selectedRows = self.checkedAttributes
-        opt = {k: v for k, v in self._options.items() if k in selectedRows}
+        opt = {k: self._options.get(k, dict()) for k in selectedRows}
         return opt
 
     def setOptions(self, opt: Dict[int, Dict[str, str]]) -> None:
