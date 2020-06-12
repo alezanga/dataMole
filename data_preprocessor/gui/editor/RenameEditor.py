@@ -5,7 +5,7 @@ from PySide2.QtWidgets import QWidget
 
 from data_preprocessor import data
 from data_preprocessor.gui.editor.interface import AbsOperationEditor
-from ..frame import AttributeTableModel, FrameModel, SearchableAttributeTableWidget
+from ..mainmodels import AttributeTableModel, FrameModel, SearchableAttributeTableWidget
 
 
 class EditableAttributeTable(AttributeTableModel):
@@ -28,9 +28,9 @@ class EditableAttributeTable(AttributeTableModel):
         if not index.isValid():
             return None
 
-        name, col_type = self._sourceModel.headerData(index.row(), orientation=Qt.Horizontal,
-                                                      role=FrameModel.DataRole.value)
-        if index.column() == self.name_pos:
+        name, col_type = self._frameModel.headerData(index.row(), orientation=Qt.Horizontal,
+                                                     role=FrameModel.DataRole.value)
+        if index.column() == self.nameColumn:
             # Gets updated value or None
             new_name: str = self._edits.get(index.row(), None)
             # If attribute name was edited before
@@ -49,7 +49,7 @@ class EditableAttributeTable(AttributeTableModel):
             return False
 
         value = value.strip()
-        if role == Qt.EditRole and value and index.column() == self.name_pos and value != index.data(
+        if role == Qt.EditRole and value and index.column() == self.nameColumn and value != index.data(
                 Qt.DisplayRole):
             # TODO: add regex validator
             self._edits[index.row()] = value
@@ -69,7 +69,7 @@ class RenameEditor(AbsOperationEditor):
     def editorBody(self) -> QWidget:
         frame = data.Frame.fromShape(self.inputShapes[0]) if self.inputShapes[0] else data.Frame()
         self.__model = EditableAttributeTable(self)
-        self.__model.setSourceModel(FrameModel(self, frame))
+        self.__model.setFrameModel(FrameModel(self, frame))
         searchableView = SearchableAttributeTableWidget(checkable=False, editable=True)
-        searchableView.setModel(self.__model)
+        searchableView.setAttributeModel(self.__model)
         return searchableView

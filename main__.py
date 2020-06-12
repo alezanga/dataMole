@@ -6,7 +6,7 @@ from PySide2.QtGui import QIntValidator
 from PySide2.QtWidgets import QApplication
 
 from data_preprocessor.data import Frame
-from data_preprocessor.gui.frame import FrameModel
+from data_preprocessor.gui.mainmodels import FrameModel
 from data_preprocessor.gui.generic.OptionsEditorFactory import OptionsEditorFactory
 
 if __name__ == "__main__":

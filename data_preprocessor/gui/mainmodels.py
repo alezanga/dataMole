@@ -1,17 +1,20 @@
+import abc
 import logging
+from profilehooks import profile
 from enum import Enum
 from typing import Any, List, Union, Dict, Tuple, Optional
 
 from PySide2 import QtGui
 from PySide2.QtCore import QAbstractTableModel, QModelIndex, Qt, Signal, Slot, QAbstractItemModel, \
-    QSortFilterProxyModel, QBasicTimer, QTimerEvent, QItemSelection, QThreadPool, QEvent, QRect, QPoint
+    QSortFilterProxyModel, QBasicTimer, QTimerEvent, QItemSelection, QThreadPool, QEvent, QRect, QPoint, \
+    QRegularExpression
 from PySide2.QtGui import QPainter
 from PySide2.QtWidgets import QWidget, QTableView, QLineEdit, QVBoxLayout, QHeaderView, QLabel, \
     QHBoxLayout, QStyleOptionViewItem, QStyleOptionButton, QStyle, QApplication, \
     QStyledItemDelegate
 
 from data_preprocessor.data import Frame, Shape
-from data_preprocessor.data.types import Types
+from data_preprocessor.data.types import Types, ALL_TYPES
 # New role to return raw data from header
 from data_preprocessor.operation.computations.statistics import AttributeStatistics, Hist
 from data_preprocessor.threads import Worker
@@ -166,9 +169,88 @@ class FrameModel(QAbstractTableModel):
         self.statisticsError.emit(identifier)
 
 
-class AttributeTableModel(QAbstractTableModel):
-    def __init__(self, parent: QWidget = None, checkable: bool = False,
-                 editable: bool = False, showTypes: bool = True):
+class AbstractAttributeModel(abc.ABC):
+    """ Interface for models used to display attributes information """
+
+    @property
+    @abc.abstractmethod
+    def checkboxColumn(self) -> Optional[int]:
+        """
+        Return the index of checkbox column in the current model or None if no such column exists
+        """
+        pass
+
+    @property
+    @abc.abstractmethod
+    def typeColumn(self) -> Optional[int]:
+        """ Return index of the column displaying types in the current model or None if no such column
+        exists """
+        pass
+
+    @property
+    @abc.abstractmethod
+    def nameColumn(self) -> Optional[int]:
+        """ Return index of the column displaying the attribute name in the current model or None if no
+        such column exists """
+        pass
+
+    @abc.abstractmethod
+    def frameModel(self) -> Optional[FrameModel]:
+        """ Return the frame model being displayed in the model, or None if no model is set """
+        pass
+
+    @abc.abstractmethod
+    def setFrameModel(self, model: FrameModel) -> None:
+        """ Set the frame model to display """
+        pass
+
+    @property
+    @abc.abstractmethod
+    def checkedAttributes(self) -> Optional[List[int]]:
+        """ Get selected rows if the model is checkable, otherwise return None """
+        pass
+
+    @checkedAttributes.setter
+    @abc.abstractmethod
+    def checkedAttributes(self, values: List[int]) -> None:
+        """ Set the checked rows in the model """
+        pass
+
+    @abc.abstractmethod
+    def setChecked(self, rows: List[int], value: bool) -> None:
+        """ Set all specified checkboxes to value. Other rows are left untouched """
+        pass
+
+    @abc.abstractmethod
+    def setAllChecked(self, value: bool) -> None:
+        """ Set all rows checked or unchecked """
+        pass
+
+    @Slot(int)
+    def onHeaderClicked(self, section: int) -> None:
+        """ Slot to be called when user clicks on the table header """
+        if section == self.checkboxColumn:
+            checked = self.headerData(section, Qt.Horizontal, Qt.DisplayRole)
+            if checked is True:
+                self.setAllChecked(False)
+            else:
+                self.setAllChecked(True)
+
+
+class AttributeTableModelMeta(type(AbstractAttributeModel), type(QAbstractTableModel)):
+    """ Metaclass for mixin """
+    pass
+
+
+class FilteredAttributeModelMeta(type(AbstractAttributeModel), type(QSortFilterProxyModel)):
+    """ Metaclass for mixin """
+    pass
+
+
+class AttributeTableModel(AbstractAttributeModel, QAbstractTableModel,
+                          metaclass=AttributeTableModelMeta):
+    def __init__(self, parent: QWidget = None, checkable: bool = False, editable: bool = False,
+                 showTypes: bool = True):
         """ Creates a tablemodel to hold attributes list
 
         :param parent: parent widget
@@ -181,21 +263,17 @@ class AttributeTableModel(QAbstractTableModel):
         self._editable: bool = editable
         # Keeps track of checked items
         self._checked: List[bool] = list()
-        self._sourceModel: QAbstractItemModel = None
+        self._frameModel: FrameModel = None
 
     @property
-    def checkbox_pos(self) -> Union[int, None]:
-        """
-        Return the column index for checkbox
-        """
+    def checkboxColumn(self) -> Optional[int]:
         if self._checkable:
             return 0
         else:
             return None
 
     @property
-    def type_pos(self) -> int:
-        """ Return the column index for type """
+    def typeColumn(self) -> Optional[int]:
         if self._showTypes:
             if self._checkable:
                 return 2
@@ -205,20 +283,17 @@ class AttributeTableModel(QAbstractTableModel):
             return None
 
     @property
-    def name_pos(self) -> int:
-        """ Return the column index for name """
+    def nameColumn(self) -> Optional[int]:
         if self._checkable:
             return 1
         else:
             return 0
 
-    def sourceModel(self) -> FrameModel:
-        return self._sourceModel
+    def frameModel(self) -> Optional[FrameModel]:
+        return self._frameModel
 
-    # Getter and setter for checkbox
     @property
-    def checkedAttributes(self) -> List[int]:
-        """ Get selected rows if the model is checkable """
+    def checkedAttributes(self) -> Optional[List[int]]:
         return [i for i, v in enumerate(self._checked) if v] if self._checkable else None
 
     @checkedAttributes.setter
@@ -229,11 +304,18 @@ class AttributeTableModel(QAbstractTableModel):
         else:
             self._checked = [False] * self.rowCount()
         for v in values:
-            qindex = self.index(v, self.checkbox_pos, QModelIndex())
-            self.dataChanged.emit(qindex, qindex, [Qt.DisplayRole, Qt.EditRole])
+            qIndex = self.index(v, self.checkboxColumn, QModelIndex())
+            self.dataChanged.emit(qIndex, qIndex, [Qt.DisplayRole, Qt.EditRole])
+
+    def setChecked(self, rows: List[int], value: bool) -> None:
+        if not self._checked:
+            return
+        for r in rows:
+            self._checked[r] = value
+            qIndex = self.index(r, self.checkboxColumn, QModelIndex())
+            self.dataChanged.emit(qIndex, qIndex, [Qt.DisplayRole, Qt.EditRole])
 
     def setAllChecked(self, value: bool) -> None:
-        """ Set all rows checked or unchecked """
         self.beginResetModel()
         if value is True:
             self._checked = [True] * self.rowCount()
@@ -241,33 +323,33 @@ class AttributeTableModel(QAbstractTableModel):
             self._checked = [False] * self.rowCount()
         self.endResetModel()
 
-    def setSourceModel(self, sourceModel: QAbstractItemModel) -> None:
-        if self._sourceModel is sourceModel:
+    def setFrameModel(self, model: FrameModel) -> None:
+        if self._frameModel is model:
             return
 
         self.beginResetModel()
 
         # Disconnect this model from old model' signals
-        if self._sourceModel:
-            self._sourceModel.disconnect(self)
+        if self._frameModel:
+            self._frameModel.disconnect(self)
 
         # Update checked state
         if self._checkable:
-            self._checked = [False] * sourceModel.columnCount(QModelIndex())
+            self._checked = [False] * model.columnCount(QModelIndex())
 
-        self._sourceModel = sourceModel
+        self._frameModel = model
 
         # Connect to new model
-        # TODO: test if this is enough. Also some of these are NOT slots
-        self._sourceModel.modelAboutToBeReset.connect(self.beginResetModel)
-        self._sourceModel.modelReset.connect(self.endResetModel)
-        self._sourceModel.headerDataChanged.connect(self.onHeaderChanged)
-        self._sourceModel.columnsAboutToBeInserted.connect(self.onColumnsAboutToBeInserted)
-        self._sourceModel.columnsAboutToBeMoved.connect(self.onColumnsAboutToBeMoved)
-        self._sourceModel.columnsAboutToBeRemoved.connect(self.onColumnsAboutToBeRemoved)
-        self._sourceModel.columnsInserted.connect(self.endInsertRows)
-        self._sourceModel.columnsMoved.connect(self.endMoveRows)
-        self._sourceModel.columnsRemoved.connect(self.endRemoveRows)
+        # NOTE: Some of these are NOT slots
+        self._frameModel.modelAboutToBeReset.connect(self.beginResetModel)
+        self._frameModel.modelReset.connect(self.endResetModel)
+        self._frameModel.headerDataChanged.connect(self.onHeaderChanged)
+        self._frameModel.columnsAboutToBeInserted.connect(self.onColumnsAboutToBeInserted)
+        self._frameModel.columnsAboutToBeMoved.connect(self.onColumnsAboutToBeMoved)
+        self._frameModel.columnsAboutToBeRemoved.connect(self.onColumnsAboutToBeRemoved)
+        self._frameModel.columnsInserted.connect(self.endInsertRows)
+        self._frameModel.columnsMoved.connect(self.endMoveRows)
+        self._frameModel.columnsRemoved.connect(self.endRemoveRows)
 
         self.endResetModel()
 
@@ -288,13 +370,13 @@ class AttributeTableModel(QAbstractTableModel):
     @Slot(Qt.Orientation, int, int)
     def onHeaderChanged(self, orientation: Qt.Orientation, sec1: int, sec2: int) -> None:
         if orientation == Qt.Horizontal:
-            self.dataChanged.emit(self.index(sec1, self.name_pos),
-                                  self.index(sec2, self.name_pos))
+            self.dataChanged.emit(self.index(sec1, self.nameColumn),
+                                  self.index(sec2, self.nameColumn))
 
     def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:
         if parent.isValid():
             return 0
-        return self._sourceModel.columnCount()
+        return self._frameModel.columnCount()
 
     def columnCount(self, parent: QModelIndex = QModelIndex()) -> int:
         if parent.isValid():
@@ -311,16 +393,16 @@ class AttributeTableModel(QAbstractTableModel):
             return None
 
         if role == Qt.DisplayRole or role == Qt.EditRole:
-            if index.column() == self.checkbox_pos:
+            if index.column() == self.checkboxColumn:
                 return self._checked[index.row()]
             name: str
             col_type: Types
-            name, col_type = self._sourceModel.headerData(index.row(), orientation=Qt.Horizontal,
-                                                          role=FrameModel.DataRole.value)
+            name, col_type = self._frameModel.headerData(index.row(), orientation=Qt.Horizontal,
+                                                         role=FrameModel.DataRole.value)
             value = None
-            if index.column() == self.name_pos:
+            if index.column() == self.nameColumn:
                 value = name
-            elif index.column() == self.type_pos:
+            elif index.column() == self.typeColumn:
                 value = col_type.value
             return value
         elif role == Qt.TextAlignmentRole:
@@ -334,10 +416,10 @@ class AttributeTableModel(QAbstractTableModel):
 
         if role == Qt.EditRole:
             # Change attribute name
-            if index.column() == self.name_pos and value != index.data(Qt.DisplayRole):
-                return self._sourceModel.setHeaderData(index.row(), Qt.Horizontal, value, Qt.EditRole)
+            if index.column() == self.nameColumn and value != index.data(Qt.DisplayRole):
+                return self._frameModel.setHeaderData(index.row(), Qt.Horizontal, value, Qt.EditRole)
             # Toggle checkbox state
-            elif index.column() == self.checkbox_pos:
+            elif index.column() == self.checkboxColumn:
                 i: int = index.row()
                 self._checked[i] = value
                 self.dataChanged.emit(index, index)
@@ -347,11 +429,11 @@ class AttributeTableModel(QAbstractTableModel):
 
     def headerData(self, section: int, orientation: Qt.Orientation, role: int = ...) -> Any:
         if orientation == Qt.Horizontal and role == Qt.DisplayRole:
-            if section == self.name_pos:
+            if section == self.nameColumn:
                 return 'Attribute'
-            elif section == self.type_pos:
+            elif section == self.typeColumn:
                 return 'Type'
-            elif section == self.checkbox_pos:
+            elif section == self.checkboxColumn:
                 return all(self._checked)
         elif orientation == Qt.Vertical and role == Qt.DisplayRole:
             return section
@@ -361,64 +443,127 @@ class AttributeTableModel(QAbstractTableModel):
         if not index.isValid():
             return Qt.NoItemFlags
         flags = Qt.ItemIsEnabled | Qt.ItemIsSelectable
-        if self._editable and index.column() == self.name_pos:
+        if self._editable and index.column() == self.nameColumn:
             flags |= Qt.ItemIsEditable
-        elif self._checkable and index.column() == self.checkbox_pos:
+        elif self._checkable and index.column() == self.checkboxColumn:
             flags |= Qt.ItemIsEditable
         return flags
 
     def canFetchMore(self, parent: QModelIndex) -> bool:
-        return self._sourceModel.canFetchMore(parent)
+        return self._frameModel.canFetchMore(parent)
 
     def fetchMore(self, parent: QModelIndex) -> None:
-        self._sourceModel.fetchMore(parent)
+        self._frameModel.fetchMore(parent)
         if self._checkable:
             new_rows = self.rowCount() - len(self._checked)
             self._checked.extend([False] * new_rows)
 
-    @Slot(int)
-    def onHeaderClicked(self, section: int) -> None:
-        if section == self.checkbox_pos:
-            checked = self.headerData(section, Qt.Horizontal, Qt.DisplayRole)
-            if checked is True:
-                self.setAllChecked(False)
-            else:
-                self.setAllChecked(True)
 
+class FilteredAttributeModel(AbstractAttributeModel, QSortFilterProxyModel,
+                             metaclass=FilteredAttributeModelMeta):
+    """ Proxy model to filter attributes to show based on their type """
 
-class TypeFilteredTableModel(QSortFilterProxyModel):
     def __init__(self, filterTypes: List[Types], parent: QWidget = None):
         super().__init__(parent)
-        self._filterTypes = filterTypes
+        self._filterTypes = filterTypes if (filterTypes and filterTypes != ALL_TYPES) else None
+
+    def __isAcceptedByType(self, source_row: int, _: QModelIndex) -> bool:
+        """ Returns True iff source_row has an accepted type """
+        if self._filterTypes:
+            rowType: Types = self.frameModel().shape.col_types[source_row]
+            return rowType in self._filterTypes
+        return True
+
+    def __isAcceptedByRegExp(self, source_row: int, source_parent: QModelIndex) -> bool:
+        """ Returns True iff source_row matches the 'filterRegularExpression' reg exp """
+        regExp: QRegularExpression = self.filterRegularExpression()
+        if not regExp:  # search disabled
+            return True
+        sourceIndex: QModelIndex = self.sourceModel().index(source_row, self.filterKeyColumn(),
+                                                            source_parent)
+        rowText = sourceIndex.data(Qt.DisplayRole)
+        match = regExp.match(rowText)
+        return match.hasMatch() or match.hasPartialMatch()
 
     def filterAcceptsRow(self, source_row: int, source_parent: QModelIndex) -> bool:
-        index = self.sourceModel().index(source_row, self.sourceModel().type_pos, source_parent)
+        return self.__isAcceptedByType(source_row, source_parent) and \
+               self.__isAcceptedByRegExp(source_row, source_parent)
 
-        type_data: str = self.sourceModel().data(index, Qt.DisplayRole)
-        if Types(type_data) in self._filterTypes:
-            return True
-        return False
+    @property
+    def checkboxColumn(self) -> Optional[int]:
+        return self.sourceModel().checkboxColumn
+
+    @property
+    def typeColumn(self) -> Optional[int]:
+        return self.sourceModel().typeColumn
+
+    @property
+    def nameColumn(self) -> Optional[int]:
+        return self.sourceModel().nameColumn
+
+    def frameModel(self) -> Optional[FrameModel]:
+        return self.sourceModel().frameModel()
+
+    def setFrameModel(self, model: FrameModel) -> None:
+        self.sourceModel().setFrameModel(model)
+
+    @property
+    def checkedAttributes(self) -> Optional[List[int]]:
+        return self.sourceModel().checkedAttributes
+
+    @checkedAttributes.setter
+    def checkedAttributes(self, values: List[int]) -> None:
+        self.sourceModel().checkedAttributes = values
+
+    def setChecked(self, rows: List[int], value: bool) -> None:
+        self.sourceModel().setChecked(rows, value)
+
+    @profile
+    def setAllChecked(self, value: bool) -> None:
+        """ Sets all proxy items check state to 'value'  """
+        # Get all shown items rows in source model and set their value
+        allIndexes = QItemSelection(
+            self.index(0, self.checkboxColumn, QModelIndex()),
+            self.index(self.rowCount() - 1, self.checkboxColumn, QModelIndex()))
+        sourceIndexes: List[QModelIndex] = self.mapSelectionToSource(allIndexes).indexes()
+        self.setChecked(list(map(lambda x: x.row(), sourceIndexes)), value)
+        # for index in sourceIndexes:
+        #     self.sourceModel().setData(index, value, Qt.EditRole)
+
+    def headerData(self, section: int, orientation: Qt.Orientation, role: int = ...) -> Any:
+        """ Redefined to handle selection by clicking on header """
+        if orientation == Qt.Horizontal and role == Qt.DisplayRole and section == self.checkboxColumn:
+            # Return True if all visible items are checked
+            allIndexes = QItemSelection(
+                self.index(0, self.checkboxColumn, QModelIndex()),
+                self.index(self.rowCount() - 1, self.checkboxColumn, QModelIndex()))
+            sourceIndexes: List[QModelIndex] = self.mapSelectionToSource(allIndexes).indexes()
+            checkedAttr = self.checkedAttributes
+            return all(map(lambda x: x.row() in checkedAttr, sourceIndexes))
+        return super().headerData(section, orientation, role)
 
 
 class SearchableAttributeTableWidget(QWidget):
-    def __init__(self, parent: QWidget = None, checkable: bool = False, editable: bool = False,
+    def __init__(self, parent: QWidget = None,
+                 checkable: bool = False, editable: bool = False,
                  showTypes: bool = False, filterTypes: List[Types] = None):
         super().__init__(parent)
         self.__typeFiltered = bool(filterTypes)
-        self.__model = AttributeTableModel(parent=self, checkable=checkable, editable=editable,
-                                           showTypes=showTypes)
-        self.tableView = IncrementalAttributeTableView(parent=self, namecol=self.__model.name_pos)
-        typeFilteredModel = self.__setupFilteredModel(filterTypes)
-        self._searchableModel = QSortFilterProxyModel(self)
-        self._searchableModel.setSourceModel(typeFilteredModel)
-        self._searchableModel.setFilterCaseSensitivity(Qt.CaseInsensitive)
-        # Table Header
-        # hh = TableHeader(self.__model.checkbox_pos, Qt.Horizontal, self.tableView)
-        # self.tableView.setHorizontalHeader(hh)
-        # hh.show()
+        # Models
+        model1 = AttributeTableModel(parent=self, checkable=checkable,
+                                     editable=editable,
+                                     showTypes=showTypes)
+        # Add type filtering
+        model2 = FilteredAttributeModel(filterTypes=filterTypes, parent=model1)
+        model2.setSourceModel(model1)
+        # Add search
+        model2.setFilterCaseSensitivity(Qt.CaseInsensitive)
+        self.__model: FilteredAttributeModel = model2
 
-        self._searchBar = QLineEdit(self)
-        self._searchBar.setPlaceholderText('Search')
+        self.tableView = IncrementalAttributeTableView(parent=self)
+
+        self.__searchBar = QLineEdit(self)
+        self.__searchBar.setPlaceholderText('Search')
         searchLabel = QLabel('Attribute search', self)
         # titleLabel = QLabel('Attribute list')
         searchLayout = QHBoxLayout()
@@ -427,82 +572,87 @@ class SearchableAttributeTableWidget(QWidget):
         # searchLayout.addSpacing(200)
         searchLayout.addWidget(searchLabel, 1, alignment=Qt.AlignRight)
         searchLayout.addSpacing(30)
-        searchLayout.addWidget(self._searchBar, 0, alignment=Qt.AlignRight)
+        searchLayout.addWidget(self.__searchBar, 0, alignment=Qt.AlignRight)
 
         layout = QVBoxLayout()
         layout.addLayout(searchLayout)
         layout.addWidget(self.tableView)
         self.setLayout(layout)
 
-    def __setupFilteredModel(self, typesToShow: List[Types]) -> QAbstractItemModel:
-        typesToShow: List[Types] = typesToShow if typesToShow else list()
-        if typesToShow:
-            typeFilteredModel = TypeFilteredTableModel(typesToShow, self)
-            typeFilteredModel.setSourceModel(self.__model)
-            return typeFilteredModel
+    def model(self) -> FilteredAttributeModel:
         return self.__model
 
-    def model(self) -> AttributeTableModel:
-        return self.__model
-
-    def setModel(self, model: AttributeTableModel, filterTypes: List[Types] = None) -> None:
+    def setAttributeModel(self, model: AttributeTableModel, filterTypes: List[Types] = None) -> None:
         """
         Sets a custom AttributeTableModel. If the source frame is present it also updates view.
         This method is provided as an alternative to building everything in the constructor.
         """
         self.__typeFiltered = bool(filterTypes)
-        if self.tableView:
-            oldView = self.tableView
-            self.tableView = IncrementalAttributeTableView(parent=self, namecol=model.name_pos)
-            self.layout().replaceWidget(oldView, self.tableView)
-            oldView.deleteLater()
+        # if self.tableView:
+        #     oldView = self.tableView
+        #     self.tableView = IncrementalAttributeTableView(parent=self)
+        #     self.layout().replaceWidget(oldView, self.tableView)
+        #     oldView.deleteLater()
         if self.__model:
-            self.__model.deleteLater()
-        self.__model = model
-        typeFilteredModel = self.__setupFilteredModel(filterTypes)
-        self._searchableModel.setSourceModel(typeFilteredModel)
-        if self.__model.sourceModel():
-            self.setSourceFrameModel(self.__model.sourceModel())
-        # hh = TableHeader(model.checkbox_pos, Qt.Horizontal, self.tableView)
-        # self.tableView.setHorizontalHeader(hh)
-        # hh.sectionClicked.connect(self.__model.onHeaderClicked)
-        # hh.show()
+            self.__model.deleteLater()  # Delete old model and its proxy
+        # Add type filtering
+        model2 = FilteredAttributeModel(filterTypes=filterTypes, parent=model)
+        model2.setSourceModel(model)
+        # Add search
+        model2.setFilterCaseSensitivity(Qt.CaseInsensitive)
+        self.__model: FilteredAttributeModel = model2
+        if self.__model.frameModel():
+            # The model already have the frameModel set
+            self.setSourceFrameModel(self.__model.frameModel())
 
     def setSourceFrameModel(self, source: FrameModel) -> None:
-        self.__model.setSourceModel(source)
-        if self.tableView.model() is not self._searchableModel:
-            self.tableView.setModel(self._searchableModel, filtered=self.__typeFiltered)
-            check_pos = self.__model.checkbox_pos
+        """ Adds the frame mode in the current AttributeModel and updates the view  """
+        self.__model.setFrameModel(source)
+        oldViewModel = self.tableView.model()
+        if oldViewModel is not self.__model:
+            # Search by name
+            self.__model.setFilterKeyColumn(self.__model.nameColumn)
+            # Set model in the view
+            self.tableView.setModel(self.__model)
+            # Set sections stretch and alignment
             hh = self.tableView.horizontalHeader()
             hh.setStretchLastSection(False)
             hh.setSectionsClickable(True)
-            if check_pos is not None:
-                hh.resizeSection(check_pos, 5)
-                hh.setSectionResizeMode(check_pos, QHeaderView.Fixed)
-            hh.setSectionResizeMode(self.__model.name_pos, QHeaderView.Stretch)
-            if self.__model.type_pos:
-                hh.setSectionResizeMode(self.__model.type_pos, QHeaderView.Stretch)
-            self._searchableModel.setFilterKeyColumn(self.__model.name_pos)
-            self._searchBar.textChanged.connect(self._searchableModel.setFilterRegExp)
-            hh.sectionClicked.connect(self.__model.onHeaderClicked)
+            checkPos: Optional[int] = self.__model.checkboxColumn
+            if checkPos is not None:
+                hh.resizeSection(checkPos, 5)
+                hh.setSectionResizeMode(checkPos, QHeaderView.Fixed)
+            hh.setSectionResizeMode(self.__model.nameColumn, QHeaderView.Stretch)
+            if self.__model.typeColumn is not None:
+                hh.setSectionResizeMode(self.__model.typeColumn, QHeaderView.Stretch)
             self.tableView.verticalHeader().setDefaultAlignment(Qt.AlignHCenter)
+            # Connect search and checkbox click
+            self.__searchBar.textChanged.connect(self.__model.setFilterRegularExpression)
+            self.__searchBar.textChanged.connect(self.refreshHeaderCheckbox)
+            hh.sectionClicked.connect(self.__model.onHeaderClicked)
+            if oldViewModel:
+                oldViewModel.deleteLater()
+
+    @Slot()
+    def refreshHeaderCheckbox(self) -> None:
+        """ Emits headerDataChanged on the checkbox column if present """
+        section = self.__model.checkboxColumn
+        if section is not None:
+            self.__model.headerDataChanged.emit(Qt.Horizontal, section, section)
 
 
 class IncrementalAttributeTableView(QTableView):
     selectedAttributeChanged = Signal(int)
 
-    def __init__(self, namecol: int, period: int = 0, parent: QWidget = None):
+    def __init__(self, period: int = 0, parent: QWidget = None):
         super().__init__(parent)
         self.__timer = QBasicTimer()
         self.__timerPeriodMs = period
-        self.__attNameColumn = namecol
         self.setSelectionBehavior(QTableView.SelectRows)
         self.setSelectionMode(QTableView.SingleSelection)
-        self.__filtered = False
 
-    def setModel(self, model: QSortFilterProxyModel, filtered: bool) -> None:
+    def setModel(self, model: AttributeTableModel) -> None:
         """ Reimplemented to start fetch timer """
-        self.__filtered = filtered
         if self.__timer.isActive():
             self.__timer.stop()
             logging.debug('Model about to be set. Fetch timer stopped')
@@ -513,8 +663,7 @@ class IncrementalAttributeTableView(QTableView):
             logging.debug('Model set. Fetch timer started')
         else:
             logging.debug('Model set. Timer not activated (period=0)')
-        checkable: int = model.sourceModel().sourceModel().checkbox_pos \
-            if self.__filtered else model.sourceModel().checkbox_pos
+        checkable: int = model.checkboxColumn
         if checkable is not None:
             self.setItemDelegateForColumn(checkable, BooleanBoxDelegate(self))
 
@@ -557,10 +706,9 @@ class IncrementalAttributeTableView(QTableView):
         super().selectionChanged(selected, deselected)
         current: QModelIndex = selected.indexes()[0] if selected.indexes() else QModelIndex()
         if current.isValid():
-            index = self.model().mapToSource(current)
-            realRow = index.row() if not self.__filtered else self.model().sourceModel() \
-                .mapToSource(index).row()
-            self.selectedAttributeChanged.emit(realRow)
+            index: QModelIndex = self.model().mapToSource(current)
+            row: int = index.row()
+            self.selectedAttributeChanged.emit(row)
         else:
             self.selectedAttributeChanged.emit(-1)
 

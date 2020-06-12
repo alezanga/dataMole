@@ -80,13 +80,13 @@ class OperationAction(QObject):
             mainWindow.statusBar().startSpinner()
             mainWindow.statusBar().showMessage('Executing operation...')
             # Prepare worker
-            worker = threads.Worker(self.operation, args=self._inputs)
+            self.__worker = threads.Worker(self.operation, args=self._inputs)
             # Connect
-            worker.signals.result.connect(self._setOutput)
-            worker.signals.error.connect(self._showError)
-            worker.signals.finished.connect(self._finished)
+            self.__worker.signals.result.connect(self._setOutput)
+            self.__worker.signals.error.connect(self._showError)
+            self.__worker.signals.finished.connect(self._finished)
             # Start worker
-            mainWindow.threadPool.start(worker)
+            mainWindow.threadPool.start(self.__worker)
             self.editor.hide()
 
     @Slot(object, object)
@@ -102,6 +102,7 @@ class OperationAction(QObject):
         logging.info('GraphOperation {} finished'.format(self.operation.name()))
         getMainWindow().statusBar().stopSpinner()
         getMainWindow().statusBar().showMessage('GraphOperation finished')
+        self.__worker = None
 
     @Slot(object, tuple)
     def _showError(self, _, error: Tuple[type, Exception, str]) -> None:

@@ -4,8 +4,7 @@ import sys
 from PySide2.QtWidgets import QApplication, QMainWindow, QWidget, QHBoxLayout, QTableView
 
 from data_preprocessor.data import Frame
-from data_preprocessor.gui.frame import AttributeTableModel
-from data_preprocessor.gui.frame import FrameModel
+from data_preprocessor.gui.mainmodels import AttributeTableModel, FrameModel
 
 
 class MainWindow(QMainWindow):

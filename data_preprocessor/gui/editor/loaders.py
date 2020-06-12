@@ -8,7 +8,7 @@ from PySide2.QtWidgets import QWidget, QButtonGroup, QRadioButton, QFileDialog, 
     QPushButton, QLabel, QVBoxLayout, QCheckBox
 
 from .interface import AbsOperationEditor
-from ..frame import SearchableAttributeTableWidget, FrameModel
+from ..mainmodels import SearchableAttributeTableWidget, FrameModel
 from ..waitingspinnerwidget import QtWaitingSpinner
 from ...data import Frame
 
@@ -20,7 +20,7 @@ class LoadCSVEditor(AbsOperationEditor):
                 super().__init__(parent)
                 self.buttons_id_value = {
                     1: ('comma', ','),
-                    2: ('space', '\s+'),
+                    2: ('space', '\b'),
                     3: ('tab', '\t'),
                     4: ('semicolon', ';')
                 }

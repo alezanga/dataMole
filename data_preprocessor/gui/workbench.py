@@ -5,7 +5,7 @@ from PySide2.QtCore import QAbstractListModel, QObject, QModelIndex, Qt, Slot, S
 from PySide2.QtWidgets import QListView, QTableView, QHeaderView
 
 import data_preprocessor.data as d
-from data_preprocessor.gui.frame import FrameModel
+from data_preprocessor.gui.mainmodels import FrameModel
 
 
 class WorkbenchModel(QAbstractListModel):

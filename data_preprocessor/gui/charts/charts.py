@@ -7,8 +7,8 @@ from PySide2.QtWidgets import QWidget, QVBoxLayout, QLabel, QGridLayout, QHBoxLa
 
 from data_preprocessor.data.types import Types
 from data_preprocessor.gui.charts.views import SimpleChartView
-from data_preprocessor.gui.frame import SearchableAttributeTableWidget, FrameModel, AttributeTableModel, \
-    TypeFilteredTableModel
+from data_preprocessor.gui.mainmodels import SearchableAttributeTableWidget, FrameModel, AttributeTableModel, \
+    FilteredAttributeModel
 from data_preprocessor.gui.workbench import WorkbenchModel
 
 
@@ -42,7 +42,7 @@ class ScatterPlotMatrix(QWidget):
         # sideW.setLayout(sideLayout)
         # self.__splitter.addWidget(sideW)
         # self.__layout.addWidget(self.__splitter)
-        self.__comboModel = TypeFilteredTableModel([Types.String, Types.Categorical], self)
+        self.__comboModel = FilteredAttributeModel([Types.String, Types.Categorical], self)
 
         # Connect
         createButton.clicked.connect(self.showScatterPlots)
@@ -130,7 +130,7 @@ class ScatterPlotMatrix(QWidget):
         self.__matrixAttributes.setSourceFrameModel(self.__frameModel)
         # Combo box
         attributes = AttributeTableModel(self, False, False, False)
-        attributes.setSourceModel(self.__frameModel)
+        attributes.setFrameModel(self.__frameModel)
         oldModel = self.__comboModel.sourceModel()
         self.__comboModel.setSourceModel(attributes)
         if oldModel:

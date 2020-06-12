@@ -9,7 +9,7 @@ from PySide2.QtWidgets import QLineEdit, QCheckBox, \
 from data_preprocessor.decorators.generic import singleton
 from data_preprocessor.gui.editor.interface import AbsOperationEditor
 from data_preprocessor.gui.editor.optionwidget import RadioButtonGroup
-from data_preprocessor.gui.frame import SearchableAttributeTableWidget, AttributeTableModel
+from data_preprocessor.gui.mainmodels import SearchableAttributeTableWidget, AttributeTableModel
 
 
 class AttributeTableWithOptions(AttributeTableModel):
@@ -87,7 +87,7 @@ class AttributeTableWithOptions(AttributeTableModel):
                     self.dataChanged.emit(index, index, [Qt.DisplayRole, Qt.EditRole])
                     return True
                 return False
-            elif index.column() == self.checkbox_pos:
+            elif index.column() == self.checkboxColumn:
                 changed = super().setData(index, value, role)
                 if changed:
                     for optionIndex in self._optionsPos.keys():
@@ -137,7 +137,7 @@ class OptionsEditorFactory:
                            options: Dict[str, Tuple[str, QValidator]], types: List):
         tableWidget = SearchableAttributeTableWidget(self.__body)
         tableModel = AttributeTableWithOptions(self.__body, checkbox, nameEditable, showTypes, options)
-        tableWidget.setModel(tableModel, filterTypes=types)
+        tableWidget.setAttributeModel(tableModel, filterTypes=types)
         # Set up validator for every option columns
         for col in range(tableModel.columnCount()):
             validator = tableModel.validatorColumn(col)

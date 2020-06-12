@@ -6,7 +6,7 @@ from PySide2.QtCore import Slot, Qt
 from PySide2.QtWidgets import QWidget, QVBoxLayout, QGridLayout, QLabel, QLayoutItem, QSlider
 
 from data_preprocessor.data.types import Types
-from data_preprocessor.gui.frame import FrameModel, SearchableAttributeTableWidget
+from data_preprocessor.gui.mainmodels import FrameModel, SearchableAttributeTableWidget
 from data_preprocessor.gui.waitingspinnerwidget import QtWaitingSpinner
 from data_preprocessor.gui.workbench import WorkbenchModel
 
