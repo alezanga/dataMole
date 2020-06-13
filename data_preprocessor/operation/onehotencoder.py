@@ -101,10 +101,10 @@ class _SelectAttribute(AbsOperationEditor):
         return w
 
     def getOptions(self) -> Tuple[List[int], bool]:
-        return self.__searchableTable.model().checkedAttributes, self.__nancol.isChecked()
+        return self.__searchableTable.model().checked, self.__nancol.isChecked()
 
     def setOptions(self, selected_indexes: List[int], nancol: bool) -> None:
-        self.__searchableTable.model().checkedAttributes = selected_indexes
+        self.__searchableTable.model().setChecked(selected_indexes, True)
         self.__nancol.setChecked(nancol if nancol is not None else False)
 
 

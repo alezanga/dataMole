@@ -165,7 +165,7 @@ class LoadCSVEditor(AbsOperationEditor):
         chunksize = int(self.mywidget.numberRowsChunk.text()) if self.mywidget.checkSplit.isChecked() \
             else None
         varName: str = self.mywidget.nameField.text()
-        selectedColumns = self.mywidget.tablePreview.model().checkedAttributes
+        selectedColumns = self.mywidget.tablePreview.model().checked
         return path, sep_s, varName, chunksize, selectedColumns
 
     def setOptions(self, path: Optional[str], sep: Optional[str], name: Optional[str],
@@ -189,7 +189,7 @@ class LoadCSVEditor(AbsOperationEditor):
         # self.mywidget.checkSplit.setChecked(bool(splitByRow and splitByRow > 0))
         # self.mywidget.toggleSplitRows(self.mywidget.checkSplit.checkState())
         # Checked attributes (not needed)
-        # self.mywidget.tablePreview.model().checkedAttributes = selectedColumns
+        # self.mywidget.tablePreview.model().checked = selectedColumns
         self.mywidget.filePath.setText('')
         self.mywidget.default_button.click()
         self.mywidget.nameField.setText('')

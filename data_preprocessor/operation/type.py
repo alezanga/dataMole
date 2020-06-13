@@ -227,10 +227,10 @@ class _SelectAttribute(AbsOperationEditor):
         return self.__searchableTable
 
     def getOptions(self) -> List[List[int]]:
-        return [self.__searchableTable.model().checkedAttributes]
+        return [self.__searchableTable.model().checked]
 
     def setOptions(self, selected_indexes: List[int]) -> None:
-        self.__searchableTable.model().checkedAttributes = selected_indexes
+        self.__searchableTable.model().setChecked(selected_indexes, True)
 
 
 # class TypeOp(GraphOperation):

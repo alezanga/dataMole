@@ -1,14 +1,15 @@
 from typing import List
 
 from PySide2.QtCharts import QtCharts
-from PySide2.QtCore import Slot, QPointF, Qt, QModelIndex
+from PySide2.QtCore import Slot, QPointF, Qt, QModelIndex, QMargins
+from PySide2.QtGui import QFont
 from PySide2.QtWidgets import QWidget, QVBoxLayout, QLabel, QGridLayout, QHBoxLayout, QPushButton, \
     QComboBox
 
 from data_preprocessor.data.types import Types
 from data_preprocessor.gui.charts.views import SimpleChartView
-from data_preprocessor.gui.mainmodels import SearchableAttributeTableWidget, FrameModel, AttributeTableModel, \
-    FilteredAttributeModel
+from data_preprocessor.gui.mainmodels import SearchableAttributeTableWidget, FrameModel, \
+    AttributeTableModel, TypeProxyAttributeModel
 from data_preprocessor.gui.workbench import WorkbenchModel
 
 
@@ -42,7 +43,7 @@ class ScatterPlotMatrix(QWidget):
         # sideW.setLayout(sideLayout)
         # self.__splitter.addWidget(sideW)
         # self.__layout.addWidget(self.__splitter)
-        self.__comboModel = FilteredAttributeModel([Types.String, Types.Categorical], self)
+        self.__comboModel = TypeProxyAttributeModel([Types.String, Types.Categorical], self)
 
         # Connect
         createButton.clicked.connect(self.showScatterPlots)
@@ -82,6 +83,13 @@ class ScatterPlotMatrix(QWidget):
         chart.axisY().setTitleText(yColS)
         chart.axisX().setTitleVisible(False)
         chart.axisY().setTitleVisible(False)
+        # Set font size for axis
+        font: QFont = chart.axisX().labelsFont()
+        font.setPointSize(9)
+        chart.axisX().setLabelsFont(font)
+        chart.axisY().setLabelsFont(font)
+        chart.setMargins(QMargins(5, 5, 5, 5))
+        chart.layout().setContentsMargins(2, 2, 2, 2)
         return chart
 
     @Slot()
@@ -89,7 +97,7 @@ class ScatterPlotMatrix(QWidget):
         # Clear eventual existing plots
         self.clearScatterPlotMatrix()
         # Create plot with selected attributes
-        attributes: List[int] = self.__matrixAttributes.model().checkedAttributes
+        attributes: List[int] = self.__matrixAttributes.model().checked
         if len(attributes) < 2:
             return
         for r in attributes:
@@ -108,6 +116,7 @@ class ScatterPlotMatrix(QWidget):
                         group = index.row() if index.isValid() else None
                     chart = self.__createScatterPlot(xCol=c, yCol=r, groupBy=group)
                     self.__matrixLayout.addWidget(SimpleChartView(chart, self), r, c)
+        self.__matrixLayout.setSpacing(2)
 
     def clearScatterPlotMatrix(self) -> None:
         if self.__matrixLayout:

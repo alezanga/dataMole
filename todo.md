@@ -3,8 +3,11 @@
 - [ ] CHECK: why sometimes flow does not add edge
 - [x] FIX: gridLayout in graph
 - [x] FIX: toCategory asked options even if it shouldn't (validation problem)
-- [ ] FIX !!: checkedAttributes should work also when checking header checkbox in a FILTERED model
-- [ ] IMPROVE: refactor frame models with interfaces??
+- [ ] FIX !!: Frame.integerToFloat does not work with big data (it hangs)
+- [ ] FIX !: headerData is slow in proxy. Find out how to fix header checkbox
+- [ ] FIX !: nested proxy doesn't work well. Decide whether to use a single proxy or subclass a
+ IdentityProxy
+- [x] IMPROVE: refactor frame models with interfaces
 - [x] FIX: frame fetchMore creates problem with checkbox
 - [ ] IMPROVE: look into the possibility of doing a lazy loading from big csv (maybe with a hdf5 store)
 - [ ] IMPROVE: Add method to compare options in Operation
@@ -34,8 +37,7 @@
     - [x] Join
         - [ ] Fix merge on "datetime"
     - [ ] Append
-    - [ ] Discretize numbers
-        - [ ] Define execute
+    - [x] Discretize numbers
     - [ ] Discretize dates
     - [ ] Remove attribute(s)
     - [ ] Add instance numbers (1, 2, 3, 4, ...)
@@ -43,6 +45,6 @@
     - [ ] Scaling
     - [ ] Select rows based on condition
     - [ ] Select attributes based on condition
-    - [ ] Remove selection (two inputs: selection and table)
+    - [ ] ~~Remove selection (two inputs: selection and table)~~
 - [x] Add Signal object to communicate operation status to the View
 - [x] Add methods to launch specific signals in Operation

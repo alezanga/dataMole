@@ -111,6 +111,22 @@ class Callout(QGraphicsItem):
         return not (self == other)
 
 
+class SimpleChartView(QtCharts.QChartView):
+    """ A basic ChartView with no interaction that reacts to double clicks """
+
+    def mouseDoubleClickEvent(self, event: QMouseEvent) -> None:
+        if event.button() == Qt.LeftButton:
+            chartWindow = InteractiveChartWindow(self)  # needs a parent to be kept alive
+            # Open widget with plot
+            iView = InteractiveChartView(chart=self.chart(), topLevel=True)
+            chartWindow.setAttribute(Qt.WA_DeleteOnClose, True)
+            chartWindow.setCentralWidget(iView)  # window takes ownership of view
+            chartWindow.resize(500, 500)
+            chartWindow.show()
+            event.accept()
+        super().mouseDoubleClickEvent(event)
+
+
 class InteractiveChartView(QtCharts.QChartView):
     def __init__(self, chart: QtCharts.QChart = None, parent: QWidget = None, topLevel: bool = False):
         super().__init__(parent)
@@ -149,8 +165,6 @@ class InteractiveChartView(QtCharts.QChartView):
             s_copy.clicked.connect(self.keepCallout)
             s_copy.hovered.connect(self.tooltip)
         # self._chart.setMinimumSize(640, 480)
-        chart_c.setTitle("Hover the line to show callout. Click the line "
-                         "to make it stay")
         chart_c.legend().show()
         chart_c.createDefaultAxes()
         chart_c.axisX().setTitleText(chart.axisX().titleText())
@@ -254,7 +268,6 @@ class InteractiveChartView(QtCharts.QChartView):
         self.__callouts = list()
 
     def mouseDoubleClickEvent(self, event: QMouseEvent) -> None:
-        """ If the view is not in a window it places a copy of the chart in a new MainWindow """
         if not self.__isTopLevel and event.button() == Qt.LeftButton:
             chartWindow = InteractiveChartWindow(self)  # needs a parent to be kept alive
             # Open widget with plot
@@ -326,19 +339,3 @@ class InteractiveChartWindow(QMainWindow):
         f: str = name.strip() + '.' + ext.strip().split(' ')[0]
         saved: bool = p.save(f)
         logging.info('Image saved: {}'.format(saved))
-
-
-class SimpleChartView(QtCharts.QChartView):
-    """ A basic ChartView with no interaction that reacts to double clicks """
-
-    def mouseDoubleClickEvent(self, event: QMouseEvent) -> None:
-        if event.button() == Qt.LeftButton:
-            chartWindow = InteractiveChartWindow(self)  # needs a parent to be kept alive
-            # Open widget with plot
-            iView = InteractiveChartView(chart=self.chart(), topLevel=True)
-            chartWindow.setAttribute(Qt.WA_DeleteOnClose, True)
-            chartWindow.setCentralWidget(iView)  # window takes ownership of view
-            chartWindow.resize(500, 500)
-            chartWindow.show()
-            event.accept()
-        super().mouseDoubleClickEvent(event)

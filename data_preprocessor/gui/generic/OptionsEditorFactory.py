@@ -43,13 +43,13 @@ class AttributeTableWithOptions(AttributeTableModel):
         return self._optionsDesc[self._optionsPos[column]][1]
 
     def options(self) -> Dict[int, Dict[str, str]]:
-        selectedRows = self.checkedAttributes
+        selectedRows = self.checked
         opt = {k: self._options.get(k, dict()) for k in selectedRows}
         return opt
 
     def setOptions(self, opt: Dict[int, Dict[str, str]]) -> None:
         self._options = copy.deepcopy(opt)
-        self.checkedAttributes = list(self._options.keys())
+        self.setChecked(list(self._options.keys()))
 
     def columnCount(self, parent: QModelIndex = QModelIndex()) -> int:
         if parent.isValid():
