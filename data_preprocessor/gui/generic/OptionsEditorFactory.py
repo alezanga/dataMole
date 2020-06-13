@@ -49,7 +49,7 @@ class AttributeTableWithOptions(AttributeTableModel):
 
     def setOptions(self, opt: Dict[int, Dict[str, str]]) -> None:
         self._options = copy.deepcopy(opt)
-        self.setChecked(list(self._options.keys()))
+        self.setChecked(list(self._options.keys()), True)
 
     def columnCount(self, parent: QModelIndex = QModelIndex()) -> int:
         if parent.isValid():
@@ -64,7 +64,7 @@ class AttributeTableWithOptions(AttributeTableModel):
         # Handle option columns
         if (role == Qt.DisplayRole or role == Qt.EditRole) and index.column() in self._optionsPos.keys():
             rowOptions = self._options.get(index.row(), None)
-            if rowOptions and index.row() in self.checkedAttributes:
+            if rowOptions and index.row() in self.checked:
                 option = rowOptions.get(self._optionsPos[index.column()], None)
                 if option:
                     return option
@@ -105,7 +105,7 @@ class AttributeTableWithOptions(AttributeTableModel):
 
     def flags(self, index: QModelIndex) -> Qt.ItemFlags:
         f = super().flags(index)
-        if index.column() in self._optionsPos.keys() and index.row() in self.checkedAttributes:
+        if index.column() in self._optionsPos.keys() and index.row() in self.checked:
             f |= Qt.ItemIsEditable
         return f
 

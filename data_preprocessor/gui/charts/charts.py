@@ -9,7 +9,7 @@ from PySide2.QtWidgets import QWidget, QVBoxLayout, QLabel, QGridLayout, QHBoxLa
 from data_preprocessor.data.types import Types
 from data_preprocessor.gui.charts.views import SimpleChartView
 from data_preprocessor.gui.mainmodels import SearchableAttributeTableWidget, FrameModel, \
-    AttributeTableModel, TypeProxyAttributeModel
+    AttributeTableModel, AttributeProxyModel
 from data_preprocessor.gui.workbench import WorkbenchModel
 
 
@@ -43,7 +43,7 @@ class ScatterPlotMatrix(QWidget):
         # sideW.setLayout(sideLayout)
         # self.__splitter.addWidget(sideW)
         # self.__layout.addWidget(self.__splitter)
-        self.__comboModel = TypeProxyAttributeModel([Types.String, Types.Categorical], self)
+        self.__comboModel = AttributeProxyModel([Types.String, Types.Categorical], self)
 
         # Connect
         createButton.clicked.connect(self.showScatterPlots)

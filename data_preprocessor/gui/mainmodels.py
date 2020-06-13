@@ -1,13 +1,11 @@
 import abc
 import logging
-from profilehooks import profile
 from enum import Enum
 from typing import Any, List, Union, Dict, Tuple, Optional
 
 from PySide2 import QtGui
 from PySide2.QtCore import QAbstractTableModel, QModelIndex, Qt, Signal, Slot, QAbstractItemModel, \
-    QSortFilterProxyModel, QBasicTimer, QTimerEvent, QItemSelection, QThreadPool, QEvent, QRect, QPoint, \
-    QRegularExpression
+    QSortFilterProxyModel, QBasicTimer, QTimerEvent, QItemSelection, QThreadPool, QEvent, QRect, QPoint
 from PySide2.QtGui import QPainter
 from PySide2.QtWidgets import QWidget, QTableView, QLineEdit, QVBoxLayout, QHeaderView, QLabel, \
     QHBoxLayout, QStyleOptionViewItem, QStyleOptionButton, QStyle, QApplication, \
@@ -206,14 +204,8 @@ class AbstractAttributeModel(abc.ABC):
 
     @property
     @abc.abstractmethod
-    def checkedAttributes(self) -> Optional[List[int]]:
+    def checked(self) -> Optional[List[int]]:
         """ Get selected rows if the model is checkable, otherwise return None """
-        pass
-
-    @checkedAttributes.setter
-    @abc.abstractmethod
-    def checkedAttributes(self, values: List[int]) -> None:
-        """ Set the checked rows in the model """
         pass
 
     @abc.abstractmethod
@@ -242,7 +234,7 @@ class AttributeTableModelMeta(type(AbstractAttributeModel), type(QAbstractTableM
     pass
 
 
-class FilteredAttributeModelMeta(type(AbstractAttributeModel), type(QSortFilterProxyModel)):
+class AttributeProxyModelMeta(type(AbstractAttributeModel), type(QSortFilterProxyModel)):
     """ Metaclass for mixin """
     pass
 
@@ -293,35 +285,27 @@ class AttributeTableModel(AbstractAttributeModel, QAbstractTableModel,
         return self._frameModel
 
     @property
-    def checkedAttributes(self) -> Optional[List[int]]:
+    def checked(self) -> Optional[List[int]]:
         return [i for i, v in enumerate(self._checked) if v] if self._checkable else None
 
-    @checkedAttributes.setter
-    def checkedAttributes(self, values: List[int]) -> None:
-        if values:
-            for index in values:
-                self._checked[index] = True
-        else:
-            self._checked = [False] * self.rowCount()
-        for v in values:
-            qIndex = self.index(v, self.checkboxColumn, QModelIndex())
-            self.dataChanged.emit(qIndex, qIndex, [Qt.DisplayRole, Qt.EditRole])
-
     def setChecked(self, rows: List[int], value: bool) -> None:
-        if not self._checked:
+        if not self._checked or not rows:
             return
         for r in rows:
             self._checked[r] = value
-            qIndex = self.index(r, self.checkboxColumn, QModelIndex())
-            self.dataChanged.emit(qIndex, qIndex, [Qt.DisplayRole, Qt.EditRole])
+        # Reset column from minimum to maximum changed row
+        sIndex = self.index(min(rows), self.checkboxColumn, QModelIndex())
+        eIndex = self.index(max(rows), self.checkboxColumn, QModelIndex())
+        self.dataChanged.emit(sIndex, eIndex, [Qt.DisplayRole, Qt.EditRole])
 
     def setAllChecked(self, value: bool) -> None:
-        self.beginResetModel()
         if value is True:
             self._checked = [True] * self.rowCount()
         else:
             self._checked = [False] * self.rowCount()
-        self.endResetModel()
+        sIndex = self.index(0, self.checkboxColumn, QModelIndex())
+        eIndex = self.index(self.rowCount() - 1, self.checkboxColumn, QModelIndex())
+        self.dataChanged.emit(sIndex, eIndex, [Qt.DisplayRole, Qt.EditRole])
 
     def setFrameModel(self, model: FrameModel) -> None:
         if self._frameModel is model:
@@ -459,13 +443,15 @@ class AttributeTableModel(AbstractAttributeModel, QAbstractTableModel,
             self._checked.extend([False] * new_rows)
 
 
-class FilteredAttributeModel(AbstractAttributeModel, QSortFilterProxyModel,
-                             metaclass=FilteredAttributeModelMeta):
-    """ Proxy model to filter attributes to show based on their type """
+class AttributeProxyModel(AbstractAttributeModel, QSortFilterProxyModel,
+                          metaclass=AttributeProxyModelMeta):
+    """ Proxy model to filter attributes to show """
 
     def __init__(self, filterTypes: List[Types], parent: QWidget = None):
         super().__init__(parent)
-        self._filterTypes = filterTypes if (filterTypes and filterTypes != ALL_TYPES) else None
+        self._filterTypes: Optional[List[Types]] = filterTypes if (filterTypes and filterTypes !=
+                                                                   ALL_TYPES) else None
+        # self._searchRegexp: QRegularExpression = QRegularExpression()
 
     def __isAcceptedByType(self, source_row: int, _: QModelIndex) -> bool:
         """ Returns True iff source_row has an accepted type """
@@ -476,14 +462,16 @@ class FilteredAttributeModel(AbstractAttributeModel, QSortFilterProxyModel,
 
     def __isAcceptedByRegExp(self, source_row: int, source_parent: QModelIndex) -> bool:
         """ Returns True iff source_row matches the 'filterRegularExpression' reg exp """
-        regExp: QRegularExpression = self.filterRegularExpression()
-        if not regExp:  # search disabled
-            return True
-        sourceIndex: QModelIndex = self.sourceModel().index(source_row, self.filterKeyColumn(),
-                                                            source_parent)
-        rowText = sourceIndex.data(Qt.DisplayRole)
-        match = regExp.match(rowText)
-        return match.hasMatch() or match.hasPartialMatch()
+        # sourceIndex: QModelIndex = self.sourceModel().index(source_row, self._searchColumn,
+        #                                                     source_parent)
+        # rowText = sourceIndex.data(Qt.DisplayRole)
+        # result = self._searchRegexp.match(rowText)
+        # return result.hasMatch() or result.hasPartialMatch()
+        return super().filterAcceptsRow(source_row, source_parent)
+
+    # @Slot(str)
+    # def setSearchKeyword(self, key: str) -> None:
+    #     self._searchRegexp = QRegularExpression(key)
 
     def filterAcceptsRow(self, source_row: int, source_parent: QModelIndex) -> bool:
         return self.__isAcceptedByType(source_row, source_parent) and \
@@ -508,17 +496,12 @@ class FilteredAttributeModel(AbstractAttributeModel, QSortFilterProxyModel,
         self.sourceModel().setFrameModel(model)
 
     @property
-    def checkedAttributes(self) -> Optional[List[int]]:
-        return self.sourceModel().checkedAttributes
-
-    @checkedAttributes.setter
-    def checkedAttributes(self, values: List[int]) -> None:
-        self.sourceModel().checkedAttributes = values
+    def checked(self) -> Optional[List[int]]:
+        return self.sourceModel().checked
 
     def setChecked(self, rows: List[int], value: bool) -> None:
         self.sourceModel().setChecked(rows, value)
 
-    @profile
     def setAllChecked(self, value: bool) -> None:
         """ Sets all proxy items check state to 'value'  """
         # Get all shown items rows in source model and set their value
@@ -527,20 +510,20 @@ class FilteredAttributeModel(AbstractAttributeModel, QSortFilterProxyModel,
             self.index(self.rowCount() - 1, self.checkboxColumn, QModelIndex()))
         sourceIndexes: List[QModelIndex] = self.mapSelectionToSource(allIndexes).indexes()
         self.setChecked(list(map(lambda x: x.row(), sourceIndexes)), value)
-        # for index in sourceIndexes:
-        #     self.sourceModel().setData(index, value, Qt.EditRole)
 
-    def headerData(self, section: int, orientation: Qt.Orientation, role: int = ...) -> Any:
-        """ Redefined to handle selection by clicking on header """
-        if orientation == Qt.Horizontal and role == Qt.DisplayRole and section == self.checkboxColumn:
-            # Return True if all visible items are checked
-            allIndexes = QItemSelection(
-                self.index(0, self.checkboxColumn, QModelIndex()),
-                self.index(self.rowCount() - 1, self.checkboxColumn, QModelIndex()))
-            sourceIndexes: List[QModelIndex] = self.mapSelectionToSource(allIndexes).indexes()
-            checkedAttr = self.checkedAttributes
-            return all(map(lambda x: x.row() in checkedAttr, sourceIndexes))
-        return super().headerData(section, orientation, role)
+    # @profile
+    # TOFIX: this is the slow method
+    # def headerData(self, section: int, orientation: Qt.Orientation, role: int = ...) -> Any:
+    #     """ Redefined to handle selection by clicking on header """
+    #     if orientation == Qt.Horizontal and role == Qt.DisplayRole and section == self.checkboxColumn:
+    #         # Return True if all visible items are checked
+    #         allIndexes = QItemSelection(
+    #             self.index(0, self.checkboxColumn, QModelIndex()),
+    #             self.index(self.rowCount() - 1, self.checkboxColumn, QModelIndex()))
+    #         sourceIndexes: List[QModelIndex] = self.mapSelectionToSource(allIndexes).indexes()
+    #         checkedAttr = self.checked
+    #         return all(map(lambda x: x.row() in checkedAttr, sourceIndexes))
+    #     return super().headerData(section, orientation, role)
 
 
 class SearchableAttributeTableWidget(QWidget):
@@ -548,17 +531,11 @@ class SearchableAttributeTableWidget(QWidget):
                  checkable: bool = False, editable: bool = False,
                  showTypes: bool = False, filterTypes: List[Types] = None):
         super().__init__(parent)
-        self.__typeFiltered = bool(filterTypes)
         # Models
-        model1 = AttributeTableModel(parent=self, checkable=checkable,
-                                     editable=editable,
-                                     showTypes=showTypes)
-        # Add type filtering
-        model2 = FilteredAttributeModel(filterTypes=filterTypes, parent=model1)
-        model2.setSourceModel(model1)
-        # Add search
-        model2.setFilterCaseSensitivity(Qt.CaseInsensitive)
-        self.__model: FilteredAttributeModel = model2
+        model = AttributeTableModel(parent=self, checkable=checkable,
+                                    editable=editable,
+                                    showTypes=showTypes)
+        self.__model: AttributeProxyModel = self.__setUpProxies(model, filterTypes)
 
         self.tableView = IncrementalAttributeTableView(parent=self)
 
@@ -579,7 +556,16 @@ class SearchableAttributeTableWidget(QWidget):
         layout.addWidget(self.tableView)
         self.setLayout(layout)
 
-    def model(self) -> FilteredAttributeModel:
+    @staticmethod
+    def __setUpProxies(model: AttributeTableModel, filterTypes: List[Types]) -> AttributeTableModel:
+        # Add type filter and search
+        model1 = AttributeProxyModel(filterTypes=filterTypes,
+                                     parent=model)
+        model1.setSourceModel(model)
+        model1.setFilterKeyColumn(model.nameColumn)
+        return model1
+
+    def model(self) -> AttributeProxyModel:
         return self.__model
 
     def setAttributeModel(self, model: AttributeTableModel, filterTypes: List[Types] = None) -> None:
@@ -587,20 +573,9 @@ class SearchableAttributeTableWidget(QWidget):
         Sets a custom AttributeTableModel. If the source frame is present it also updates view.
         This method is provided as an alternative to building everything in the constructor.
         """
-        self.__typeFiltered = bool(filterTypes)
-        # if self.tableView:
-        #     oldView = self.tableView
-        #     self.tableView = IncrementalAttributeTableView(parent=self)
-        #     self.layout().replaceWidget(oldView, self.tableView)
-        #     oldView.deleteLater()
         if self.__model:
             self.__model.deleteLater()  # Delete old model and its proxy
-        # Add type filtering
-        model2 = FilteredAttributeModel(filterTypes=filterTypes, parent=model)
-        model2.setSourceModel(model)
-        # Add search
-        model2.setFilterCaseSensitivity(Qt.CaseInsensitive)
-        self.__model: FilteredAttributeModel = model2
+        self.__model: AttributeProxyModel = self.__setUpProxies(model, filterTypes)
         if self.__model.frameModel():
             # The model already have the frameModel set
             self.setSourceFrameModel(self.__model.frameModel())
@@ -610,8 +585,6 @@ class SearchableAttributeTableWidget(QWidget):
         self.__model.setFrameModel(source)
         oldViewModel = self.tableView.model()
         if oldViewModel is not self.__model:
-            # Search by name
-            self.__model.setFilterKeyColumn(self.__model.nameColumn)
             # Set model in the view
             self.tableView.setModel(self.__model)
             # Set sections stretch and alignment
@@ -627,7 +600,7 @@ class SearchableAttributeTableWidget(QWidget):
                 hh.setSectionResizeMode(self.__model.typeColumn, QHeaderView.Stretch)
             self.tableView.verticalHeader().setDefaultAlignment(Qt.AlignHCenter)
             # Connect search and checkbox click
-            self.__searchBar.textChanged.connect(self.__model.setFilterRegularExpression)
+            self.__searchBar.textChanged.connect(self.__model.setFilterRegExp)
             self.__searchBar.textChanged.connect(self.refreshHeaderCheckbox)
             hh.sectionClicked.connect(self.__model.onHeaderClicked)
             if oldViewModel:
