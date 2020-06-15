@@ -20,8 +20,12 @@ def integerToFloat(df: pd.DataFrame) -> pd.DataFrame:
     if not integerCols:
         return df
     cdf = df.copy(True)
-    cdf.loc[:, integerCols] = df.loc[:, integerCols].astype(float)
-    return cdf
+    d = cdf[integerCols].astype(np.float)
+    cdf = cdf.drop(labels=integerCols, axis=1)
+    # Concat is much faster than subset assignment
+    r = pd.concat([cdf, d], axis=1)
+    r = r[df.columns.to_list()]
+    return r
 
 
 class Frame:

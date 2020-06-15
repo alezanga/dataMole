@@ -6,6 +6,18 @@ from data_preprocessor.data import Frame, Shape
 from data_preprocessor.data.types import Types
 
 
+#
+# def test_integerToFloat():
+#     df = pd.read_csv('../../datasets/merged-inner-w23-elsa.csv')
+#     b = integerToFloat(df)
+#
+#     # Check it gets the same result as the slow version
+#     integerCols = df.select_dtypes(include=int).columns.to_list()
+#     n = df[integerCols].astype(float)
+#     df[integerCols] = n
+#     assert df.equals(b)
+
+
 def test_apply():
     d = {'col1': [1, 2, 3, 4, 10], 'col2': [3, 4, 5, 6, 0]}
     f = Frame(d)
