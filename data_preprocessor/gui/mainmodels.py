@@ -5,7 +5,8 @@ from typing import Any, List, Union, Dict, Tuple, Optional
 
 from PySide2 import QtGui
 from PySide2.QtCore import QAbstractTableModel, QModelIndex, Qt, Signal, Slot, QAbstractItemModel, \
-    QSortFilterProxyModel, QBasicTimer, QTimerEvent, QItemSelection, QThreadPool, QEvent, QRect, QPoint
+    QSortFilterProxyModel, QBasicTimer, QTimerEvent, QItemSelection, QThreadPool, QEvent, QRect, QPoint, \
+    QRegularExpression
 from PySide2.QtGui import QPainter
 from PySide2.QtWidgets import QWidget, QTableView, QLineEdit, QVBoxLayout, QHeaderView, QLabel, \
     QHBoxLayout, QStyleOptionViewItem, QStyleOptionButton, QStyle, QApplication, \
@@ -451,7 +452,6 @@ class AttributeProxyModel(AbstractAttributeModel, QSortFilterProxyModel,
         super().__init__(parent)
         self._filterTypes: Optional[List[Types]] = filterTypes if (filterTypes and filterTypes !=
                                                                    ALL_TYPES) else None
-        # self._searchRegexp: QRegularExpression = QRegularExpression()
 
     def __isAcceptedByType(self, source_row: int, _: QModelIndex) -> bool:
         """ Returns True iff source_row has an accepted type """
@@ -460,22 +460,9 @@ class AttributeProxyModel(AbstractAttributeModel, QSortFilterProxyModel,
             return rowType in self._filterTypes
         return True
 
-    def __isAcceptedByRegExp(self, source_row: int, source_parent: QModelIndex) -> bool:
-        """ Returns True iff source_row matches the 'filterRegularExpression' reg exp """
-        # sourceIndex: QModelIndex = self.sourceModel().index(source_row, self._searchColumn,
-        #                                                     source_parent)
-        # rowText = sourceIndex.data(Qt.DisplayRole)
-        # result = self._searchRegexp.match(rowText)
-        # return result.hasMatch() or result.hasPartialMatch()
-        return super().filterAcceptsRow(source_row, source_parent)
-
-    # @Slot(str)
-    # def setSearchKeyword(self, key: str) -> None:
-    #     self._searchRegexp = QRegularExpression(key)
-
     def filterAcceptsRow(self, source_row: int, source_parent: QModelIndex) -> bool:
         return self.__isAcceptedByType(source_row, source_parent) and \
-               self.__isAcceptedByRegExp(source_row, source_parent)
+               super().filterAcceptsRow(source_row, source_parent)
 
     @property
     def checkboxColumn(self) -> Optional[int]:
@@ -511,19 +498,24 @@ class AttributeProxyModel(AbstractAttributeModel, QSortFilterProxyModel,
         sourceIndexes: List[QModelIndex] = self.mapSelectionToSource(allIndexes).indexes()
         self.setChecked(list(map(lambda x: x.row(), sourceIndexes)), value)
 
-    # @profile
-    # TOFIX: this is the slow method
-    # def headerData(self, section: int, orientation: Qt.Orientation, role: int = ...) -> Any:
-    #     """ Redefined to handle selection by clicking on header """
-    #     if orientation == Qt.Horizontal and role == Qt.DisplayRole and section == self.checkboxColumn:
-    #         # Return True if all visible items are checked
-    #         allIndexes = QItemSelection(
-    #             self.index(0, self.checkboxColumn, QModelIndex()),
-    #             self.index(self.rowCount() - 1, self.checkboxColumn, QModelIndex()))
-    #         sourceIndexes: List[QModelIndex] = self.mapSelectionToSource(allIndexes).indexes()
-    #         checkedAttr = self.checked
-    #         return all(map(lambda x: x.row() in checkedAttr, sourceIndexes))
-    #     return super().headerData(section, orientation, role)
+    def headerData(self, section: int, orientation: Qt.Orientation, role: int = ...) -> Any:
+        """ Redefined to handle selection by clicking on header """
+        if orientation == Qt.Horizontal and role == Qt.DisplayRole and section == self.checkboxColumn:
+            # Return True if all visible items are checked
+            checkedAttr = self.checked
+            if not self.checked:
+                # No item are checked in source model, so they are not checked in proxy
+                return False
+            if self.sourceModel().headerData(section, orientation, role) is True:
+                # If all items are checked in source model then they are checked also in proxy
+                return True
+            # Check if all visible items are checked (mapSelectionToSource can be slow)
+            allIndexes = QItemSelection(
+                self.index(0, self.checkboxColumn, QModelIndex()),
+                self.index(self.rowCount() - 1, self.checkboxColumn, QModelIndex()))
+            sourceIndexes: List[QModelIndex] = self.mapSelectionToSource(allIndexes).indexes()
+            return all(map(lambda x: x.row() in checkedAttr, sourceIndexes))
+        return self.sourceModel().headerData(section, orientation, role)
 
 
 class SearchableAttributeTableWidget(QWidget):
@@ -600,11 +592,17 @@ class SearchableAttributeTableWidget(QWidget):
                 hh.setSectionResizeMode(self.__model.typeColumn, QHeaderView.Stretch)
             self.tableView.verticalHeader().setDefaultAlignment(Qt.AlignHCenter)
             # Connect search and checkbox click
-            self.__searchBar.textChanged.connect(self.__model.setFilterRegExp)
+            self.__searchBar.textChanged.connect(self.setFilterRegularExpression)
             self.__searchBar.textChanged.connect(self.refreshHeaderCheckbox)
             hh.sectionClicked.connect(self.__model.onHeaderClicked)
             if oldViewModel:
                 oldViewModel.deleteLater()
+
+    @Slot(str)
+    def setFilterRegularExpression(self, pattern: str) -> None:
+        """ Custom slot to set case insensitivity """
+        exp = QRegularExpression(pattern, options=QRegularExpression.CaseInsensitiveOption)
+        self.__model.setFilterRegularExpression(exp)
 
     @Slot()
     def refreshHeaderCheckbox(self) -> None:
