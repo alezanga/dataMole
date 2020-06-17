@@ -11,7 +11,7 @@ from data_preprocessor.gui.editor.interface import AbsOperationEditor
 from .interface.exceptions import OptionValidationError
 from .interface.graph import GraphOperation
 from .utils import MixedListValidator, splitList, joinList
-from ..gui.generic.OptionsEditorFactory import OptionsEditorFactory
+from ..gui.editor.OptionsEditorFactory import OptionsEditorFactory
 from ..gui.mainmodels import SearchableAttributeTableWidget, FrameModel
 
 

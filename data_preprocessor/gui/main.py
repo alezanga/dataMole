@@ -4,6 +4,7 @@ from PySide2.QtCore import Slot, QThreadPool, Qt
 from PySide2.QtWidgets import QTabWidget, QWidget, QMainWindow, QMenuBar, QAction, QSplitter, \
     QHBoxLayout
 
+from data_preprocessor.decorators.generic import singleton
 from data_preprocessor.flow.OperationDag import OperationDag
 from data_preprocessor.gui.attributepanel import AttributePanel
 from data_preprocessor.gui.charts.charts import ScatterPlotMatrix
@@ -13,8 +14,8 @@ from data_preprocessor.gui.graph.scene import GraphScene
 from data_preprocessor.gui.graph.view import GraphView
 from data_preprocessor.gui.operationmenu import OperationMenu
 from data_preprocessor.gui.statusbar import StatusBar
-from data_preprocessor.gui.utils import OperationAction
 from data_preprocessor.gui.workbench import WorkbenchModel, WorkbenchView
+from data_preprocessor.operation.actionwrapper import OperationAction
 from data_preprocessor.operation.loaders import CsvLoader
 
 
@@ -74,9 +75,11 @@ class MainWidget(QWidget):
             self.__curr_tab = tab_index
 
 
+@singleton
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
+        self.__started: int = 0  # number of operations in progress
         central_w = MainWidget()
         self.setCentralWidget(central_w)
         self.setStatusBar(StatusBar(self))
@@ -89,9 +92,8 @@ class MainWindow(QMainWindow):
         flowMenu = menuBar.addMenu('Flow')
         addAction = QAction('Add frame', fileMenu)
         addAction.setStatusTip('Create an empty dataframe in the workbench')
-        self._loadAction = OperationAction(CsvLoader(central_w.workbench_model), fileMenu, 'Load csv',
-                                           self.rect().center())
-        loadCsvAction = self._loadAction.createAction()
+        loadCsvAction = OperationAction(CsvLoader, fileMenu, 'Load csv',
+                                        self.rect().center(), central_w.workbench_model)
         fileMenu.addAction(addAction)
         fileMenu.addAction(loadCsvAction)
         fileMenu.show()
@@ -108,7 +110,22 @@ class MainWindow(QMainWindow):
         addAction.triggered.connect(central_w.workbench_model.appendEmptyRow)
         exec_flow.triggered.connect(self.centralWidget().controller.executeFlow)
         reset_flow.triggered.connect(self.centralWidget().controller.resetFlowStatus)
-        # self._loadAction.success.connect(self.loadCsv)
+        loadCsvAction.stateChanged.connect(self.operationStateChanged)
+
+    @Slot(str)
+    def operationStateChanged(self, state: str) -> None:
+        if state == 'success':
+            self.statusBar().showMessage('Operation succeeded', 10000)
+        elif state == 'error':
+            self.statusBar().showMessage('Operation stopped with errors', 10000)
+        elif state == 'start':
+            self.__started += 1
+            self.statusBar().startSpinner()
+            self.statusBar().showMessage('Executing...', 10000)
+        elif state == 'finish':
+            self.__started -= 1
+            if self.__started == 0:
+                self.statusBar().stopSpinner()
 
     # @Slot()
     # def loadCsv(self) -> None:

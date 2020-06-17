@@ -6,8 +6,8 @@ from PySide2.QtGui import QIntValidator
 from PySide2.QtWidgets import QApplication
 
 from data_preprocessor.data import Frame
+from data_preprocessor.gui.editor.OptionsEditorFactory import OptionsEditorFactory
 from data_preprocessor.gui.mainmodels import FrameModel
-from data_preprocessor.gui.generic.OptionsEditorFactory import OptionsEditorFactory
 
 if __name__ == "__main__":
     d = {'col1': [1, 2, 3, 4.0, 10], 'col2': [3, 4, 5, 6, 0], 'col3': ['q', 2, 'q', 'q', 2],
