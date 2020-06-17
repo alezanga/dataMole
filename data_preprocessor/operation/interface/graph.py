@@ -13,9 +13,10 @@ class GraphOperation(Operation):
     Base interface of every graph operation
     """
 
-    def __init__(self):
+    def __init__(self, w: WorkbenchModel = None):
         """ Initialises an operation """
         # Holds the input shapes
+        super().__init__(w)
         self._shapes: List[Optional[data.Shape]] = [None] * self.maxInputNumber()
 
     # ----------------------------------------------------------------------------
@@ -262,18 +263,6 @@ class InputGraphOperation(GraphOperation):
     variables to use as input
     """
 
-    def __init__(self, w: WorkbenchModel = None):
-        """ Sets the workbench of the input operation
-
-        :param w: a workbench
-        """
-        super().__init__()
-        self._workbench: WorkbenchModel = w
-
-    @property
-    def workbench(self) -> WorkbenchModel:
-        return self._workbench
-
     # @abstractmethod
     # def inferInputShape(self) -> None:
     #     """ This method must be reimplemented to set the input shape after the options have been set.
@@ -343,18 +332,6 @@ class OutputGraphOperation(GraphOperation):
     Additionally every OutputGraphOperation has access to the workbench, in order to be able write new
     variables
     """
-
-    def __init__(self, w: WorkbenchModel = None):
-        """ Sets the workbench of the output operation
-
-        :param w: a workbench
-        """
-        super().__init__()
-        self._workbench: WorkbenchModel = w
-
-    @property
-    def workbench(self) -> WorkbenchModel:
-        return self._workbench
 
     def acceptedTypes(self) -> List[Types]:
         """ Accepts all types """

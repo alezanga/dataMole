@@ -49,6 +49,7 @@ class FrameModel(QAbstractTableModel):
         # Dictionary { attributeIndex: value }
         self._statistics: Dict[int, Dict[str, object]] = dict()
         self._histogram: Dict[int, Dict[Any, int]] = dict()
+        self.name: str = ''
 
     @property
     def frame(self) -> Frame:

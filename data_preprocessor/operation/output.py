@@ -56,7 +56,7 @@ class ToVariableOp(OutputGraphOperation):
 
             @Slot(str)
             def testInput(self, new_text: str):
-                if new_text not in self.workbench.keys:
+                if new_text not in self.workbench.names:
                     self.__write_box.unsetError()
                     self.enableOkButton()
                 else:
