@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import Union, List, Optional, Iterable
+from typing import Union, List, Optional, Iterable, final
 
 from data_preprocessor import data
 from data_preprocessor.data.types import Types, ALL_TYPES
@@ -72,15 +72,6 @@ class GraphOperation(Operation):
         dummy_frames = map(data.Frame.fromShape, self._shapes)
         result = self.execute(*dummy_frames)
         return result.shape
-
-    def acceptedTypes(self) -> List[Types]:
-        """
-        Return the column types that this operation accepts. If not relevant may avoid
-        reimplementation.
-
-        :return The list of types the operation can handle. Defaults to all types.
-        """
-        return ALL_TYPES
 
     @staticmethod
     def isOutputShapeKnown() -> bool:
@@ -263,15 +254,7 @@ class InputGraphOperation(GraphOperation):
     variables to use as input
     """
 
-    # @abstractmethod
-    # def inferInputShape(self) -> None:
-    #     """ This method must be reimplemented to set the input shape after the options have been set.
-    #     If the input shape cannot be inferred it should set it to None.
-    #     It replaces :func:`~data_preprocessor.operation.interface.InputGraphOperation.addInputShape`,
-    #     which instead should not be used in InputGraphOperation
-    #     """
-    #     pass
-
+    @final
     def addInputShape(self, shape: data.Shape, pos: int) -> None:
         """ It intentionally is a no-op, because input-operations has no input argument. Instead the
         input shape should be inferred using method

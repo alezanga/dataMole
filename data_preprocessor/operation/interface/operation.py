@@ -1,8 +1,8 @@
 from abc import abstractmethod, ABC
-from typing import Any, Iterable
+from typing import Any, Iterable, List
 
 from data_preprocessor import data
-from data_preprocessor.gui import AbsOperationEditor
+from data_preprocessor.data.types import Types, ALL_TYPES
 
 
 class Operation(ABC):
@@ -10,6 +10,7 @@ class Operation(ABC):
     over a data.Frame """
 
     def __init__(self, w: 'WorkbenchModel' = None):
+        super().__init__()
         self._workbench = w
 
     @property
@@ -95,7 +96,16 @@ class Operation(ABC):
         """
         pass
 
-    def getEditor(self) -> AbsOperationEditor:
+    def acceptedTypes(self) -> List[Types]:
+        """
+        Return the column types that this operation accepts. If not relevant may avoid
+        reimplementation.
+
+        :return The list of types the operation can handle. Defaults to all types.
+        """
+        return ALL_TYPES
+
+    def getEditor(self) -> 'AbsOperationEditor':
         """
         Return the editor panel to configure the step
 

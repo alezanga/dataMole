@@ -2,14 +2,14 @@ from typing import Any, Dict, List, Optional
 
 from data_preprocessor.data import Frame, Shape
 from data_preprocessor.operation.interface.graph import GraphOperation
-from .OperationUid import OperationUid, OperationUidFactory
+from data_preprocessor.utils import UIdGenerator
 
 
 class OperationNode:
     """ Wraps an operation, providing functionality required for graph computation """
 
     def __init__(self, operation: GraphOperation):
-        self.__op_uid: OperationUid = OperationUidFactory().getUniqueId()
+        self.__op_uid: int = UIdGenerator().getUniqueId()
         self.operation = operation
         # List of inputs, kept in order
         self.__inputs: List = [None] * operation.maxInputNumber()
@@ -19,7 +19,7 @@ class OperationNode:
     @property
     def uid(self) -> int:
         """ Returns the integer unique identifier of one node """
-        return self.__op_uid.uid
+        return self.__op_uid
 
     def inputShapeFrom(self, node_id: int) -> Optional[Shape]:
         """ Get the input shape set from specified source node, if set """

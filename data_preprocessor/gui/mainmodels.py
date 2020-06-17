@@ -14,11 +14,11 @@ from PySide2.QtWidgets import QWidget, QTableView, QLineEdit, QVBoxLayout, QHead
 
 from data_preprocessor.data import Frame, Shape
 from data_preprocessor.data.types import Types, ALL_TYPES
-# New role to return raw data from header
 from data_preprocessor.operation.computations.statistics import AttributeStatistics, Hist
 from data_preprocessor.threads import Worker
 
 
+# New role to return raw data from header
 class MyRoles(Enum):
     DataRole = Qt.UserRole
 

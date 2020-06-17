@@ -1,15 +1,15 @@
-from typing import Iterable, Union, List
+from typing import Iterable, List
 
 import pandas as pd
 
 from data_preprocessor import data
 from data_preprocessor.gui import AbsOperationEditor
-from data_preprocessor.operation.interface.graph import InputGraphOperation
 from .interface.exceptions import InvalidOptions, OptionValidationError
+from .interface.operation import Operation
 from ..gui.editor.loaders import LoadCSVEditor
 
 
-class CsvLoader(InputGraphOperation):
+class CsvLoader(Operation):
     def __init__(self, w):
         super().__init__(w)
         self.__file: str = None
@@ -20,9 +20,6 @@ class CsvLoader(InputGraphOperation):
 
     def hasOptions(self) -> bool:
         return self.__file is not None and self.__separator is not None and self.__wName
-
-    def getOutputShape(self) -> Union[data.Shape, None]:
-        return None
 
     def execute(self) -> None:
         if not self.hasOptions():

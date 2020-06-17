@@ -1,13 +1,17 @@
-from PySide2.QtCore import Slot, QModelIndex, Qt
-from PySide2.QtWidgets import QWidget, QLabel, QFormLayout
+from PySide2.QtCore import Slot, QAbstractItemModel, Qt, Signal
+from PySide2.QtWidgets import QWidget, QLabel, QFormLayout, QComboBox, QPushButton, \
+    QVBoxLayout
 
+from data_preprocessor.gui.mainmodels import FrameModel
 from data_preprocessor.gui.workbench import WorkbenchModel
 
-# TODO this
 
 class FramePanel(QWidget):
-    def __init__(self, w: WorkbenchModel, parent=None):
+    operationRequest = Signal(type)  # Operation type
+
+    def __init__(self, w: WorkbenchModel, opModel: QAbstractItemModel, parent=None):
         super().__init__(parent)
+        self.__workbench: WorkbenchModel = w
         labeln = QLabel('Name:', self)
         labelc = QLabel('Columns:', self)
         labelr = QLabel('Rows:', self)
@@ -16,29 +20,60 @@ class FramePanel(QWidget):
         self.rows = QLabel(self)
         self.columns = QLabel(self)
         self.index = QLabel(self)
-        layout = QFormLayout(self)
-        layout.addRow(labeln, self.name)
-        layout.addRow(labelr, self.rows)
-        layout.addRow(labelc, self.columns)
-        layout.addRow(labeli, self.index)
-        self.__w = w
+        self.__currentFrameIndex: int = -1
+        self.__currentFrameModel: FrameModel = None
+        fLayout = QFormLayout()
+        fLayout.addRow(labeln, self.name)
+        fLayout.addRow(labelr, self.rows)
+        fLayout.addRow(labelc, self.columns)
+        fLayout.addRow(labeli, self.index)
+        fLayout.setVerticalSpacing(0)
 
-    def updateData(self, row: int) -> None:
-        index = self.__w.index(row, 0, QModelIndex())
-        name = index.data(Qt.DisplayRole)
-        frameModel = self.__w.getDataframeModelByIndex(row)
+        lab = QLabel('Operations apply')
+        self.operationsComboBox = QComboBox(self)
+        self.operationsComboBox.setModel(opModel)
+        applyButton = QPushButton('Apply', self)
+
+        layout = QVBoxLayout(self)
+        layout.setSpacing(10)
+        layout.addLayout(fLayout)
+        layout.addSpacing(30)
+        layout.addWidget(lab)
+        layout.addWidget(self.operationsComboBox)
+        layout.addWidget(applyButton, 1)
+        applyButton.clicked.connect(self.applyOperation)
+
+    @Slot()
+    def applyOperation(self) -> None:
+        data: type = self.operationsComboBox.model() \
+            .item(self.operationsComboBox.currentIndex(), 0).data(Qt.UserRole)
+        self.operationRequest.emit(data)
+
+    @Slot()
+    def updateData(self) -> None:
+        name = self.__currentFrameModel.name
         self.name.setText(name)
-        self.columns.setText(str(frameModel.columnCount()))
-        self.rows.setText(str(frameModel.rowCount()))
-        index = frameModel.frame.shape.index
+        self.columns.setText(str(self.__currentFrameModel.columnCount()))
+        self.rows.setText(str(self.__currentFrameModel.rowCount()))
+        index = self.__currentFrameModel.frame.shape.index
         self.index.setText(index if index else 'default')
-        frameModel.columnsRemoved.connect()
 
-    def nameChanged(self) -> None:
-        pass
-
-    @Slot(str)
-    def infoChanged(self, name: str, rows: int, columns: int) -> None:
-        self.name.setText(name)
-        self.columns.setText(str(columns))
-        self.rows.setText(str(rows))
+    @Slot(int)
+    def onFrameSelectionChanged(self, selected: int) -> None:
+        if selected == self.__currentFrameIndex:
+            return
+        if self.__currentFrameModel:
+            # Disconnect all signal in model from this widget
+            self.__currentFrameModel.disconnect(self)
+        if selected >= 0:
+            # Set new model
+            self.__currentFrameModel = self.__workbench.getDataframeModelByIndex(selected)
+            # Connect
+            self.__currentFrameModel.rowsRemoved.connect(self.updateData)
+            self.__currentFrameModel.rowsInserted.connect(self.updateData)
+            self.__currentFrameModel.columnsRemoved.connect(self.updateData)
+            self.__currentFrameModel.columnsInserted.connect(self.updateData)
+            self.__currentFrameModel.modelReset.connect(self.updateData)
+            self.__workbench.dataChanged.connect(self.updateData)
+            # Update current info
+            self.updateData()

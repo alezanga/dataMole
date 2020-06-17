@@ -1,5 +1,5 @@
 import logging
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Dict, Any
 
 from PySide2.QtCore import Slot, QObject, Signal, QPoint, QThreadPool
 from PySide2.QtWidgets import QMessageBox, QAction
@@ -9,10 +9,17 @@ from data_preprocessor import threads
 from data_preprocessor.gui.editor.interface import AbsOperationEditor
 from data_preprocessor.operation.interface.exceptions import OptionValidationError
 from data_preprocessor.operation.interface.operation import Operation
+from data_preprocessor.utils import UIdGenerator
 
 
 class OperationAction(QAction):
-    stateChanged = Signal(str)
+    """
+    Wraps a single operation allowing to set options through the editor and execute it.
+    Emits stateChanged signal when operation starts, succeeds or stops with error.
+    Signal parameter can be one of { 'start', 'success', 'error', 'finish' }.
+    """
+
+    stateChanged = Signal(int, str)
 
     def __init__(self, op: type, parent: QObject, actionName: str = '',
                  editorPosition: QPoint = QPoint(), *args, **kwargs):
@@ -30,48 +37,56 @@ class OperationAction(QAction):
         self.__args = args
         self.__kwargs = kwargs
         self.__operation: type = op
-        self.__editorPosition = editorPosition
+        self.__editorPosition: QPoint = editorPosition
+        self.__results: Dict[int, Any] = dict()  # { op_id: result }
         self.triggered.connect(self.startOperation)
+
+    def getResult(self, key: int) -> Any:
+        """ Pops the result of operation with specified key if it exists. Otherwise returns None """
+        return self.__results.pop(key, None)
 
     @Slot()
     def startOperation(self) -> None:
-        w = OperationWrapper(self.__operation(*self.__args, **self.__kwargs), parent=self,
+        uid: int = UIdGenerator().getUniqueId()
+        w = OperationWrapper(self.__operation(*self.__args, **self.__kwargs), uid=uid,
+                             parent=self,
                              editorPosition=self.__editorPosition)
         w.stateChanged.connect(self.onStateChanged)
         w.start()
 
-    @Slot(str)
-    def onStateChanged(self, state: str):
-        if state == 'finish':
-            sender: OperationWrapper = self.sender()
+    @Slot(int, str)
+    def onStateChanged(self, uid: int, state: str):
+        sender: OperationWrapper = self.sender()
+        if state == 'success':
+            self.__results[uid] = sender.result
+            sender.result = None
+        elif state == 'finish':
             sender.editor.deleteLater()  # delete editor
-            if sender:
-                sender.deleteLater()  # delete wrapper object
-        self.stateChanged.emit(state)
+            sender.deleteLater()  # delete wrapper object
+        self.stateChanged.emit(uid, state)
 
 
 class OperationWrapper(QObject):
     """
     Wraps an operation allowing it to be executed as a single command.
-    'createAction' will return a QAction which, once triggered, will ask the user to provide
-    options if necessary through the option editor. When the operation completes the object will emit
-    a 'finished' signal. The result can then be retrieved with the 'output' property
     """
-    stateChanged = Signal(str)
+    stateChanged = Signal(int, str)
 
-    def __init__(self, op: Operation, parent: QObject, editorPosition: QPoint = QPoint()):
+    def __init__(self, op: Operation, uid: int, parent: QObject, editorPosition: QPoint = QPoint()):
         super().__init__(parent)
 
         self.operation = op
+        self.uid = uid
         self.editor: Optional[AbsOperationEditor] = None
         self._editorPos = editorPosition
         self._inputs: Tuple[data.Frame] = tuple()
+        self.result = None  # hold the result when available
 
     def start(self):
         self.editor = self.operation.getEditor()
         self.editor.setWindowTitle(self.operation.name())
         self.editor.acceptAndClose.connect(self.onAcceptEditor)
-        # self.editor.rejectAndClose.connect(self.stateChanged())
+        self.editor.rejectAndClose.connect(self._onFinish)
         self.editor.acceptedTypes = self.operation.acceptedTypes()
         self.editor.inputShapes = [i.shape for i in self._inputs]
         self.editor.setDescription(self.operation.shortDescription(), self.operation.longDescription())
@@ -84,7 +99,7 @@ class OperationWrapper(QObject):
 
     @Slot()
     def onAcceptEditor(self) -> None:
-        self.stateChanged.emit('start')
+        self.stateChanged.emit(self.uid, 'start')
         try:
             self.operation.setOptions(*self.editor.getOptions())
         except OptionValidationError as e:
@@ -101,21 +116,22 @@ class OperationWrapper(QObject):
             self.editor.hide()
 
     @Slot(object, object)
-    def _onSuccess(self, _, f: data.Frame) -> None:
+    def _onSuccess(self, _, f: Any) -> None:
         # Signal success
-        self.stateChanged.emit('success')
+        self.result = f
+        self.stateChanged.emit(self.uid, 'success')
         logging.info('Operation succeeded')
 
     @Slot(object)
-    def _onFinish(self, _) -> None:
-        self.stateChanged.emit('finish')
+    def _onFinish(self) -> None:
+        self.stateChanged.emit(self.uid, 'finish')
         logging.info('Operation {} finished'.format(self.operation.name()))
         self.__worker = None
         self.editor.close()
 
     @Slot(object, tuple)
     def _onError(self, _, error: Tuple[type, Exception, str]) -> None:
-        self.stateChanged.emit('error')
+        self.stateChanged.emit(self.uid, 'error')
         msg = str(error[1])
         msg_short = 'Operation failed to execute with following message: <br> {}'.format(msg[:80])
         if len(msg) > 80:

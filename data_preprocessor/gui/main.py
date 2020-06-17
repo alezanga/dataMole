@@ -24,8 +24,10 @@ class MainWidget(QWidget):
         super().__init__(parent)
         self.workbench_model = WorkbenchModel(self)
         self.graph = OperationDag()
-        self.__genericView = FramePanel(self)
         self.__operationMenu = OperationMenu()
+        self.__frameInfoPanel = FramePanel(parent=self,
+                                           w=self.workbench_model,
+                                           opModel=self.__operationMenu.model())
         workbenchView = WorkbenchView()
         workbenchView.setModel(self.workbench_model)
         self.workbench_model.emptyRowInserted.connect(workbenchView.edit)
@@ -45,7 +47,7 @@ class MainWidget(QWidget):
         self.__curr_tab = tabs.currentIndex()
 
         self.__leftSide = QSplitter(Qt.Vertical)
-        self.__leftSide.addWidget(self.__genericView)
+        self.__leftSide.addWidget(self.__frameInfoPanel)
         self.__leftSide.addWidget(workbenchView)
 
         # layout = QHBoxLayout()
@@ -60,18 +62,27 @@ class MainWidget(QWidget):
         tabs.currentChanged.connect(self.switch_view)
         workbenchView.selectedRowChanged.connect(attributeTab.onFrameSelectionChanged)
         workbenchView.selectedRowChanged.connect(chartsTab.onFrameSelectionChanged)
+        workbenchView.selectedRowChanged.connect(self.__frameInfoPanel.onFrameSelectionChanged)
+        self.__frameInfoPanel.operationRequest.connect(self.executeOperation)
+
+    @Slot(type)
+    def executeOperation(self, opType: type) -> None:
+        # TODO
+        # action = OperationAction(CsvLoader, fileMenu, 'Load csv',
+        #                 self.rect().center(), central_w.workbench_model)
+        pass
 
     @Slot(int)
     def switch_view(self, tab_index: int) -> None:
         if tab_index == 2:
             self.__leftSide.replaceWidget(0, self.__operationMenu)
-            self.__genericView.hide()
+            self.__frameInfoPanel.hide()
             self.__operationMenu.show()
             self.__curr_tab = 2
         elif self.__curr_tab == 2 and tab_index != 2:
-            self.__leftSide.replaceWidget(0, self.__genericView)
+            self.__leftSide.replaceWidget(0, self.__frameInfoPanel)
             self.__operationMenu.hide()
-            self.__genericView.show()
+            self.__frameInfoPanel.show()
             self.__curr_tab = tab_index
 
 
@@ -126,7 +137,3 @@ class MainWindow(QMainWindow):
             self.__started -= 1
             if self.__started == 0:
                 self.statusBar().stopSpinner()
-
-    # @Slot()
-    # def loadCsv(self) -> None:
-    #     self.centralWidget().workbench_model.appendNewRow('new_frame', self._loadAction.output)

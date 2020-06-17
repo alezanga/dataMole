@@ -2,7 +2,7 @@ import importlib
 from typing import Callable, List
 
 from PySide2.QtCore import Qt, QPoint, QMimeData, Slot
-from PySide2.QtGui import QMouseEvent, QDrag
+from PySide2.QtGui import QMouseEvent, QDrag, QStandardItem, QStandardItemModel
 from PySide2.QtWidgets import QWidget, QTreeWidget, QTreeWidgetItem, QApplication
 
 
@@ -10,7 +10,7 @@ def _build_item(name: str, data=None) -> QTreeWidgetItem:
     """
     Build a tree item with a display name, and sets its data
 
-    @:param data: the class name. If specified it's set at column 1 on Qt.UserRole
+    :param data: the class name. If specified it's set at column 1 on Qt.UserRole
     """
     item = QTreeWidgetItem([name])
     flags = Qt.ItemIsSelectable | Qt.ItemIsEnabled
@@ -62,6 +62,23 @@ class OperationMenu(QTreeWidget):
         self.header().setDefaultAlignment(Qt.AlignCenter)
         self.header().setSectionsClickable(True)
         self.header().sectionClicked.connect(self.toggleExpansion)
+        self.setUniformRowHeights(True)
+
+    def model(self) -> QStandardItemModel:
+        items: List[QTreeWidgetItem] = \
+            self.findItems('*', Qt.MatchWrap | Qt.MatchWildcard | Qt.MatchRecursive)
+        model = QStandardItemModel()
+
+        def standardItem(w: QTreeWidgetItem) -> QStandardItem:
+            s = QStandardItem()
+            s.setData(w.data(0, Qt.DisplayRole), Qt.DisplayRole)
+            s.setData(w.data(1, Qt.UserRole), Qt.UserRole)
+            return s
+
+        items = list(map(standardItem, filter(lambda i: i.parent(), items)))
+        for i in items:
+            model.appendRow(i)
+        return model
 
     @Slot(int)
     def toggleExpansion(self, section: int) -> None:
