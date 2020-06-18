@@ -144,12 +144,15 @@ class BinsDiscretizer(GraphOperation, ExecutionLog):
         values = [(s.name, s) for s in BinStrategy]
         factory.withRadioGroup('Select strategy:', 'strategy', values)
         factory.withCheckBox('Drop original attributes', 'drop')
-        e = factory.getEditor()
+        return factory.getEditor()
+
+    def injectEditor(self, editor: 'AbsOperationEditor') -> None:
+        editor.inputShapes = self.shapes
+        editor.acceptedTypes = self.acceptedTypes()
         # Set frame model
-        e.attributes.setSourceFrameModel(FrameModel(e, self.shapes[0]))
+        editor.attributes.setSourceFrameModel(FrameModel(editor, self.shapes[0]))
         # Stretch new section
-        e.attributes.tableView.horizontalHeader().setSectionResizeMode(3, QHeaderView.Stretch)
-        return e
+        editor.attributes.tableView.horizontalHeader().setSectionResizeMode(3, QHeaderView.Stretch)
 
     def getOutputShape(self) -> Optional[data.Shape]:
         if not self.hasOptions() or self.shapes[0] is None:
@@ -276,13 +279,16 @@ class RangeDiscretizer(GraphOperation, ExecutionLog):
         }
         factory.withAttributeTable('table', True, False, True, options, self.acceptedTypes())
         factory.withCheckBox('Drop original columns', 'drop')
-        e = factory.getEditor()
+        return factory.getEditor()
+
+    def injectEditor(self, editor: 'AbsOperationEditor') -> None:
+        editor.inputShapes = self.shapes
+        editor.acceptedTypes = self.acceptedTypes()
         # Set frame model
-        e.table.setSourceFrameModel(FrameModel(e, self.shapes[0]))
+        editor.table.setSourceFrameModel(FrameModel(editor, self.shapes[0]))
         # Stretch new section
-        e.table.tableView.horizontalHeader().setSectionResizeMode(3, QHeaderView.Stretch)
-        e.table.tableView.horizontalHeader().setSectionResizeMode(4, QHeaderView.Stretch)
-        return e
+        editor.table.tableView.horizontalHeader().setSectionResizeMode(3, QHeaderView.Stretch)
+        editor.table.tableView.horizontalHeader().setSectionResizeMode(4, QHeaderView.Stretch)
 
     @staticmethod
     def minInputNumber() -> int:

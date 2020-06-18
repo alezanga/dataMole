@@ -202,4 +202,4 @@ class OperationWrapper(QObject):
             fr = self.operation.workbench.getDataframeModelByIndex(index).frame
             self.operation._shapes = [fr.shape]
             self._inputs = (fr,)
-            self.operation.updateEditor(self.editor)
+            self.operation.injectEditor(self.editor)

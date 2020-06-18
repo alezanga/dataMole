@@ -113,8 +113,9 @@ class Operation(ABC):
         """
         pass
 
-    def updateEditor(self, editor: 'AbsOperationEditor') -> None:
+    def injectEditor(self, editor: 'AbsOperationEditor') -> None:
         """
-        Configure the editor components. Separates the process of editor creation and configuration
+        Inject in the options editor every relevant field, like input shapes, accepted types and
+        configure the editor components if necessary
         """
         pass

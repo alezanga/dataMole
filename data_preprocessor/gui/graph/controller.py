@@ -94,17 +94,9 @@ class GraphController(QWidget):
             # Set up editor
             self.__editor_widget = node.operation.getEditor()
             self.__editor_node_id = node.uid
-            # Set types
-            self.__editor_widget.acceptedTypes = node.operation.acceptedTypes()
-            # Set input shapes
-            self.__editor_widget.inputShapes = node.operation.shapes
-            # If input/output op set workbench
-            if node.operation.maxInputNumber() == 0 or node.operation.minOutputNumber() == 0:
-                # Then its an input/output operation
-                self.__editor_widget.workbench = node.operation.workbench
             # Create the central widget and adds options
             self.__editor_widget.setUpEditor()
-            node.operation.updateEditor(self.__editor_widget)
+            node.operation.injectEditor(self.__editor_widget)
             self.__editor_widget.setDescription(node.operation.shortDescription(),
                                                 node.operation.longDescription())
             options = node.operation.getOptions()

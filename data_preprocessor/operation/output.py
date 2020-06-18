@@ -64,5 +64,8 @@ class ToVariableOp(OutputGraphOperation):
 
         return WriteEditor()
 
+    def injectEditor(self, editor: 'AbsOperationEditor') -> None:
+        editor.workbench = self._workbench
+
 
 export = ToVariableOp

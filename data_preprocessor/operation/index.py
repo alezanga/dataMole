@@ -56,17 +56,21 @@ class SetIndexOp(GraphOperation):
     def getEditor(self) -> AbsOperationEditor:
         class Editor(AbsOperationEditor):
             def editorBody(self) -> QWidget:
-                self.__attributeComboBox = opw.AttributeComboBox(self.inputShapes[0], self.acceptedTypes,
-                                                                 'Select an attribute')
-                return self.__attributeComboBox
+                self.attributeComboBox = opw.AttributeComboBox(None, None, 'Select an attribute')
+                return self.attributeComboBox
 
             def getOptions(self) -> Iterable:
-                return [self.__attributeComboBox.getData()]
+                return [self.attributeComboBox.getData()]
 
             def setOptions(self, index: Optional[int]) -> None:
-                self.__attributeComboBox.setData(index)
+                self.attributeComboBox.setData(index)
 
         return Editor()
+
+    def injectEditor(self, editor: 'AbsOperationEditor') -> None:
+        editor.inputShapes = self.shapes
+        editor.acceptedTypes = self.acceptedTypes()
+        editor.attributeComboBox.refresh(shape=self.shapes[0], typesFilter=self.acceptedTypes())
 
     @staticmethod
     def isOutputShapeKnown() -> bool:

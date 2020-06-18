@@ -62,7 +62,7 @@ class OneHotEncodeOp(GraphOperation):
     def getEditor(self) -> AbsOperationEditor:
         return _SelectAttribute()
 
-    def updateEditor(self, editor: 'AbsOperationEditor') -> None:
+    def injectEditor(self, editor: 'AbsOperationEditor') -> None:
         editor.inputShapes = self.shapes
         editor.refresh()
 

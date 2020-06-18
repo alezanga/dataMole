@@ -62,5 +62,8 @@ class CopyOp(InputGraphOperation):
 
         return SelectFrame()
 
+    def injectEditor(self, editor: 'AbsOperationEditor') -> None:
+        editor.workbench = self._workbench
+
 
 export = CopyOp

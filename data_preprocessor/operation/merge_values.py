@@ -158,15 +158,11 @@ class MergeValuesOp(GraphOperation):
         factory.initEditor()
         factory.withAttributeTable('table', True, False, True, options, self.acceptedTypes())
         factory.withCheckBox('Invert values selection', 'inverted')
-        e = factory.getEditor()
-        # Set frame model
-        e.table.setSourceFrameModel(FrameModel(e, self.shapes[0]))
-        # Stretch new section
-        e.table.tableView.horizontalHeader().setSectionResizeMode(3, QHeaderView.Stretch)
-        e.table.tableView.horizontalHeader().setSectionResizeMode(4, QHeaderView.Stretch)
-        return e
+        return factory.getEditor()
 
-    def updateEditor(self, editor: AbsOperationEditor) -> None:
+    def injectEditor(self, editor: AbsOperationEditor) -> None:
+        editor.inputShapes = self.shapes
+        editor.acceptedTypes = self.acceptedTypes()
         # Set frame model
         editor.table.setSourceFrameModel(FrameModel(editor, self.shapes[0]))
         # Stretch new section

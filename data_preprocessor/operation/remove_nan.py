@@ -72,6 +72,10 @@ class RemoveNanRows(GraphOperation):
     def getEditor(self) -> AbsOperationEditor:
         return _RemoveNanEditor('row')
 
+    def injectEditor(self, editor: 'AbsOperationEditor') -> None:
+        editor.inputShapes = self.shapes
+        editor.refresh()
+
     @staticmethod
     def isOutputShapeKnown() -> bool:
         return True
@@ -144,6 +148,10 @@ class RemoveNanColumns(GraphOperation):
     def getEditor(self) -> AbsOperationEditor:
         return _RemoveNanEditor('col')
 
+    def injectEditor(self, editor: 'AbsOperationEditor') -> None:
+        editor.inputShapes = self.shapes
+        editor.refresh()
+
     @staticmethod
     def isOutputShapeKnown() -> bool:
         return False
@@ -198,7 +206,7 @@ class _RemoveNanEditor(AbsOperationEditor):
         self.__group.addButton(QRadioButton('By percentage'), id=1)
         self.__currId = None
 
-        self.__sliderLabel = QLabel()
+        self.__summaryLabel = QLabel()
         self.__slider = QSlider(Qt.Horizontal, self)
         self.__slider.setMinimum(0)
         self.__slider.setTracking(True)
@@ -218,7 +226,7 @@ class _RemoveNanEditor(AbsOperationEditor):
         self.__bodyLayout.addWidget(QLabel('Move the slider to set removal parameter:'))
         self.__bodyLayout.addSpacing(10)
         self.__bodyLayout.addWidget(self.__slider if self.__mode == 'row' else self.__numBox)
-        self.__bodyLayout.addWidget(self.__sliderLabel)
+        self.__bodyLayout.addWidget(self.__summaryLabel)
 
         self.__group.buttonClicked[int].connect(self._toggleMode)
         # Both are connected, only one is shown
@@ -226,7 +234,7 @@ class _RemoveNanEditor(AbsOperationEditor):
         self.__numBox.valueChanged[int].connect(self._onValueChanged)
         # Set a default button and label text
         self.__group.button(0).click()
-        self.__sliderLabel.setText(self._baseText[0].format(self.__slider.minimum()))
+        self.__summaryLabel.setText(self._baseText[0].format(self.__slider.minimum()))
 
         body = QWidget()
         body.setLayout(self.__bodyLayout)
@@ -239,7 +247,7 @@ class _RemoveNanEditor(AbsOperationEditor):
             return
         self.__currId = bid
         if bid == 0:
-            if not self.inputShapes[0] and self.__mode == 'row':
+            if not (self.inputShapes and self.inputShapes[0]) and self.__mode == 'row':
                 self.__slider.setDisabled(True)
                 self._onValueChanged(self.__slider.value())
             elif not self.__slider.isEnabled():
@@ -266,7 +274,7 @@ class _RemoveNanEditor(AbsOperationEditor):
 
     @Slot(int)
     def _onValueChanged(self, value: int):
-        self.__sliderLabel.setText(self._baseText[self.__currId].format(value))
+        self.__summaryLabel.setText(self._baseText[self.__currId].format(value))
 
     def getOptions(self) -> Iterable:
         if self.__group.checkedId() == 0:
@@ -287,3 +295,8 @@ class _RemoveNanEditor(AbsOperationEditor):
             # Both None
             self.__slider.setValue(0)
             self.__numBox.setValue(0)
+
+    def refresh(self) -> None:
+        if self.__mode == 'row' and self.__group.checkedId() == 0:
+            self.__slider.setMaximum(self.inputShapes[0].n_columns)
+            self.__slider.setEnabled(True)

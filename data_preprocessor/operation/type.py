@@ -70,7 +70,9 @@ class ToNumericOp(GraphOperation):
                                    types=self.acceptedTypes())
         return factory.getEditor()
 
-    def updateEditor(self, editor: 'AbsOperationEditor') -> None:
+    def injectEditor(self, editor: 'AbsOperationEditor') -> None:
+        editor.acceptedTypes = self.acceptedTypes()
+        editor.inputShapes = self._shapes
         # Set frame model
         editor.attributes.setSourceFrameModel(FrameModel(editor, self.shapes[0]))
 
@@ -187,7 +189,9 @@ class ToCategoricalOp(GraphOperation):
                                    types=self.acceptedTypes())
         return factory.getEditor()
 
-    def updateEditor(self, editor: 'AbsOperationEditor') -> None:
+    def injectEditor(self, editor: 'AbsOperationEditor') -> None:
+        editor.acceptedTypes = self.acceptedTypes()
+        editor.inputShapes = self._shapes
         # Set frame model
         editor.attributes.setSourceFrameModel(FrameModel(editor, self.shapes[0]))
         # Stretch new section

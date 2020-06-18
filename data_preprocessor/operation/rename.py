@@ -56,7 +56,7 @@ class RenameOp(GraphOperation):
     def getEditor(self) -> AbsOperationEditor:
         return _RenameEditor()
 
-    def updateEditor(self, editor: '_RenameEditor') -> None:
+    def injectEditor(self, editor: '_RenameEditor') -> None:
         editor.inputShapes = self.shapes
         editor.refresh()
 
