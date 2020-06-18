@@ -24,8 +24,8 @@ jt = JoinType
 
 
 class JoinOp(GraphOperation):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.__lsuffix: str = '_l'
         self.__rsuffix: str = '_r'
         self.__on_index: bool = False

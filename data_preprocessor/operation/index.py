@@ -10,8 +10,8 @@ from data_preprocessor.operation.interface.graph import GraphOperation
 
 
 class SetIndexOp(GraphOperation):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.__index_col: int = None
 
     def execute(self, df: data.Frame) -> data.Frame:

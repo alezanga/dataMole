@@ -3,20 +3,19 @@ from typing import Optional, List, Union
 from PySide2.QtCore import Qt
 from PySide2.QtWidgets import QComboBox, QWidget
 
-import data_preprocessor.gui.workbench as wb
 from data_preprocessor import data
 from data_preprocessor.gui.editor.interface import AbsOperationEditor
 from .interface.graph import InputGraphOperation
 
 
 class CopyOp(InputGraphOperation):
-    def __init__(self, workbench: wb.WorkbenchModel):
-        super().__init__(workbench)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self._frame_name: Optional[str] = None
 
     def execute(self) -> data.Frame:
         """ Get selected dataframe from workbench """
-        return self._workbench.getDataframeByName(self._frame_name)
+        return self._workbench.getDataframeModelByName(self._frame_name).frame
 
     @staticmethod
     def name() -> str:
@@ -38,7 +37,7 @@ class CopyOp(InputGraphOperation):
         if not self.hasOptions():
             return None
         else:
-            return self._workbench.getDataframeByName(self._frame_name).shape
+            return self._workbench.getDataframeModelByName(self._frame_name).frame.shape
 
     def needsOptions(self) -> bool:
         return True

@@ -75,7 +75,11 @@ class OperationMenu(QTreeWidget):
             s.setData(w.data(1, Qt.UserRole), Qt.UserRole)
             return s
 
-        items = list(map(standardItem, filter(lambda i: i.parent(), items)))
+        items = list(map(standardItem, filter(lambda i: i.parent() and
+                                                        i.data(1, Qt.UserRole).minInputNumber() ==
+                                                        i.data(1, Qt.UserRole).maxInputNumber() == 1 and
+                                                        i.data(1, Qt.UserRole).minOutputNumber() == 1,
+                                              items)))
         for i in items:
             model.appendRow(i)
         return model

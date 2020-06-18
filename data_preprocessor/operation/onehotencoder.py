@@ -12,8 +12,8 @@ from data_preprocessor.operation.interface.graph import GraphOperation
 
 
 class OneHotEncodeOp(GraphOperation):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.__attributes: List[int] = list()
         self.__includeNan: bool = None
 
@@ -62,6 +62,10 @@ class OneHotEncodeOp(GraphOperation):
     def getEditor(self) -> AbsOperationEditor:
         return _SelectAttribute()
 
+    def updateEditor(self, editor: 'AbsOperationEditor') -> None:
+        editor.inputShapes = self.shapes
+        editor.refresh()
+
     def getOutputShape(self) -> Union[data.Shape, None]:
         return None
 
@@ -91,7 +95,6 @@ class _SelectAttribute(AbsOperationEditor):
         self.__searchableTable = SearchableAttributeTableWidget(checkable=True,
                                                                 showTypes=True,
                                                                 filterTypes=self.acceptedTypes)
-        self.__searchableTable.setSourceFrameModel(FrameModel(self, self.inputShapes[0]))
         self.__nancol = QCheckBox('Column for nan?', self)
         layout = QVBoxLayout()
         layout.addWidget(self.__searchableTable)
@@ -99,6 +102,9 @@ class _SelectAttribute(AbsOperationEditor):
         w = QWidget(self)
         w.setLayout(layout)
         return w
+
+    def refresh(self) -> None:
+        self.__searchableTable.setSourceFrameModel(FrameModel(self, self.inputShapes[0]))
 
     def getOptions(self) -> Tuple[List[int], bool]:
         return self.__searchableTable.model().checked, self.__nancol.isChecked()

@@ -19,7 +19,7 @@ def test_cat_toNumeric():
 
     op = ToNumericOp()
     op.addInputShape(f.shape, pos=0)
-    op.setOptions(attribute_indexes=[0])
+    op.setOptions(attributes={0: dict()})
 
     # Predict output shape
     os = copy.deepcopy(f.shape).col_type_dict
@@ -32,7 +32,7 @@ def test_cat_toNumeric():
     op.addInputShape(f.shape, pos=0)
     op.unsetOptions()
     assert op.getOutputShape() is None
-    op.setOptions(attribute_indexes=[0])
+    op.setOptions(attributes={0: dict()})
     assert op.getOutputShape().col_type_dict == os  # Re-adding everything
 
     g = op.execute(f)
@@ -54,7 +54,7 @@ def test_str_toNumeric():
 
     op = ToNumericOp()
     op.addInputShape(f.shape, pos=0)
-    op.setOptions(attribute_indexes=[0, 2])
+    op.setOptions(attributes={0: dict(), 2: dict()})
 
     # Predict output shape
     os = copy.deepcopy(f.shape).col_type_dict
@@ -68,7 +68,7 @@ def test_str_toNumeric():
     op.addInputShape(f.shape, pos=0)
     op.unsetOptions()
     assert op.getOutputShape() is None
-    op.setOptions(attribute_indexes=[0, 2])
+    op.setOptions(attributes={0: dict(), 2: dict()})
     assert op.getOutputShape().col_type_dict == os  # Re-adding everything
 
     g = op.execute(f)
@@ -86,25 +86,25 @@ def test_unsetOptions_toNumeric():
 
     op = ToNumericOp()
     op.addInputShape(f.shape, pos=0)
-    assert op.getOptions() == [list()] and not op.hasOptions()
-    op.setOptions(attribute_indexes=[0])
-    assert op.getOptions() == [[0]]
+    assert op.getOptions() == {'attributes': {}} and not op.hasOptions()
+    op.setOptions(attributes={0: dict()})
+    assert op.getOptions() == {'attributes': {0: None}}
     assert op._shapes[0] == f.shape
 
     op.unsetOptions()
-    assert op.getOptions() == [list()]
+    assert op.getOptions() == {'attributes': {}}
     assert op._shapes[0] == f.shape
 
     op.removeInputShape(0)
-    assert op.getOptions() == [list()]
+    assert op.getOptions() == {'attributes': {}}
     assert op._shapes == [None]
 
-    op.setOptions(attribute_indexes=[1])
-    assert op.getOptions() == [[1]]
+    op.setOptions(attributes={1: dict()})
+    assert op.getOptions() == {'attributes': {1: None}}
     assert op._shapes == [None]
 
     op.addInputShape(f.shape, pos=0)
-    assert op.getOptions() == [[1]]
+    assert op.getOptions() == {'attributes': {1: None}}
     assert op._shapes[0] == f.shape
 
 

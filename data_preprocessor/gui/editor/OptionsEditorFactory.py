@@ -17,7 +17,7 @@ class AttributeTableWithOptions(AttributeTableModel):
                  editable: bool = False, showTypes: bool = True, options: Dict = None):
         super().__init__(parent, checkable, editable, showTypes)
         # options description { key, (label, qvalidator) }
-        self._optionsDesc: Dict[str, Tuple[str, QValidator]] = options
+        self._optionsDesc: Dict[str, Tuple[str, QValidator]] = options if options else dict()
         # Column position for each option column
         self._optionsPos: Dict[int, str] = dict()
         self._inverseOptionsPos: Dict[str, int] = dict()

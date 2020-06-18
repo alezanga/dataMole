@@ -32,12 +32,12 @@ class CsvLoader(Operation):
             # pd_df is a chunk iterator
             for i, chunk in enumerate(pd_df):
                 name: str = self.__wName + '_{:d}'.format(i)
-                self._workbench.appendNewRow(name, data.Frame(chunk))
+                self._workbench.setDataframeByName(name, data.Frame(chunk))
                 # TOCHECK: this does not set a parent for the FrameModel (since workbench lives in
                 #  different thread)
         else:
             # entire dataframe is read
-            self._workbench.appendNewRow(self.__wName, data.Frame(pd_df))
+            self._workbench.setDataframeByName(self.__wName, data.Frame(pd_df))
 
     @staticmethod
     def name() -> str:

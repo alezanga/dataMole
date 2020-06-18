@@ -28,8 +28,8 @@ class BinStrategy(Enum):
 
 
 class BinsDiscretizer(GraphOperation, ExecutionLog):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.__strategy: BinStrategy = BinStrategy.Uniform
         self.__attributes: Dict[int, int] = dict()
         self.__dropTransformed: bool = True
@@ -185,8 +185,8 @@ class BinsDiscretizer(GraphOperation, ExecutionLog):
 
 
 class RangeDiscretizer(GraphOperation, ExecutionLog):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         # { col: (edges, labels) }
         self.__attributes: Dict[int, Tuple[List[float], List[str]]] = dict()
         self.__dropTransformed: bool = True

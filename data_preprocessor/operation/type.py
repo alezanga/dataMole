@@ -2,7 +2,7 @@ import logging
 from operator import itemgetter
 from typing import List, Union, Iterable, Dict, Optional
 
-from PySide2.QtWidgets import QWidget, QHeaderView
+from PySide2.QtWidgets import QHeaderView
 from pandas.api.types import CategoricalDtype
 
 from data_preprocessor import data
@@ -12,12 +12,12 @@ from .interface.exceptions import OptionValidationError
 from .interface.graph import GraphOperation
 from .utils import MixedListValidator, splitList, joinList
 from ..gui.editor.OptionsEditorFactory import OptionsEditorFactory
-from ..gui.mainmodels import SearchableAttributeTableWidget, FrameModel
+from ..gui.mainmodels import FrameModel
 
 
 class ToNumericOp(GraphOperation):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.__attributes: List[int] = list()
 
     def hasOptions(self) -> bool:
@@ -49,8 +49,10 @@ class ToNumericOp(GraphOperation):
     def acceptedTypes(self) -> List[Types]:
         return [Types.String, Types.Categorical]
 
-    def setOptions(self, attribute_indexes: List[int]) -> None:
-        self.__attributes = attribute_indexes
+    def setOptions(self, attributes: Dict[int, Dict[str, str]]) -> None:
+        if not attributes:
+            raise OptionValidationError([('nooptions', 'Error: select at least one attribute')])
+        self.__attributes = list(attributes.keys())
 
     def unsetOptions(self) -> None:
         self.__attributes = list()
@@ -59,10 +61,18 @@ class ToNumericOp(GraphOperation):
         return True
 
     def getOptions(self) -> Iterable:
-        return [self.__attributes]
+        return {'attributes': {k: None for k in self.__attributes}}
 
     def getEditor(self) -> AbsOperationEditor:
-        return _SelectAttribute()
+        factory = OptionsEditorFactory()
+        factory.initEditor()
+        factory.withAttributeTable('attributes', True, False, True, options=None,
+                                   types=self.acceptedTypes())
+        return factory.getEditor()
+
+    def updateEditor(self, editor: 'AbsOperationEditor') -> None:
+        # Set frame model
+        editor.attributes.setSourceFrameModel(FrameModel(editor, self.shapes[0]))
 
     def getOutputShape(self) -> Union[data.Shape, None]:
         if not self.hasOptions() or not self._shapes[0]:
@@ -100,8 +110,8 @@ class ToNumericOp(GraphOperation):
 
 
 class ToCategoricalOp(GraphOperation):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.__attributes: Dict[int, Optional[List[str]]] = dict()
 
     def hasOptions(self) -> bool:
@@ -175,12 +185,13 @@ class ToCategoricalOp(GraphOperation):
         factory.withAttributeTable('attributes', True, False, True, {'cat': ('Categories',
                                                                              MixedListValidator())},
                                    types=self.acceptedTypes())
-        e = factory.getEditor()
+        return factory.getEditor()
+
+    def updateEditor(self, editor: 'AbsOperationEditor') -> None:
         # Set frame model
-        e.attributes.setSourceFrameModel(FrameModel(e, self.shapes[0]))
+        editor.attributes.setSourceFrameModel(FrameModel(editor, self.shapes[0]))
         # Stretch new section
-        e.attributes.tableView.horizontalHeader().setSectionResizeMode(3, QHeaderView.Stretch)
-        return e
+        editor.attributes.tableView.horizontalHeader().setSectionResizeMode(3, QHeaderView.Stretch)
 
     def getOutputShape(self) -> Union[data.Shape, None]:
         if not self.hasOptions() or not self._shapes[0]:
@@ -215,22 +226,6 @@ class ToCategoricalOp(GraphOperation):
     @staticmethod
     def maxOutputNumber() -> int:
         return -1
-
-
-class _SelectAttribute(AbsOperationEditor):
-    def editorBody(self) -> QWidget:
-        self.__searchableTable = SearchableAttributeTableWidget(checkable=True,
-                                                                showTypes=True,
-                                                                filterTypes=self.acceptedTypes)
-        self.__searchableTable.setSourceFrameModel(FrameModel(self, self.inputShapes[0]))
-
-        return self.__searchableTable
-
-    def getOptions(self) -> List[List[int]]:
-        return [self.__searchableTable.model().checked]
-
-    def setOptions(self, selected_indexes: List[int]) -> None:
-        self.__searchableTable.model().setChecked(selected_indexes, True)
 
 
 # class TypeOp(GraphOperation):

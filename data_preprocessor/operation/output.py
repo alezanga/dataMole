@@ -3,7 +3,6 @@ from typing import Optional, Iterable
 from PySide2.QtCore import Slot
 from PySide2.QtWidgets import QWidget
 
-import data_preprocessor.gui.workbench as wb
 from data_preprocessor import data
 from data_preprocessor.gui.editor.interface import AbsOperationEditor
 from .interface.graph import OutputGraphOperation
@@ -11,12 +10,12 @@ from ..gui.editor import optionwidget as opw
 
 
 class ToVariableOp(OutputGraphOperation):
-    def __init__(self, w: wb.WorkbenchModel):
-        super().__init__(w)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.__var_name: Optional[str] = None
 
     def execute(self, df: data.Frame) -> None:
-        self._workbench.appendNewRow(self.__var_name, df)
+        self._workbench.setDataframeByName(self.__var_name, df)
         # Reset since now that variable is taken
         self.__var_name = None
 

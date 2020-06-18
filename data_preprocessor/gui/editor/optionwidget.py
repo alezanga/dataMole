@@ -1,7 +1,6 @@
-from abc import abstractmethod, ABCMeta
+from abc import abstractmethod, ABCMeta, ABC
 from typing import Any, List, Optional, Dict
 
-from PySide2.QtCore import QObject
 from PySide2.QtWidgets import QWidget, QVBoxLayout, QLineEdit, QComboBox, QCompleter, QLabel, \
     QSizePolicy, QButtonGroup, QGridLayout, QRadioButton
 
@@ -9,11 +8,11 @@ from data_preprocessor import data
 from data_preprocessor.data.types import Types
 
 
-class QtABCMeta(type(QObject), ABCMeta):
+class QtABCMeta(type(QWidget), ABCMeta):
     pass
 
 
-class OptionWidget(QWidget, metaclass=QtABCMeta):
+class OptionWidget(QWidget, ABC, metaclass=QtABCMeta):
     """ Represents the interface of an editor for a single option """
 
     def __init__(self, label: str = '', parent: QWidget = None):
@@ -49,12 +48,16 @@ class OptionWidget(QWidget, metaclass=QtABCMeta):
         """
         pass
 
-    def setError(self, msg: str) -> None:
+    def setError(self, msg: str = '', qlabel: QLabel = None) -> None:
         """ Show a validation error below the widget """
         if self._layout.indexOf(self._error) == -1:
             # If error is not present
-            self._error.setStyleSheet('color: red;')
-            self._error.setText(msg)
+            if qlabel is not None:
+                self._error.deleteLater()
+                self._error = qlabel
+            else:
+                self._error.setStyleSheet('color: red;')
+                self._error.setText(msg)
             self._layout.addWidget(self._error)
             self._error.show()
 
@@ -63,6 +66,7 @@ class OptionWidget(QWidget, metaclass=QtABCMeta):
         if self._layout.indexOf(self._error) != -1:
             # If error is present
             self._layout.removeWidget(self._error)
+            self._error.clear()
             self._error.hide()
 
 
@@ -84,9 +88,9 @@ class TextOptionWidget(OptionWidget):
         if val:
             self._textbox.setText(val)
 
-    def setError(self, msg: str) -> None:
-        self._textbox.setStyleSheet('border: 1px solid red')
-        super().setError(msg)
+    def setError(self, msg: str = '', qlabel: QLabel = None, style: str = None) -> None:
+        self._textbox.setStyleSheet('border: 1px solid red' if not style else style)
+        super().setError(msg, qlabel)
 
     def unsetError(self) -> None:
         self._textbox.setStyleSheet('')
@@ -97,7 +101,14 @@ class AttributeComboBox(OptionWidget):
     def __init__(self, shape: data.Shape, typesFilter: List[Types], label: str = '',
                  parent: QWidget = None):
         super().__init__(label, parent)
+        self._inputShape: data.Shape = None
+        self._typesFilter: List[Types] = None
+        self._attribute = QComboBox()
+        self._attribute.setEditable(True)
+        self.refresh(shape, typesFilter)
+        self._layout.addWidget(self._attribute)
 
+    def refresh(self, shape: data.Shape, typesFilter: List[Types]) -> None:
         self._inputShape: data.Shape = shape
         self._typesFilter: List[Types] = typesFilter
         if shape:
@@ -106,13 +117,9 @@ class AttributeComboBox(OptionWidget):
                                    t in typesFilter]
         else:
             self._attributelist = list()
-
-        self._attribute = QComboBox()
-        self._attribute.setEditable(True)
         completer = QCompleter(self._attributelist, self)
         self._attribute.setModel(completer.model())
         self._attribute.setCompleter(completer)
-        self._layout.addWidget(self._attribute)
 
     @property
     def widget(self) -> QWidget:
@@ -170,3 +177,12 @@ class RadioButtonGroup(OptionWidget):
             if d == data:
                 self.group.button(bid).setChecked(True)
                 break
+
+# class OutputNameTextBox(QLineEdit):
+#     from data_preprocessor.gui.workbench import WorkbenchModel
+#
+#     def __init__(self, workbench: WorkbenchModel, parent: QWidget = None):
+#         super().__init__(parent)
+#         self._workbench = workbench
+#
+#     def va

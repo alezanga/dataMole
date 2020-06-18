@@ -50,8 +50,8 @@ class MergeValuesOp(GraphOperation):
     """ Merge values of one attribute into a single value """
     Nan = np.nan
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         # { col: ([ [vala1, vala2], [valb1, valb2] ], [replacea, replaceb])}
         self.__attributes: Dict[int, Tuple[List[List], List[Any]]] = dict()
         self.__invertedReplace: bool = False
@@ -165,6 +165,13 @@ class MergeValuesOp(GraphOperation):
         e.table.tableView.horizontalHeader().setSectionResizeMode(3, QHeaderView.Stretch)
         e.table.tableView.horizontalHeader().setSectionResizeMode(4, QHeaderView.Stretch)
         return e
+
+    def updateEditor(self, editor: AbsOperationEditor) -> None:
+        # Set frame model
+        editor.table.setSourceFrameModel(FrameModel(editor, self.shapes[0]))
+        # Stretch new section
+        editor.table.tableView.horizontalHeader().setSectionResizeMode(3, QHeaderView.Stretch)
+        editor.table.tableView.horizontalHeader().setSectionResizeMode(4, QHeaderView.Stretch)
 
     def hasOptions(self) -> bool:
         return self.__attributes and self.__invertedReplace is not None

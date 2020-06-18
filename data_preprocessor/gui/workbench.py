@@ -1,4 +1,4 @@
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Dict
 
 from PySide2 import QtGui
 from PySide2.QtCore import QAbstractListModel, QObject, QModelIndex, Qt, Slot, Signal, QItemSelection
@@ -14,6 +14,7 @@ class WorkbenchModel(QAbstractListModel):
     def __init__(self, parent: QObject = None):
         super().__init__(parent)
         self.__workbench: List[FrameModel] = list()
+        self.__nameToIndex: Dict[str, int] = dict()
 
     @property
     def modelList(self) -> List[FrameModel]:
@@ -21,7 +22,7 @@ class WorkbenchModel(QAbstractListModel):
 
     @property
     def names(self) -> List[str]:
-        return [a.name for a in self.__workbench]
+        return list(self.__nameToIndex.keys())
 
     def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:
         if parent.isValid():
@@ -55,30 +56,40 @@ class WorkbenchModel(QAbstractListModel):
                 return False  # No changes
             # Edit entry with the new name and the old value
             self.__workbench[index.row()].name = new_name
+            self.__nameToIndex[new_name] = self.__nameToIndex.pop(old_name)
             # Update view
             self.dataChanged.emit(index, index, [Qt.DisplayRole, Qt.EditRole])
             return True
         return False
 
-    def getDataframeByName(self, name: str) -> d.Frame:
-        return self.__workbench[[e.name for e in self.__workbench].index(name)].frame
-
-    def getDataframeByIndex(self, index: int) -> d.Frame:
-        return self.__workbench[index].frame
-
     def getDataframeModelByIndex(self, index: int) -> FrameModel:
         return self.__workbench[index]
 
-    def setDataframeByIndex(self, index: QModelIndex, value: d.Frame) -> bool:
-        if not index.isValid():
-            return False
-        if self.getDataframeByIndex(index.row()) == value:
-            return False
-        frame_model = self.getDataframeModelByIndex(index.row())
-        # This will reset any view currently showing the frame
-        frame_model.setFrame(value)
-        self.__workbench[index.row()] = frame_model
-        # dataChanged is not emitted because the frame name has not changed
+    def getDataframeModelByName(self, name: str) -> FrameModel:
+        return self.__workbench[self.__nameToIndex[name]]
+
+    def setDataframeByName(self, name: str, value: d.Frame) -> bool:
+        listPos: int = self.__nameToIndex.get(name, None)
+        if listPos is not None:
+            # Name already exists
+            if self.__workbench[listPos].frame is value:
+                return False
+            frame_model = self.getDataframeModelByIndex(listPos)
+            # This will reset any view currently showing the frame
+            frame_model.setFrame(value)
+            self.__workbench[listPos] = frame_model
+            # nameToIndex is already updated (no change)
+            # dataChanged is not emitted because the frame name has not changed
+        else:
+            # Name does not exists
+            row = self.rowCount()
+            f = FrameModel(None, value)  # No parent is set
+            f.name = name
+            self.beginInsertRows(QModelIndex(), row, row)
+            self.__workbench.append(f)
+            self.__nameToIndex[name] = row
+            self.endInsertRows()
+        return True
 
     def headerData(self, section: int, orientation: Qt.Orientation, role: int = ...) -> Any:
         if section != 0 or orientation != Qt.Horizontal or role != Qt.DisplayRole:
@@ -99,7 +110,9 @@ class WorkbenchModel(QAbstractListModel):
         # Reset connected models by showing an empty frame. This also delete their reference
         frame_model.setFrame(frame=d.Frame())
         # Now delete row
+        rowName: str = self.index(row, 0, QModelIndex()).data(Qt.DisplayRole)
         del self.__workbench[row]
+        del self.__nameToIndex[rowName]
         self.endRemoveRows()
         return True
 
@@ -111,17 +124,9 @@ class WorkbenchModel(QAbstractListModel):
         f = FrameModel()
         f.name = ' '
         self.__workbench.append(f)
+        self.__nameToIndex[f.name] = row
         self.endInsertRows()
         self.emptyRowInserted.emit(self.index(row, 0, QModelIndex()))
-        return True
-
-    def appendNewRow(self, name: str, frame: d.Frame) -> bool:
-        self.beginInsertRows(QModelIndex(), self.rowCount(), self.rowCount())
-        f = FrameModel(None, frame)
-        f.name = name
-        self.__workbench.append(f)
-        # NOTE: no parent is set
-        self.endInsertRows()
         return True
 
 

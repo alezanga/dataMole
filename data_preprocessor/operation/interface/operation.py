@@ -89,7 +89,7 @@ class Operation(ABC):
     def getOptions(self) -> Iterable:
         """
         Called to get current options set for the operation. Typically called to get the
-        existing configuration when an editor is opended
+        existing configuration when an editor is opened
 
         :return: a list or tuple containing all the objects needed by the editor, which will be passed
             in the same order
@@ -110,5 +110,11 @@ class Operation(ABC):
         Return the editor panel to configure the step
 
         :return: the widget to be used as editor
+        """
+        pass
+
+    def updateEditor(self, editor: 'AbsOperationEditor') -> None:
+        """
+        Configure the editor components. Separates the process of editor creation and configuration
         """
         pass

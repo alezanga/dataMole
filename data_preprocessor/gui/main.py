@@ -24,10 +24,10 @@ class MainWidget(QWidget):
         super().__init__(parent)
         self.workbench_model = WorkbenchModel(self)
         self.graph = OperationDag()
-        self.__operationMenu = OperationMenu()
-        self.__frameInfoPanel = FramePanel(parent=self,
-                                           w=self.workbench_model,
-                                           opModel=self.__operationMenu.model())
+        self.operationMenu = OperationMenu()
+        self.frameInfoPanel = FramePanel(parent=self,
+                                         w=self.workbench_model,
+                                         opModel=self.operationMenu.model())
         workbenchView = WorkbenchView()
         workbenchView.setModel(self.workbench_model)
         self.workbench_model.emptyRowInserted.connect(workbenchView.edit)
@@ -47,7 +47,7 @@ class MainWidget(QWidget):
         self.__curr_tab = tabs.currentIndex()
 
         self.__leftSide = QSplitter(Qt.Vertical)
-        self.__leftSide.addWidget(self.__frameInfoPanel)
+        self.__leftSide.addWidget(self.frameInfoPanel)
         self.__leftSide.addWidget(workbenchView)
 
         # layout = QHBoxLayout()
@@ -62,27 +62,19 @@ class MainWidget(QWidget):
         tabs.currentChanged.connect(self.switch_view)
         workbenchView.selectedRowChanged.connect(attributeTab.onFrameSelectionChanged)
         workbenchView.selectedRowChanged.connect(chartsTab.onFrameSelectionChanged)
-        workbenchView.selectedRowChanged.connect(self.__frameInfoPanel.onFrameSelectionChanged)
-        self.__frameInfoPanel.operationRequest.connect(self.executeOperation)
-
-    @Slot(type)
-    def executeOperation(self, opType: type) -> None:
-        # TODO
-        # action = OperationAction(CsvLoader, fileMenu, 'Load csv',
-        #                 self.rect().center(), central_w.workbench_model)
-        pass
+        workbenchView.selectedRowChanged.connect(self.frameInfoPanel.onFrameSelectionChanged)
 
     @Slot(int)
     def switch_view(self, tab_index: int) -> None:
         if tab_index == 2:
-            self.__leftSide.replaceWidget(0, self.__operationMenu)
-            self.__frameInfoPanel.hide()
-            self.__operationMenu.show()
+            self.__leftSide.replaceWidget(0, self.operationMenu)
+            self.frameInfoPanel.hide()
+            self.operationMenu.show()
             self.__curr_tab = 2
         elif self.__curr_tab == 2 and tab_index != 2:
-            self.__leftSide.replaceWidget(0, self.__frameInfoPanel)
-            self.__operationMenu.hide()
-            self.__frameInfoPanel.show()
+            self.__leftSide.replaceWidget(0, self.frameInfoPanel)
+            self.operationMenu.hide()
+            self.frameInfoPanel.show()
             self.__curr_tab = tab_index
 
 
@@ -90,7 +82,7 @@ class MainWidget(QWidget):
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.__started: int = 0  # number of operations in progress
+        self.__activeCount: int = 0  # number of operations in progress
         central_w = MainWidget()
         self.setCentralWidget(central_w)
         self.setStatusBar(StatusBar(self))
@@ -122,18 +114,41 @@ class MainWindow(QMainWindow):
         exec_flow.triggered.connect(self.centralWidget().controller.executeFlow)
         reset_flow.triggered.connect(self.centralWidget().controller.resetFlowStatus)
         loadCsvAction.stateChanged.connect(self.operationStateChanged)
+        self.centralWidget().frameInfoPanel.operationRequest.connect(self.executeOperation)
 
-    @Slot(str)
-    def operationStateChanged(self, state: str) -> None:
+    @Slot(int, str)
+    def operationStateChanged(self, uid: int, state: str) -> None:
         if state == 'success':
+            logging.info('Operation uid={:d} succeeded'.format(uid))
             self.statusBar().showMessage('Operation succeeded', 10000)
         elif state == 'error':
+            logging.error('Operation uid={:d} stopped with errors'.format(uid))
             self.statusBar().showMessage('Operation stopped with errors', 10000)
         elif state == 'start':
-            self.__started += 1
+            self.__activeCount += 1
             self.statusBar().startSpinner()
+            logging.info('Operation uid={:d} started'.format(uid))
             self.statusBar().showMessage('Executing...', 10000)
         elif state == 'finish':
-            self.__started -= 1
-            if self.__started == 0:
+            logging.info('Operation uid={:d} finished'.format(uid))
+            self.__activeCount -= 1
+            if self.__activeCount == 0:
                 self.statusBar().stopSpinner()
+        print('Emit', uid, state, 'count={}'.format(self.__activeCount))
+
+    @Slot(type)
+    def executeOperation(self, opType: type) -> None:
+        action = OperationAction(opType, self, opType.name(),
+                                 self.rect().center(), self.centralWidget().workbench_model)
+        # Delete action when finished
+        action.stateChanged.connect(self.operationStateChanged)
+        action.stateChanged.connect(self.deleteAction)
+        # Start operation
+        action.trigger()
+
+    @Slot(int, str)
+    def deleteAction(self, uid: int, state: str):
+        if state == 'finish':
+            action: QAction = self.sender()
+            action.deleteLater()
+            logging.info('Action for operation uid={:d} scheduled for deletion'.format(uid))

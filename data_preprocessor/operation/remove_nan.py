@@ -11,8 +11,8 @@ from data_preprocessor.operation.interface.graph import GraphOperation
 
 
 class RemoveNanRows(GraphOperation):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         # range [0.0, 1.0]
         self.__thresholdPercentage: float = None
         # range [0, attribute number]
@@ -94,8 +94,8 @@ class RemoveNanRows(GraphOperation):
 
 
 class RemoveNanColumns(GraphOperation):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         # range [0.0, 1.0]
         self.__thresholdPercentage: float = None
         # range [0, attribute number]

@@ -2,12 +2,14 @@ import logging
 from typing import Optional, Tuple, Dict, Any
 
 from PySide2.QtCore import Slot, QObject, Signal, QPoint, QThreadPool
-from PySide2.QtWidgets import QMessageBox, QAction
+from PySide2.QtWidgets import QMessageBox, QAction, QComboBox, QFormLayout, QLabel
 
 from data_preprocessor import data
 from data_preprocessor import threads
 from data_preprocessor.gui.editor.interface import AbsOperationEditor
+from data_preprocessor.gui.editor.optionwidget import TextOptionWidget
 from data_preprocessor.operation.interface.exceptions import OptionValidationError
+from data_preprocessor.operation.interface.graph import GraphOperation
 from data_preprocessor.operation.interface.operation import Operation
 from data_preprocessor.utils import UIdGenerator
 
@@ -51,7 +53,7 @@ class OperationAction(QAction):
         w = OperationWrapper(self.__operation(*self.__args, **self.__kwargs), uid=uid,
                              parent=self,
                              editorPosition=self.__editorPosition)
-        w.stateChanged.connect(self.onStateChanged)
+        w.wrapperStateChanged.connect(self.onStateChanged)
         w.start()
 
     @Slot(int, str)
@@ -62,7 +64,7 @@ class OperationAction(QAction):
             sender.result = None
         elif state == 'finish':
             sender.editor.deleteLater()  # delete editor
-            sender.deleteLater()  # delete wrapper object
+            # sender.deleteLater()  # delete wrapper object
         self.stateChanged.emit(uid, state)
 
 
@@ -70,7 +72,7 @@ class OperationWrapper(QObject):
     """
     Wraps an operation allowing it to be executed as a single command.
     """
-    stateChanged = Signal(int, str)
+    wrapperStateChanged = Signal(int, str)
 
     def __init__(self, op: Operation, uid: int, parent: QObject, editorPosition: QPoint = QPoint()):
         super().__init__(parent)
@@ -81,30 +83,68 @@ class OperationWrapper(QObject):
         self._editorPos = editorPosition
         self._inputs: Tuple[data.Frame] = tuple()
         self.result = None  # hold the result when available
+        self._outputNameBox: Optional[TextOptionWidget] = None
+        self._inputComboBox: Optional[QComboBox] = None
+        self._isGraphOperation: bool = False
 
     def start(self):
+        if not self.operation.needsOptions():
+            return self.onAcceptEditor()
         self.editor = self.operation.getEditor()
         self.editor.setWindowTitle(self.operation.name())
         self.editor.acceptAndClose.connect(self.onAcceptEditor)
-        self.editor.rejectAndClose.connect(self._onFinish)
+        self.editor.rejectAndClose.connect(self.editor.close)
         self.editor.acceptedTypes = self.operation.acceptedTypes()
         self.editor.inputShapes = [i.shape for i in self._inputs]
         self.editor.setDescription(self.operation.shortDescription(), self.operation.longDescription())
         self.editor.setUpEditor()
         self.editor.workbench = self.operation.workbench
-        self.editor.setOptions(*self.operation.getOptions())
+        options = self.operation.getOptions()
+        if isinstance(options, dict):
+            self.editor.setOptions(**options)
+        else:
+            self.editor.setOptions(*options)
         self.editor.setParent(None)
+        if isinstance(self.operation, GraphOperation):
+            self._isGraphOperation = True
+            # Add input and output boxes
+            self._inputComboBox = QComboBox(self.editor)
+            self._inputComboBox.setModel(self.operation.workbench)
+            self._outputNameBox = TextOptionWidget(self.editor)
+            self._outputNameBox.widget.textChanged.connect(self._validateOutputName)
+            self._inputComboBox.currentIndexChanged.connect(self._setInput)
+            ioLayout = QFormLayout()
+            ioLayout.addRow('Input data:', self._inputComboBox)
+            ioLayout.addRow('Output name:', self._outputNameBox)
+            self.editor.layout().insertLayout(1, ioLayout)
+            self._setInput(0)
         self.editor.move(self._editorPos)
         self.editor.show()
 
     @Slot()
     def onAcceptEditor(self) -> None:
-        self.stateChanged.emit(self.uid, 'start')
         try:
-            self.operation.setOptions(*self.editor.getOptions())
+            # Validate and set standard options
+            options = self.editor.getOptions()
+            if isinstance(options, dict):
+                self.operation.setOptions(**options)
+            else:
+                self.operation.setOptions(*options)
+            if self._isGraphOperation:
+                # Validate and set new options
+                name: str = self._outputNameBox.getData()
+                if name is not None:
+                    name = name.strip()
+                selected: int = self._inputComboBox.currentIndex()
+                if not name or selected < 0:
+                    raise OptionValidationError([('wrapper', 'Error: output name or input data has not '
+                                                             'been selected')])
+                self.operation.outName = name
+                self.operation.inputIndex = selected
         except OptionValidationError as e:
             self.editor.handleErrors(e.invalid)
         else:
+            self.wrapperStateChanged.emit(self.uid, 'start')
             # Prepare worker
             self.__worker = threads.Worker(self.operation, args=self._inputs)
             # Connect
@@ -117,27 +157,49 @@ class OperationWrapper(QObject):
 
     @Slot(object, object)
     def _onSuccess(self, _, f: Any) -> None:
+        if self._isGraphOperation:
+            # For graph operations result is immediately set in workbench
+            self.operation.workbench.setDataframeByName(self.operation.outName, f)
+        else:
+            # For other operation result is saved and later set in the QAction dictionary
+            self.result = f
         # Signal success
-        self.result = f
-        self.stateChanged.emit(self.uid, 'success')
-        logging.info('Operation succeeded')
+        self.wrapperStateChanged.emit(self.uid, 'success')
+        logging.info('Operation {} succeeded'.format(self.operation.name()))
 
     @Slot(object)
     def _onFinish(self) -> None:
-        self.stateChanged.emit(self.uid, 'finish')
-        logging.info('Operation {} finished'.format(self.operation.name()))
         self.__worker = None
         self.editor.close()
+        self.wrapperStateChanged.emit(self.uid, 'finish')
+        logging.info('Operation {} finished'.format(self.operation.name()))
 
     @Slot(object, tuple)
     def _onError(self, _, error: Tuple[type, Exception, str]) -> None:
-        self.stateChanged.emit(self.uid, 'error')
         msg = str(error[1])
         msg_short = 'Operation failed to execute with following message: <br> {}'.format(msg[:80])
         if len(msg) > 80:
             msg_short += '... (see all in log)'
         msgbox = QMessageBox(QMessageBox.Icon.Critical, 'Critical error', msg_short, QMessageBox.Ok,
                              self.editor)
+        self.wrapperStateChanged.emit(self.uid, 'error')
         logging.error('Operation {} failed with exception {}: {} - trace: {}'.format(
             self.operation.name(), str(error[0]), msg, error[2]))
         msgbox.exec_()
+
+    @Slot(str)
+    def _validateOutputName(self, name: str) -> None:
+        if name not in self.operation.workbench.names:
+            self._outputNameBox.unsetError()
+        else:
+            label = QLabel('Warning: variable {} will be overwritten'.format(name), self.editor)
+            label.setWordWrap(True)
+            self._outputNameBox.setError(qlabel=label, style='border: 1px solid orange')
+
+    @Slot(int)
+    def _setInput(self, index: int) -> None:
+        if index is not None and 0 <= index < self.operation.workbench.rowCount():
+            fr = self.operation.workbench.getDataframeModelByIndex(index).frame
+            self.operation._shapes = [fr.shape]
+            self._inputs = (fr,)
+            self.operation.updateEditor(self.editor)

@@ -3,9 +3,10 @@
 - [ ] CHECK: why sometimes flow does not add edge
 - [x] FIX: gridLayout in graph
 - [x] FIX: toCategory asked options even if it shouldn't (validation problem)
-- [ ] FIX !!: Frame.integerToFloat does not work with big data (it hangs)
-- [ ] FIX !: headerData is slow in proxy. Find out how to fix header checkbox
-- [ ] FIX !: nested proxy doesn't work well. Decide whether to use a single proxy or subclass a
+- [x] FIX !!: Frame.integerToFloat does not work with big data (it hangs)
+- [x] FIX !: headerData is slow in proxy. Find out how to fix header checkbox
+- [x] FIX !: nested proxy doesn't work well. Decide whether to use a single proxy or subclass a
+- [ ] FIX: attributeRange list in Discretizers, updateEditor in setIndex, removeNan*
  IdentityProxy
 - [x] IMPROVE: refactor frame models with interfaces
 - [x] FIX: frame fetchMore creates problem with checkbox
