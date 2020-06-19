@@ -5,6 +5,8 @@ from PySide2.QtCore import Qt, QPoint, QMimeData, Slot
 from PySide2.QtGui import QMouseEvent, QDrag, QStandardItem, QStandardItemModel
 from PySide2.QtWidgets import QWidget, QTreeWidget, QTreeWidgetItem, QApplication
 
+from data_preprocessor.operation.interface.graph import GraphOperation
+
 
 def _build_item(name: str, data=None) -> QTreeWidgetItem:
     """
@@ -23,14 +25,21 @@ def _build_item(name: str, data=None) -> QTreeWidgetItem:
 
 def _addChildren(parents: List[QTreeWidgetItem], op_class: Callable) -> None:
     op_name = getattr(op_class, 'name')()
-    op_input: bool = getattr(op_class, 'maxInputNumber')() == 0
-    op_output: bool = getattr(op_class, 'minOutputNumber')() == 0
-    if op_input:
-        parents[0].addChild(_build_item(op_name, data=op_class))
-    elif op_output:
-        parents[1].addChild(_build_item(op_name, data=op_class))
+    if issubclass(op_class, GraphOperation):
+        op_input: bool = getattr(op_class, 'maxInputNumber')() == 0
+        op_output: bool = getattr(op_class, 'minOutputNumber')() == 0
+        if op_input:
+            parents[0].addChild(_build_item(op_name, data=op_class))
+        elif op_output:
+            parents[1].addChild(_build_item(op_name, data=op_class))
+        else:
+            parents[2].addChild(_build_item(op_name, data=op_class))
     else:
-        parents[2].addChild(_build_item(op_name, data=op_class))
+        # If it's an Operation then child is added normally but hidden, since only GraphOperations
+        # should be shown
+        item = _build_item(op_name, data=op_class)
+        parents[2].addChild(item)
+        item.setHidden(True)
 
 
 class OperationMenu(QTreeWidget):
@@ -75,11 +84,17 @@ class OperationMenu(QTreeWidget):
             s.setData(w.data(1, Qt.UserRole), Qt.UserRole)
             return s
 
-        items = list(map(standardItem, filter(lambda i: i.parent() and
-                                                        i.data(1, Qt.UserRole).minInputNumber() ==
-                                                        i.data(1, Qt.UserRole).maxInputNumber() == 1 and
-                                                        i.data(1, Qt.UserRole).minOutputNumber() == 1,
-                                              items)))
+        def filterItems(item: QTreeWidgetItem) -> bool:
+            op_class: type = item.data(1, Qt.UserRole)
+            keep: bool = bool(item.parent())
+            if keep and issubclass(op_class, GraphOperation):
+                keep &= op_class.minInputNumber() == op_class.maxInputNumber() == 1 \
+                        and op_class.minOutputNumber() == 1
+            else:
+                keep &= item.isHidden()
+            return keep
+
+        items = list(map(standardItem, filter(filterItems, items)))
         for i in items:
             model.appendRow(i)
         return model

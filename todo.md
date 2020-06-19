@@ -8,9 +8,9 @@
 - [x] FIX !: nested proxy doesn't work well. Decide whether to use a single proxy or subclass a
 - [x] FIX: injectEditor for Join
 - [x] FIX: histogram is not recomputed after in place operation
- IdentityProxy
-- [x] IMPROVE: refactor frame models with interfaces
-- [x] FIX: frame fetchMore creates problem with checkbox
+- IdentityProxy
+    - [x] IMPROVE: refactor frame models with interfaces
+    - [x] FIX: frame fetchMore creates problem with checkbox
 - [ ] IMPROVE: look into the possibility of doing a lazy loading from big csv (maybe with a hdf5 store)
 - [ ] IMPROVE: Add method to compare options in Operation
 - [x] New export method for operations
@@ -50,3 +50,9 @@
     - [ ] ~~Remove selection (two inputs: selection and table)~~
 - [x] Add Signal object to communicate operation status to the View
 - [x] Add methods to launch specific signals in Operation
+- USABILITY
+    - [ ] Notification system
+        - [ ] Basic notification for every event
+        - [ ] Log of events
+    - [ ] Write to CSV / ARFF
+    - [ ] Ability to stop ongoing operations

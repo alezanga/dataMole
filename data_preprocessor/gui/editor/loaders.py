@@ -119,6 +119,7 @@ class LoadCSVEditor(AbsOperationEditor):
             @Slot(Frame)
             def onPreviewComputed(self, header: Frame):
                 self.tablePreview.setSourceFrameModel(FrameModel(self, header))
+                self.tablePreview.model().setAllChecked(True)
                 self.tableSpinner.stop()
 
             @Slot(str)

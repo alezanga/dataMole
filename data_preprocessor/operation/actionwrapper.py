@@ -118,6 +118,9 @@ class OperationWrapper(QObject):
             ioLayout.addRow('Output name:', self._outputNameBox)
             self.editor.layout().insertLayout(1, ioLayout)
             self._setInput(0)
+        else:
+            # If it's another operation it doesn't depend on input shapes
+            self.operation.injectEditor(self.editor)
         self.editor.move(self._editorPos)
         self.editor.show()
 

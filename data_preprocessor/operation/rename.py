@@ -33,7 +33,7 @@ class RenameOp(GraphOperation):
 
     @staticmethod
     def name() -> str:
-        return 'Rename operation'
+        return 'Rename columns'
 
     def shortDescription(self) -> str:
         return 'This operation can rename the attributes'
