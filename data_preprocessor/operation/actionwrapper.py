@@ -192,8 +192,9 @@ class OperationWrapper(QObject):
         if name not in self.operation.workbench.names:
             self._outputNameBox.unsetError()
         else:
-            label = QLabel('Warning: variable {} will be overwritten'.format(name), self.editor)
+            label = QLabel('Warning: variable "{}" will be overwritten'.format(name), self.editor)
             label.setWordWrap(True)
+            label.setStyleSheet('color: orange')
             self._outputNameBox.setError(qlabel=label, style='border: 1px solid orange')
 
     @Slot(int)

@@ -63,8 +63,12 @@ class JoinOp(GraphOperation):
     def setOptions(self, ls: str, rs: str, onindex: bool, onleft: int, onright: int,
                    join_type: JoinType) -> None:
         errors = list()
+        ls = ls.strip()
+        rs = rs.strip()
         if not ls or not rs:
-            errors.append(('suffix', 'Error: suffixes are required'))
+            errors.append(('suffix', 'Error: both suffixes are required'))
+        elif ls == rs:
+            errors.append(('suffixequals', 'Error: suffixes must be different'))
         if onindex and all(self.shapes) and \
                 (not self.shapes[0].index or not self.shapes[1].index):
             errors.append(('index', 'Error: join on indices require both indices to be set'))
@@ -97,8 +101,12 @@ class JoinOp(GraphOperation):
         return True
 
     def getEditor(self) -> AbsOperationEditor:
-        # TODO: editor here must ensure types of selected columns match
         return _JoinEditor()
+
+    def injectEditor(self, editor: 'AbsOperationEditor') -> None:
+        editor.inputShapes = self.shapes
+        editor.acceptedTypes = self.acceptedTypes()
+        editor.refresh()
 
     def hasOptions(self) -> bool:
         on = self.__on_index is True or (self.__left_on is not None and self.__right_on is not None)
@@ -136,31 +144,43 @@ class _JoinEditor(AbsOperationEditor):
 
         self.__onIndex = QCheckBox('Join on index?', self)
 
-        self.__jpl = _JoinPanel('Left', self.inputShapes[0], self.acceptedTypes, self)
-        self.__jpr = _JoinPanel('Right', self.inputShapes[1], self.acceptedTypes, self)
+        self.__jpl = _JoinPanel('Left', None, None, self)
+        self.__jpr = _JoinPanel('Right', None, None, self)
 
         w = QWidget(self)
-        layout = QGridLayout(w)
-        layout.addLayout(self.__g.glayout, 0, 0, 1, -1)
-        layout.addWidget(self.__onIndex, 1, 0, 1, -1)
-        layout.addWidget(self.__jpl, 2, 0, 1, 1)
-        layout.addWidget(self.__jpr, 2, 1, 1, 1)
+        self.layout = QGridLayout()
+        self.layout.addLayout(self.__g.glayout, 0, 0, 1, -1)
+        self.layout.addWidget(self.__onIndex, 1, 0, 1, -1)
+        self.layout.addWidget(self.__jpl, 2, 0, 1, 1)
+        self.layout.addWidget(self.__jpr, 2, 1, 1, 1)
         self.errorLabel = QLabel(self)
         self.errorLabel.setWordWrap(True)
-        layout.addWidget(self.errorLabel, 3, 0, 1, -1)
-        layout.setHorizontalSpacing(15)
-        layout.setVerticalSpacing(10)
-        w.setLayout(layout)
+        self.layout.addWidget(self.errorLabel, 3, 0, 1, -1)
+        self.layout.setHorizontalSpacing(15)
+        self.layout.setVerticalSpacing(10)
+        w.setLayout(self.layout)
 
         # Clear errors when something change
         self.__onIndex.stateChanged.connect(self.__onStateChange)
         self.__onIndex.stateChanged.connect(self.errorLabel.hide)
+
+        return w
+
+    def refresh(self) -> None:
+        oldl = self.__jpl
+        oldr = self.__jpr
+        self.__jpl = _JoinPanel('Left', self.inputShapes[0], self.acceptedTypes, self)
+        self.__jpr = _JoinPanel('Right', self.inputShapes[1], self.acceptedTypes, self)
+        self.layout.replaceWidget(oldl, self.__jpl)
+        self.layout.replaceWidget(oldr, self.__jpr)
+        # Delete old widgets
+        oldl.deleteLater()
+        oldr.deleteLater()
+        # Reconnect
         self.__jpl.box.widget.currentIndexChanged.connect(self.errorLabel.hide)
         self.__jpl.suffix.widget.textEdited.connect(self.errorLabel.hide)
         self.__jpr.box.widget.currentIndexChanged.connect(self.errorLabel.hide)
         self.__jpr.suffix.widget.textEdited.connect(self.errorLabel.hide)
-
-        return w
 
     def showErrors(self, msg: str) -> None:
         text = self.errorLabel.text()

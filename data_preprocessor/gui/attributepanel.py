@@ -46,6 +46,7 @@ class AttributePanel(QWidget):
         self._attributeTable.setSourceFrameModel(self._frameModel)
         # Reconnect new model
         self._frameModel.statisticsComputed.connect(self.onComputationFinished)
+        self._frameModel.statisticsError.connect(self.onComputationError)
         # Reset attribute panel
         self.onAttributeSelectionChanged(-1)
 
@@ -110,6 +111,16 @@ class AttributePanel(QWidget):
             self._histPanel.spinner.stop()
             self._histPanel.setData(hist)
             logging.debug('Histogram data set')
+
+    @Slot(tuple)
+    def onComputationError(self, identifier: Tuple[int, Types, str]) -> None:
+        attributeIndex, attributeType, mode = identifier
+        if self.__currentAttributeIndex != attributeIndex:
+            return
+        if mode == 'stat':
+            self._statPanel.spinner.stop()
+        elif mode == 'hist':
+            self._histPanel.spinner.stop()
 
 
 class StatisticsPanel(QWidget):

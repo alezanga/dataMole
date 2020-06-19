@@ -64,6 +64,7 @@ class FrameModel(QAbstractTableModel):
         self.__frame = frame
         self.__shape: Shape = self.__frame.shape
         self._statistics = dict()
+        self._histogram = dict()
         self.endResetModel()
 
     def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:
@@ -134,8 +135,10 @@ class FrameModel(QAbstractTableModel):
 
     def computeStatistics(self, attribute: int) -> None:
         """ Compute statistics for a given attribute """
-        stats = AttributeStatistics()
         attType = self.__shape.col_types[attribute]
+        if self.__frame.nRows == 0:
+            return self.onWorkerError((attribute, attType, 'stat'), tuple())
+        stats = AttributeStatistics()
         stats.setOptions(attribute=attribute)
         statWorker = Worker(stats, args=(self.__frame,), identifier=(attribute, attType, 'stat'))
         statWorker.signals.result.connect(self.onWorkerSuccess, Qt.DirectConnection)
@@ -143,8 +146,10 @@ class FrameModel(QAbstractTableModel):
         QThreadPool.globalInstance().start(statWorker)
 
     def computeHistogram(self, attribute: int, histBins: int) -> None:
-        hist = Hist()
         attType = self.__shape.col_types[attribute]
+        if self.__frame.nRows == 0:
+            return self.onWorkerError((attribute, attType, 'hist'), tuple())
+        hist = Hist()
         hist.setOptions(attribute=attribute, attType=attType, bins=histBins)
         histWorker = Worker(hist, args=(self.__frame,), identifier=(attribute, attType, 'hist'))
         histWorker.signals.result.connect(self.onWorkerSuccess, Qt.DirectConnection)
@@ -165,7 +170,8 @@ class FrameModel(QAbstractTableModel):
     @Slot(object, tuple)
     def onWorkerError(self, identifier: Tuple[int, Types, str],
                       error: Tuple[type, Exception, str]) -> None:
-        logging.error('Statistics computation failed with {}: {}\n{}'.format(*error))
+        if error:
+            logging.error('Statistics computation failed with {}: {}\n{}'.format(*error))
         self.statisticsError.emit(identifier)
 
 

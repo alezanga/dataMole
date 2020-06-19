@@ -6,8 +6,8 @@
 - [x] FIX !!: Frame.integerToFloat does not work with big data (it hangs)
 - [x] FIX !: headerData is slow in proxy. Find out how to fix header checkbox
 - [x] FIX !: nested proxy doesn't work well. Decide whether to use a single proxy or subclass a
-- [ ] FIX: injectEditor for Join
-- [ ] FIX: histogram is not recomputed after in place operation
+- [x] FIX: injectEditor for Join
+- [x] FIX: histogram is not recomputed after in place operation
  IdentityProxy
 - [x] IMPROVE: refactor frame models with interfaces
 - [x] FIX: frame fetchMore creates problem with checkbox
