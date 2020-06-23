@@ -161,12 +161,12 @@ class BinsDiscretizer(GraphOperation, ExecutionLog):
         if self.__dropTransformed:
             # Shape does not change
             for col in self.__attributes.keys():
-                s.col_types[col] = Types.Categorical
+                s.col_types[col] = Types.Nominal
         else:
             for col in self.__attributes.keys():
                 colName: str = self.shapes[0].col_names[col] + '_discretized'
                 s.col_names.append(colName)  # new column with suffix
-                s.col_types.append(Types.Categorical)
+                s.col_types.append(Types.Nominal)
                 s.n_columns += 1
         return s
 
@@ -212,12 +212,12 @@ class RangeDiscretizer(GraphOperation, ExecutionLog):
         s = self.shapes[0].copy(True)
         if self.__dropTransformed:
             for c in self.__attributes.keys():
-                s.col_types[c] = Types.Categorical
+                s.col_types[c] = Types.Ordinal
         else:
             for c in self.__attributes.keys():
                 colName: str = s.col_names[c] + '_bins'
                 s.col_names.append(colName)
-                s.col_types.append(Types.Categorical)
+                s.col_types.append(Types.Ordinal)
                 s.n_columns += 1
         return s
 

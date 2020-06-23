@@ -397,6 +397,13 @@ class AttributeTableModel(AbstractAttributeModel, QAbstractTableModel,
             elif index.column() == self.typeColumn:
                 value = col_type.value
             return value
+        elif role == Qt.ToolTipRole and index.column() == self.typeColumn:
+            _, col_type = self._frameModel.headerData(index.row(), orientation=Qt.Horizontal,
+                                                      role=FrameModel.DataRole.value)
+            if col_type == Types.Ordinal:
+                sortedCategories = self._frameModel.frame.getRawFrame() \
+                                       .iloc[:, index.row()].dtype.categories
+                return ' < '.join(sortedCategories)
         elif role == Qt.TextAlignmentRole:
             return Qt.AlignCenter
         return None

@@ -14,7 +14,8 @@ from data_preprocessor.gui.mainmodels import SearchableAttributeTableWidget, Att
 
 class AttributeTableWithOptions(AttributeTableModel):
     def __init__(self, parent: QWidget = None, checkable: bool = False,
-                 editable: bool = False, showTypes: bool = True, options: Dict = None):
+                 editable: bool = False, showTypes: bool = True,
+                 options: Optional[Dict[str, Tuple[str, Optional[QValidator]]]] = None):
         super().__init__(parent, checkable, editable, showTypes)
         # options description { key, (label, qvalidator) }
         self._optionsDesc: Dict[str, Tuple[str, QValidator]] = options if options else dict()
@@ -26,15 +27,7 @@ class AttributeTableWithOptions(AttributeTableModel):
             self._optionsPos[baseCount + i] = opt
             self._inverseOptionsPos[opt] = baseCount + i
         # Format { row: { columnKey: value } }
-        self._options: Dict[int, Dict[str, str]] = dict()
-
-    # def getOption(self, colKey: str, row: int) -> Optional[str]:
-    #     qIndex = self.index(row, self._inverseOptionsPos[colKey], QModelIndex())
-    #     return self.data(qIndex, Qt.DisplayRole)
-    #
-    # def setOption(self, colKey: str, row: int, value: str) -> None:
-    #     qIndex = self.index(row, self._inverseOptionsPos[colKey], QModelIndex())
-    #     self.setData(qIndex, value, Qt.EditRole)
+        self._options: Dict[int, Dict[str, Any]] = dict()
 
     def validatorColumn(self, column: int) -> Optional[QValidator]:
         # If column is not an option then no validator
@@ -42,12 +35,12 @@ class AttributeTableWithOptions(AttributeTableModel):
             return None
         return self._optionsDesc[self._optionsPos[column]][1]
 
-    def options(self) -> Dict[int, Dict[str, str]]:
+    def options(self) -> Dict[int, Dict[str, Any]]:
         selectedRows = self.checked
         opt = {k: self._options.get(k, dict()) for k in selectedRows}
         return opt
 
-    def setOptions(self, opt: Dict[int, Dict[str, str]]) -> None:
+    def setOptions(self, opt: Dict[int, Dict[str, Any]]) -> None:
         self._options = copy.deepcopy(opt)
         self.setChecked(list(self._options.keys()), True)
 
@@ -66,7 +59,7 @@ class AttributeTableWithOptions(AttributeTableModel):
             rowOptions = self._options.get(index.row(), None)
             if rowOptions and index.row() in self.checked:
                 option = rowOptions.get(self._optionsPos[index.column()], None)
-                if option:
+                if option is not None:
                     return option
             return None
         # Everything else is handled by superclass
@@ -134,7 +127,7 @@ class OptionsEditorFactory:
         self.__editorWidgets: List[Tuple[str, QWidget]] = list()
 
     def withAttributeTable(self, key: str, checkbox: bool, nameEditable: bool, showTypes: bool,
-                           options: Dict[str, Tuple[str, QValidator]], types: List):
+                           options: Optional[Dict[str, Tuple[str, Optional[QValidator]]]], types: List):
         tableWidget = SearchableAttributeTableWidget(self.__body)
         tableModel = AttributeTableWithOptions(self.__body, checkbox, nameEditable, showTypes, options)
         tableWidget.setAttributeModel(tableModel, filterTypes=types)

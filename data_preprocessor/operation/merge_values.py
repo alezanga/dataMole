@@ -90,7 +90,7 @@ class MergeValuesOp(GraphOperation):
         return 'Substitute all specified values in a attribute and substitute them with a single value'
 
     def acceptedTypes(self) -> List[Types]:
-        return [Types.String, Types.Categorical, Types.Numeric]
+        return [Types.String, Types.Ordinal, Types.Nominal, Types.Numeric]
 
     def setOptions(self, table: Dict[int, Dict[str, str]], inverted: bool) -> None:
         if not table:

@@ -1,16 +1,18 @@
 import logging
 from operator import itemgetter
-from typing import List, Union, Iterable, Dict, Optional
+from typing import List, Union, Iterable, Dict, Optional, Tuple, Any
 
-from PySide2.QtWidgets import QHeaderView
+import numpy as np
+import pandas as pd
+from PySide2.QtWidgets import QHeaderView, QItemEditorFactory, QStyledItemDelegate, QWidget
 from pandas.api.types import CategoricalDtype
 
 from data_preprocessor import data
-from data_preprocessor.data.types import Types, inv_type_dict
+from data_preprocessor.data.types import Types
 from data_preprocessor.gui.editor.interface import AbsOperationEditor
 from .interface.exceptions import OptionValidationError
 from .interface.graph import GraphOperation
-from .utils import MixedListValidator, splitList, joinList
+from .utils import MixedListValidator, splitList, joinList, SingleStringValidator
 from ..gui.editor.OptionsEditorFactory import OptionsEditorFactory
 from ..gui.mainmodels import FrameModel
 
@@ -36,7 +38,7 @@ class ToNumericOp(GraphOperation):
         # Deep copy
         raw_df = df.getRawFrame().copy(deep=True)
         raw_df.iloc[:, self.__attributes] = raw_df.iloc[:, self.__attributes] \
-            .apply(lambda c: c.astype(dtype=inv_type_dict[Types.Numeric], errors='raise'))
+            .apply(lambda c: c.astype(dtype=float, errors='raise'))
         return data.Frame(raw_df)
 
     @staticmethod
@@ -47,7 +49,7 @@ class ToNumericOp(GraphOperation):
         return 'Convert one attribute to Numeric values. All types except Datetime can be converted'
 
     def acceptedTypes(self) -> List[Types]:
-        return [Types.String, Types.Categorical]
+        return [Types.String, Types.Ordinal, Types.Nominal]
 
     def setOptions(self, attributes: Dict[int, Dict[str, str]]) -> None:
         if not attributes:
@@ -114,7 +116,7 @@ class ToNumericOp(GraphOperation):
 class ToCategoricalOp(GraphOperation):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.__attributes: Dict[int, Optional[List[str]]] = dict()
+        self.__attributes: Dict[int, Tuple[Optional[List[str]], bool]] = dict()
 
     def hasOptions(self) -> bool:
         if self.__attributes:
@@ -127,14 +129,16 @@ class ToCategoricalOp(GraphOperation):
         # To string
         columnIndexes = list(self.__attributes.keys())
         isNan = raw_df.iloc[:, columnIndexes].isnull()
-        raw_df.iloc[(~isNan).index, columnIndexes] = raw_df.iloc[(~isNan).index, columnIndexes].astype(
-            dtype=str, errors='raise')
+        raw_df.iloc[:, columnIndexes] = raw_df.iloc[:, columnIndexes] \
+            .astype(dtype=str, errors='raise')
+        # Set to nan where values where nan
+        raw_df.iloc[:, columnIndexes] = raw_df.iloc[:, columnIndexes].mask(isNan, np.nan)
         colNames = df.shape.col_names
         # To category
         conversions: Dict[str, CategoricalDtype] = dict([
-            (lambda x: (colNames[x[0]], CategoricalDtype(categories=x[1],
-                                                         ordered=False)))(x) for x in
-            self.__attributes.items()
+            (lambda i, opts: (colNames[i], CategoricalDtype(categories=opts[0],  # can be None
+                                                            ordered=opts[1])))(index, info)
+            for index, info in self.__attributes.items()
         ])
         raw_df.iloc[:, columnIndexes] = raw_df.iloc[:, columnIndexes].astype(
             dtype=conversions, errors='raise')
@@ -149,23 +153,21 @@ class ToCategoricalOp(GraphOperation):
                'new category'
 
     def acceptedTypes(self) -> List[Types]:
-        return [Types.String, Types.Numeric, Types.Categorical]
+        return [Types.String, Types.Numeric, Types.Ordinal, Types.Nominal]
 
-    def setOptions(self, attributes: Dict[int, Dict[str, str]]) -> None:
+    def setOptions(self, attributes: Dict[int, Dict[str, Any]]) -> None:
         if not attributes:
             raise OptionValidationError([('nooptions', 'Error: select at least one attribute')])
-        options: Dict[int, Optional[List[str]]] = dict()
+        options: Dict[int, Tuple[Optional[List[str]], bool]] = dict()
         for c, opt in attributes.items():
-            # if not opt:
-            #     raise OptionValidationError(
-            #         [('notset', 'Error: options at row {:d} are not fully set'.format(c))])
             catString: Optional[str] = opt.get('cat', None)
             categories: Optional[List[str]] = None
+            orderCategories: Optional[bool] = opt.get('ordered', None)
             if catString:
                 categories = splitList(catString, sep=' ')
                 if not categories:
                     categories = None
-            options[c] = categories
+            options[c] = (categories, orderCategories)
         # Options are correctly set
         self.__attributes = options
 
@@ -177,16 +179,17 @@ class ToCategoricalOp(GraphOperation):
 
     def getOptions(self) -> Iterable:
         options: Dict[int, Dict[str, str]] = dict()
-        for c, opt in self.__attributes.items():
-            options[c] = {'cat': joinList(opt, sep=' ') if opt else ''}
+        for c, opts in self.__attributes.items():
+            options[c] = {'cat': joinList(opts[0], sep=' ') if opts[0] else '',
+                          'ordered': opts[1] if opts[1] else False}
         return {'attributes': options}
 
     def getEditor(self) -> AbsOperationEditor:
         factory = OptionsEditorFactory()
         factory.initEditor()
-        factory.withAttributeTable('attributes', True, False, True, {'cat': ('Categories',
-                                                                             MixedListValidator())},
-                                   types=self.acceptedTypes())
+        factory.withAttributeTable('attributes', True, False, True, {
+            'cat': ('Categories', MixedListValidator()),
+            'ordered': ('Ordered', None)}, types=self.acceptedTypes())
         return factory.getEditor()
 
     def injectEditor(self, editor: 'AbsOperationEditor') -> None:
@@ -194,8 +197,17 @@ class ToCategoricalOp(GraphOperation):
         editor.inputShapes = self._shapes
         # Set frame model
         editor.attributes.setSourceFrameModel(FrameModel(editor, self.shapes[0]))
+        # Fixed width to bool column
+        editor.attributes.tableView.horizontalHeader().resizeSection(4, 90)
+        editor.attributes.tableView.horizontalHeader().setSectionResizeMode(4, QHeaderView.Fixed)
         # Stretch new section
         editor.attributes.tableView.horizontalHeader().setSectionResizeMode(3, QHeaderView.Stretch)
+
+        class BoolDelegate(QStyledItemDelegate):
+            def createEditor(self, parent: QWidget, option, index) -> QWidget:
+                return QItemEditorFactory.defaultFactory().createEditor(1, parent)
+
+        editor.attributes.tableView.setItemDelegateForColumn(4, BoolDelegate())
 
     def getOutputShape(self) -> Union[data.Shape, None]:
         if not self.hasOptions() or not self._shapes[0]:
@@ -207,8 +219,8 @@ class ToCategoricalOp(GraphOperation):
                        items if isinstance(items, tuple) else (items,))):
             return None
         s = self._shapes[0].copy()
-        for a in self.__attributes:
-            s.col_types[a] = Types.Categorical
+        for i, opt in self.__attributes.items():
+            s.col_types[i] = Types.Ordinal if opt[1] is True else Types.Nominal
         return s
 
     @staticmethod
@@ -232,74 +244,104 @@ class ToCategoricalOp(GraphOperation):
         return -1
 
 
-# class TypeOp(GraphOperation):
-#     def __init__(self):
-#         super().__init__()
-#         self.__types: Dict[int, Types] = dict()
-#
-#     def execute(self, df: data.Frame) -> data.Frame:
-#         """ Changes type """
-#         # Deep copy
-#         raw_df = df.getRawFrame().copy(deep=True)
-#         colnames = df.colnames
-#         for k, v in self.__types.items():
-#             # Change type in-place (since raw_df is a deep copy)
-#             raw_df[colnames[k]] = raw_df[colnames[k]].astype(dtype=inv_type_dict[v], copy=True,
-#                                                              errors='raise')
-#         return data.Frame(raw_df)
-#
-#     @staticmethod
-#     def name() -> str:
-#         return 'Change column type'
-#
-#     def info(self) -> str:
-#         return 'Change type of data columns'
-#
-#     def acceptedTypes(self) -> List[Types]:
-#         return ALL_TYPES
-#
-#     def setOptions(self, new_types: Dict[int, Types]) -> None:
-#         self.__types = new_types
-#
-#     def unsetOptions(self) -> None:
-#         self.__types = dict()
-#
-#     def getOptions(self) -> Any:
-#         return copy.deepcopy(self.__types), self._shapes[0].copy()
-#
-#     def needsOptions(self) -> bool:
-#         return True
-#
-#     def getEditor(self) -> AbsOperationEditor:
-#         pass
-#
-#     def getOutputShape(self) -> Union[data.Shape, None]:
-#         if not self.__types:
-#             return copy.deepcopy(self._shapes[0])
-#         s = copy.deepcopy(self._shapes[0])
-#         for k, v in self.__types.items():
-#             s.col_types[k] = v
-#         return s
-#
-#     @staticmethod
-#     def isOutputShapeKnown() -> bool:
-#         return True
-#
-#     @staticmethod
-#     def minInputNumber() -> int:
-#         return 1
-#
-#     @staticmethod
-#     def maxInputNumber() -> int:
-#         return 1
-#
-#     @staticmethod
-#     def minOutputNumber() -> int:
-#         return 1
-#
-#     @staticmethod
-#     def maxOutputNumber() -> int:
-#         return -1
+class ToTimestamp(GraphOperation):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.__attributes: Dict[int, Optional[str]] = dict()
+        self.__errorMode: str = None  # {'ignore', 'coerce'}
+
+    def execute(self, df: data.Frame) -> data.Frame:
+        pdf = df.getRawFrame().copy(True)
+        for attr, dateFormat in self.__attributes.items():
+            pdf.iloc[:, attr] = pd.to_datetime(pdf.iloc[:, attr], errors=self.__errorMode,
+                                               infer_datetime_format=True, format=dateFormat)
+        return data.Frame(pdf)
+
+    @staticmethod
+    def name() -> str:
+        return 'toDatetime'
+
+    def acceptedTypes(self) -> List[Types]:
+        return [Types.String]
+
+    def shortDescription(self) -> str:
+        return 'Convert columns to datetime objects. Custom format may be specified.'
+
+    def longDescription(self) -> str:
+        pass
+
+    def hasOptions(self) -> bool:
+        return self.__attributes and self.__errorMode is not None
+
+    def unsetOptions(self) -> None:
+        self.__attributes = dict()
+
+    def needsOptions(self) -> bool:
+        return True
+
+    def getOptions(self) -> Iterable:
+        options = dict()
+        tableOptions = dict()
+        for row, dateFormat in self.__attributes.items():
+            tableOptions[row] = {'format': dateFormat if dateFormat else ''}
+        options['attributes'] = tableOptions
+        options['errors'] = self.__errorMode if self.__errorMode else 'raise'
+        return options
+
+    def setOptions(self, attributes: Dict[int, Dict[str, str]], errors: str) -> None:
+        valErrors = list()
+        if not attributes:
+            valErrors.append(('noSelected', 'Error: no attributes are selected'))
+        if not errors:
+            valErrors.append(('noMode', 'Error: error modality must be selected'))
+        if valErrors:
+            raise OptionValidationError(valErrors)
+        # Set options
+        for row, opts in attributes.items():
+            f = opts.get('format', None)
+            self.__attributes[row] = f if f else None
+        self.__errorMode = errors
+
+    def getEditor(self) -> AbsOperationEditor:
+        factory = OptionsEditorFactory()
+        factory.initEditor()
+        tableOptions = {'format': ('Format', SingleStringValidator())}
+        factory.withAttributeTable('attributes', True, False, False, tableOptions, self.acceptedTypes())
+        factory.withRadioGroup('How to treat errors?', 'errors',
+                               [('Raise', 'raise'), ('Coerce', 'coerce')])
+        return factory.getEditor()
+
+    def injectEditor(self, editor: AbsOperationEditor) -> None:
+        editor.acceptedTypes = self.acceptedTypes()
+        editor.inputShapes = self._shapes
+        # Set frame model
+        editor.attributes.setSourceFrameModel(FrameModel(editor, self.shapes[0]))
+        # Stretch new section
+        editor.attributes.tableView.horizontalHeader().setSectionResizeMode(2, QHeaderView.Stretch)
+
+    def getOutputShape(self) -> Optional[data.Shape]:
+        if not self.hasOptions() or not self._shapes[0]:
+            return None
+        s: data.Shape = self._shapes[0].copy(True)
+        for i in self.__attributes.keys():
+            s.col_types[i] = Types.Datetime
+        return s
+
+    @staticmethod
+    def minInputNumber() -> int:
+        return 1
+
+    @staticmethod
+    def maxInputNumber() -> int:
+        return 1
+
+    @staticmethod
+    def minOutputNumber() -> int:
+        return 1
+
+    @staticmethod
+    def maxOutputNumber() -> int:
+        return -1
 
 
-export = [ToNumericOp, ToCategoricalOp]
+export = [ToNumericOp, ToCategoricalOp, ToTimestamp]

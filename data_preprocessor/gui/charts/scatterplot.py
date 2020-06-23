@@ -23,7 +23,7 @@ class ScatterPlotMatrix(QWidget):
         # Create widget for the two tables
         sideLayout = QVBoxLayout()
         self.__matrixAttributes = SearchableAttributeTableWidget(self, True, False, False,
-                                                                 [Types.Numeric])
+                                                                 [Types.Numeric, Types.Ordinal])
         matrixLabel = QLabel('Select at least two numeric attributes and press \'Create chart\' to plot')
         createButton = QPushButton('Create chart', self)
         self.__colorByBox = QComboBox(self)
@@ -43,17 +43,25 @@ class ScatterPlotMatrix(QWidget):
         # sideW.setLayout(sideLayout)
         # self.__splitter.addWidget(sideW)
         # self.__layout.addWidget(self.__splitter)
-        self.__comboModel = AttributeProxyModel([Types.String, Types.Categorical], self)
+        self.__comboModel = AttributeProxyModel([Types.String, Types.Ordinal, Types.Nominal], self)
 
         # Connect
         createButton.clicked.connect(self.showScatterPlots)
 
-    # @profile
     def __createScatterPlot(self, xCol: int, yCol: int, groupBy: int = None) -> QtCharts.QChart():
         df = self.__frameModel.frame.getRawFrame()
         # notNanRows = ~df.iloc[:, [xCol, yCol]].isnull().any(axis=1) (series ignore Nans)
         xColS: str = self.__frameModel.shape.col_names[xCol]
         yColS: str = self.__frameModel.shape.col_names[yCol]
+        # If ordinal attributes must be replace by its integer code
+        xType: Types = self.__frameModel.shape.col_types[xCol]
+        yType: Types = self.__frameModel.shape.col_types[yCol]
+        if xType == Types.Ordinal or yType == Types.Ordinal:
+            df = df.copy(True)
+            if xType == Types.Ordinal:
+                df[xColS] = df[xColS].cat.codes
+            if yType == Types.Ordinal:
+                df[yColS] = df[yColS].cat.codes
         allSeries: List[QtCharts.QScatterSeries] = list()
         if groupBy is not None:
             groupS: str = self.__frameModel.shape.col_names[groupBy]

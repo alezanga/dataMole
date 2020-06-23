@@ -4,13 +4,14 @@ import numpy as np
 import pandas as pd
 
 from data_preprocessor.data.Shape import Shape
-from data_preprocessor.data.types import type_dict, Types
+from data_preprocessor.data.types import Types, displayedType
 
 # Constants
 _date = pd.Series(['05-09-1988', '22-12-1994', '21-11-1995', '22-06-1994', '12-12-2012'],
                   dtype='datetime64[ns]')
-_category = pd.Categorical([1, 6, 1, 3, 9])
-_mixed = [0.2, 1, 'some', np.nan, 'many']
+_ordinal = pd.Categorical(['1', '6', '1', '3', '9'], ordered=True)
+_nominal = pd.Categorical(['2', '1', '1', '3', '55'], ordered=False)
+_string = ['0.2', '1', 'some', np.nan, 'many']
 _numeric = [0.3, 1, 2, 7, 11.1]
 
 
@@ -63,18 +64,19 @@ class Frame:
 
         data = dict()
         for n, t in zip(columns, types):
-            if t == Types.Categorical:
-                data[n] = _category
+            if t == Types.Ordinal:
+                data[n] = _ordinal
+            elif t == Types.Nominal:
+                data[n] = _nominal
             elif t == Types.Numeric:
                 data[n] = _numeric
             elif t == Types.String:
-                data[n] = _mixed
+                data[n] = _string
             elif t == Types.Datetime:
                 data[n] = _date
         df = pd.DataFrame(data)
         if index:
             df = df.set_index(index, drop=False, inplace=False)
-        # TODO: complete and test this
         return Frame(df)
 
     def at(self, e: Tuple[int, int]) -> Any:
@@ -372,7 +374,7 @@ class Frame:
         s.col_types = list()
         # s.numeric_types = list()
         for col, type_val in self.__df.dtypes.items():
-            pretty_type = type_dict.get(type_val.name, type_val.name)
+            pretty_type = displayedType(type_val)
             s.col_names.append(col)
             s.col_types.append(pretty_type)
             # if pretty_type == 'int' or pretty_type == 'float':

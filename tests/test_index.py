@@ -20,7 +20,7 @@ def test_set_index_num():
     op.addInputShape(g.shape, 0)
     s = {
         'cowq': Types.Numeric,
-        'col2': Types.Categorical,
+        'col2': Types.Nominal,
         'col3': Types.String,
         'date': Types.Datetime
     }
@@ -49,7 +49,7 @@ def test_set_index_cat():
     op.addInputShape(g.shape, 0)
     s = {
         'cowq': Types.Numeric,
-        'col2': Types.Categorical,
+        'col2': Types.Nominal,
         'col3': Types.String,
         'date': Types.Datetime
     }
@@ -64,7 +64,7 @@ def test_set_index_cat():
 
 
 def test_set_index_date():
-    e = {'cowq': [1, 2, 3, 4.0, 10], 'col2': pd.Categorical(['3', 4, 5, 6, 0]),
+    e = {'cowq': [1, 2, 3, 4.0, 10], 'col2': pd.Categorical(['3', 4, 5, 6, 0], ordered=True),
          'col3': ['q', '2', 'c', '4', 'x'],
          'date': pd.Series(['05-09-1988', '22-12-1994', '21-11-1995', '22-06-1994', '12-12-2012'],
                            dtype='datetime64[ns]')}
@@ -78,7 +78,7 @@ def test_set_index_date():
     op.addInputShape(g.shape, 0)
     s = {
         'cowq': Types.Numeric,
-        'col2': Types.Categorical,
+        'col2': Types.Ordinal,
         'col3': Types.String,
         'date': Types.Datetime
     }
@@ -107,7 +107,7 @@ def test_set_index_string():
     op.addInputShape(g.shape, 0)
     s = {
         'cowq': Types.Numeric,
-        'col2': Types.Categorical,
+        'col2': Types.Nominal,
         'col3': Types.String,
         'date': Types.Datetime
     }

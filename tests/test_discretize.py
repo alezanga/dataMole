@@ -20,8 +20,8 @@ def test_discretize_num_uniform():
 
     op.addInputShape(f.shape, 0)
     s = f.shape.copy(True)
-    s.col_types[0] = Types.Categorical
-    s.col_types[1] = Types.Categorical
+    s.col_types[0] = Types.Nominal
+    s.col_types[1] = Types.Nominal
     assert op.getOutputShape() == s
 
     g = op.execute(f)
@@ -30,6 +30,7 @@ def test_discretize_num_uniform():
         'col2': ['0.0', '1.0', None, '2.0', None],
         'ww': [3, 1, 'ww', '1', '1']
     }
+    assert g.shape == s
 
 
 def test_discretize_num_uniform_nondrop():
@@ -44,8 +45,8 @@ def test_discretize_num_uniform_nondrop():
     s = f.shape.copy(True)
     s.col_names.append('col1_discretized')
     s.col_names.append('col2_discretized')
-    s.col_types.append(Types.Categorical)
-    s.col_types.append(Types.Categorical)
+    s.col_types.append(Types.Nominal)
+    s.col_types.append(Types.Nominal)
     s.n_columns += 2
     assert op.getOutputShape() == s
 
@@ -58,8 +59,9 @@ def test_discretize_num_uniform_nondrop():
         'ww': [3, 1, 'ww', '1', '1']
     }
     assert nan_to_None(g.to_dict()) == expected_output
+    assert g.shape == s
 
-    # Check that outpu is the same as with drop
+    # Check that output is the same as with drop
     op.setOptions(attributes={0: {'bins': '2'}, 1: {'bins': '3'}}, strategy=BinStrategy.Uniform,
                   drop=True)
     o = op.execute(f)
@@ -81,8 +83,8 @@ def test_discretize_range_drop():
 
     op.addInputShape(f.shape, 0)
     s = f.shape.copy(True)
-    s.col_types[0] = Types.Categorical
-    s.col_types[1] = Types.Categorical
+    s.col_types[0] = Types.Ordinal
+    s.col_types[1] = Types.Ordinal
     assert op.getOutputShape() == s
 
     g = op.execute(f)
@@ -91,6 +93,7 @@ def test_discretize_range_drop():
         'col2': ['B', 'B', None, 'C', None],
         'ww': [3, 1, 'ww', '1', '1']
     }
+    assert g.shape == s
 
 
 def test_discretize_range_nodrop():
@@ -106,7 +109,7 @@ def test_discretize_range_nodrop():
     s = f.shape.copy(True)
     s.col_types[1] = Types.Numeric
     s.col_names.append('col2_bins')
-    s.col_types.append(Types.Categorical)
+    s.col_types.append(Types.Ordinal)
     s.n_columns += 1
     assert op.getOutputShape() == s
 
@@ -117,6 +120,7 @@ def test_discretize_range_nodrop():
         'ww': [3, 1, 'ww', '1', '1'],
         'col2_bins': ['B', 'B', None, 'C', None]
     }
+    assert g.shape == s
 
 
 def test_discretize_range_except():

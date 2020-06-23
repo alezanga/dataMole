@@ -50,7 +50,7 @@ class OneHotEncodeOp(GraphOperation):
         return True
 
     def acceptedTypes(self) -> List[Types]:
-        return [Types.Categorical, Types.String]
+        return [Types.Ordinal, Types.Nominal, Types.String]
 
     def getOptions(self) -> Iterable:
         return self.__attributes, self.__includeNan

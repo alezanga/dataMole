@@ -16,9 +16,9 @@ def test_ohe():
     del s.col_names[2]
     del s.col_types[2]
     s = s.col_type_dict
-    s['col3_2'] = Types.Categorical
-    s['col3_nan'] = Types.Categorical
-    s['col3_q'] = Types.Categorical
+    s['col3_2'] = Types.Nominal
+    s['col3_nan'] = Types.Nominal
+    s['col3_q'] = Types.Nominal
     assert op.getOutputShape() is None
 
     g = op.execute(f)

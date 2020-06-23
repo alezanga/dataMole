@@ -95,7 +95,7 @@ def test_merge_category():
 
     s = f.shape.copy()
     assert op.getOutputShape() == s
-    assert s.col_types[1] == Types.Categorical
+    assert s.col_types[1] == Types.Nominal
 
     g = op.execute(f)
 
@@ -124,7 +124,7 @@ def test_merge_category_inverted():
 
     s = f.shape.copy()
     assert op.getOutputShape() == s
-    assert s.col_types[1] == Types.Categorical
+    assert s.col_types[1] == Types.Nominal
 
     g = op.execute(f)
 
@@ -177,7 +177,7 @@ def test_merge_nan():
         inverted=False)
 
     s = f.shape.copy()
-    assert f.shape.col_types[1] == Types.Categorical
+    assert f.shape.col_types[1] == Types.Nominal
     assert op.getOutputShape() == s
 
     g = op.execute(f)
@@ -202,7 +202,7 @@ def test_merge_from_nan():
         inverted=False)
 
     s = f.shape.copy()
-    assert f.shape.col_types[1] == Types.Categorical
+    assert f.shape.col_types[1] == Types.Nominal
     assert op.getOutputShape() == s
 
     g = op.execute(f)
@@ -228,7 +228,7 @@ def test_merge_index_val():
 
     s = f.shape.copy()
     os = op.getOutputShape()
-    assert f.shape.col_types[1] == Types.Categorical == os.col_types[1]
+    assert f.shape.col_types[1] == Types.Nominal == os.col_types[1]
     assert os == s
 
     g = op.execute(f)

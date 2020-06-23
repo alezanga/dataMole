@@ -58,7 +58,7 @@ class JoinOp(GraphOperation):
         return 'Allows to join two tables. Can handle four type of join: left, right, outer and inner'
 
     def acceptedTypes(self) -> List[Types]:
-        return [Types.Numeric, Types.Categorical, Types.String]
+        return [Types.Numeric, Types.Ordinal, Types.Nominal, Types.String]
 
     def setOptions(self, ls: str, rs: str, onindex: bool, onleft: int, onright: int,
                    join_type: JoinType) -> None:

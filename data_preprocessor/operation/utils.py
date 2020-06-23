@@ -120,3 +120,19 @@ class ManyMixedListsValidator(QValidator):
             if val.validate(s, 0) == QValidator.Invalid:
                 return QValidator.Invalid
         return QValidator.Acceptable
+
+
+class SingleStringValidator(QValidator):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.__regexp = '[^\'\b ]*'
+
+    def validate(self, inputString: str, pos: int) -> QValidator.State:
+        inputString = inputString.strip()
+        if re.fullmatch(self.__regexp, inputString):
+            return QValidator.Acceptable
+        else:
+            match = re.match(self.__regexp, inputString)
+            if match and len(match.group(0)) == len(inputString):
+                return QValidator.Intermediate
+        return QValidator.Invalid

@@ -7,7 +7,7 @@ from PySide2.QtWidgets import QTabWidget, QWidget, QMainWindow, QMenuBar, QActio
 from data_preprocessor.decorators.generic import singleton
 from data_preprocessor.flow.OperationDag import OperationDag
 from data_preprocessor.gui.attributepanel import AttributePanel
-from data_preprocessor.gui.charts.charts import ScatterPlotMatrix
+from data_preprocessor.gui.charts.scatterplot import ScatterPlotMatrix
 from data_preprocessor.gui.framepanel import FramePanel
 from data_preprocessor.gui.graph.controller import GraphController
 from data_preprocessor.gui.graph.scene import GraphScene
