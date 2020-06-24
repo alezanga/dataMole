@@ -13,8 +13,8 @@ from data_preprocessor.operation.interface.graph import GraphOperation
 
 
 class DateDiscretizer(GraphOperation):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.__attribute: int = None
         self.__intervals: List[pd.Interval] = list()
         self.__labels: List[str] = list()

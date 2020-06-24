@@ -127,7 +127,20 @@ class OptionsEditorFactory:
         self.__editorWidgets: List[Tuple[str, QWidget]] = list()
 
     def withAttributeTable(self, key: str, checkbox: bool, nameEditable: bool, showTypes: bool,
-                           options: Optional[Dict[str, Tuple[str, Optional[QValidator]]]], types: List):
+                           options: Optional[Dict[str, Tuple[str, Optional[QValidator]]]],
+                           types: Optional[List]):
+        """
+        Adds a table widget to the editor
+
+        :param key: parameter name of the options for the table
+        :param checkbox: whether to show a checkbox column in the table
+        :param nameEditable: whether attribute name should be editable with double ckick
+        :param showTypes: whether to show a column with the type of each attribute
+        :param options: option specifier. Any entry in this dictionary will result in a new column in
+            the table with header name specified as first argument in the tuple and an optional QValidator
+            which will be set in the editor widget after a double click on the option cell
+        :param types: the list of accepted types to show. If None no filter will be applied
+        """
         tableWidget = SearchableAttributeTableWidget(self.__body)
         tableModel = AttributeTableWithOptions(self.__body, checkbox, nameEditable, showTypes, options)
         tableWidget.setAttributeModel(tableModel, filterTypes=types)

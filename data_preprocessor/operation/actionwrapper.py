@@ -94,11 +94,8 @@ class OperationWrapper(QObject):
         self.editor.setWindowTitle(self.operation.name())
         self.editor.acceptAndClose.connect(self.onAcceptEditor)
         self.editor.rejectAndClose.connect(self.editor.close)
-        self.editor.acceptedTypes = self.operation.acceptedTypes()
-        self.editor.inputShapes = [i.shape for i in self._inputs]
         self.editor.setDescription(self.operation.shortDescription(), self.operation.longDescription())
         self.editor.setUpEditor()
-        self.editor.workbench = self.operation.workbench
         options = self.operation.getOptions()
         if isinstance(options, dict):
             self.editor.setOptions(**options)
@@ -124,9 +121,9 @@ class OperationWrapper(QObject):
             self._outputNameBox.widget.setCompleter(completer)
             self.editor.layout().insertLayout(1, ioLayout)
             self._setInput(0)
-        else:
-            # If it's another operation it doesn't depend on input shapes
-            self.operation.injectEditor(self.editor)
+        # Set up editor dependencies
+        self.operation.injectEditor(self.editor)
+        # Show editor
         self.editor.move(self._editorPos)
         self.editor.show()
 
