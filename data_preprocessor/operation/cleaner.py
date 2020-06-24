@@ -1,10 +1,29 @@
-from typing import Iterable, Dict, Any, List, Set, Optional
+from typing import Iterable, Dict, Any, List, Optional
 
 from data_preprocessor import data
 from data_preprocessor.gui import AbsOperationEditor, OptionsEditorFactory
 from data_preprocessor.gui.mainmodels import FrameModel
 from data_preprocessor.operation.interface.exceptions import OptionValidationError
 from data_preprocessor.operation.interface.graph import GraphOperation
+from tests.utilities import numpy_equal
+
+
+def find_duplicates(df):
+    groups = df.columns.to_series().groupby(df.dtypes).groups
+    duplicates = list()
+
+    for t, v in groups.items():
+        cs = df[v].columns
+        vs = df[v]
+        lcs = len(cs)
+        for i in range(lcs):
+            ia = vs.iloc[:, i].values
+            for j in range(i + 1, lcs):
+                ja = vs.iloc[:, j].values
+                if numpy_equal(ia, ja):
+                    duplicates.append(cs[j])
+                    break
+    return duplicates
 
 
 class RemoveBijections(GraphOperation):
@@ -14,16 +33,12 @@ class RemoveBijections(GraphOperation):
 
     def execute(self, df: data.Frame) -> data.Frame:
         df = df.getRawFrame()
-        toDrop: Set[str] = set()
-        for i, c1 in enumerate(df.columns):
-            for j, c2 in enumerate(df.columns):
-                if i < j and j in self.__selected:
-                    drop = df[c1].equals(df[c2])
-                    if drop:
-                        toDrop.add(c2)
-        if toDrop:
+
+        duplicates = find_duplicates(df)
+
+        if duplicates:
             df = df.copy(True)
-            df = df.drop(toDrop, axis=1)
+            df = df.drop(duplicates, axis=1)
         return data.Frame(df)
 
     @staticmethod

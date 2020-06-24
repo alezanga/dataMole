@@ -1,6 +1,11 @@
 from typing import Dict, List
 
+import numpy
 import pandas as pd
+
+
+def numpy_equal(a: numpy.array, b: numpy.array) -> bool:
+    return ((a == b) | ((a != a) & (b != b))).all()
 
 
 def nan_to_None(d: Dict[str, List]) -> Dict[str, List]:
