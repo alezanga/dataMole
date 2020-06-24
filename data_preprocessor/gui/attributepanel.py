@@ -19,7 +19,7 @@ class AttributePanel(QWidget):
         self._frameModel: FrameModel = None
         self.__currentAttributeIndex: int = -1
 
-        self._attributeTable = SearchableAttributeTableWidget(parent=self, checkable=True,
+        self._attributeTable = SearchableAttributeTableWidget(parent=self, checkable=False,
                                                               editable=True, showTypes=True)
         self._statPanel = StatisticsPanel(self)
         self._histPanel = Histogram(self)

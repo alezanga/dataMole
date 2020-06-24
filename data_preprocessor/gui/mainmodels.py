@@ -635,6 +635,7 @@ class IncrementalAttributeTableView(QTableView):
         self.__timerPeriodMs = period
         self.setSelectionBehavior(QTableView.SelectRows)
         self.setSelectionMode(QTableView.SingleSelection)
+        self.setAlternatingRowColors(True)
 
     def setModel(self, model: AttributeTableModel) -> None:
         """ Reimplemented to start fetch timer """

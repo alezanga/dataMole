@@ -134,7 +134,7 @@ class MainWindow(QMainWindow):
             self.__activeCount -= 1
             if self.__activeCount == 0:
                 self.statusBar().stopSpinner()
-        print('Emit', uid, state, 'count={}'.format(self.__activeCount))
+        # print('Emit', uid, state, 'count={}'.format(self.__activeCount))
 
     @Slot(type)
     def executeOperation(self, opType: type) -> None:

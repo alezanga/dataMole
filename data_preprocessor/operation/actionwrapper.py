@@ -1,8 +1,8 @@
 import logging
 from typing import Optional, Tuple, Dict, Any
 
-from PySide2.QtCore import Slot, QObject, Signal, QPoint, QThreadPool
-from PySide2.QtWidgets import QMessageBox, QAction, QComboBox, QFormLayout, QLabel
+from PySide2.QtCore import Slot, QObject, Signal, QPoint, QThreadPool, Qt
+from PySide2.QtWidgets import QMessageBox, QAction, QComboBox, QFormLayout, QLabel, QCompleter
 
 from data_preprocessor import data
 from data_preprocessor import threads
@@ -110,12 +110,18 @@ class OperationWrapper(QObject):
             # Add input and output boxes
             self._inputComboBox = QComboBox(self.editor)
             self._inputComboBox.setModel(self.operation.workbench)
-            self._outputNameBox = TextOptionWidget(self.editor)
+            self._outputNameBox = TextOptionWidget(parent=self.editor)
             self._outputNameBox.widget.textChanged.connect(self._validateOutputName)
             self._inputComboBox.currentIndexChanged.connect(self._setInput)
             ioLayout = QFormLayout()
             ioLayout.addRow('Input data:', self._inputComboBox)
             ioLayout.addRow('Output name:', self._outputNameBox)
+            completer = QCompleter(self._outputNameBox)
+            completer.setModel(self.operation.workbench)
+            completer.setFilterMode(Qt.MatchContains)
+            completer.setModelSorting(QCompleter.CaseInsensitivelySortedModel)
+            completer.setCompletionMode(QCompleter.UnfilteredPopupCompletion)
+            self._outputNameBox.widget.setCompleter(completer)
             self.editor.layout().insertLayout(1, ioLayout)
             self._setInput(0)
         else:

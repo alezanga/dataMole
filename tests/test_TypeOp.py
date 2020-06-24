@@ -6,7 +6,7 @@ import pytest
 from data_preprocessor.data import Frame
 from data_preprocessor.data.types import Types
 from data_preprocessor.operation.interface.exceptions import OptionValidationError
-from data_preprocessor.operation.type import ToNumericOp, ToCategoricalOp, ToTimestamp
+from data_preprocessor.operation.typeconversions import ToNumericOp, ToCategoricalOp, ToTimestamp
 from tests.utilities import nan_to_None
 
 

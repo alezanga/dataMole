@@ -118,7 +118,7 @@ class SimpleChartView(QtCharts.QChartView):
         if event.button() == Qt.LeftButton:
             chartWindow = InteractiveChartWindow(self)  # needs a parent to be kept alive
             # Open widget with plot
-            iView = InteractiveChartView(chart=self.chart(), topLevel=True)
+            iView = InteractiveChartView(chart=self.chart(), setInWindow=True)
             chartWindow.setAttribute(Qt.WA_DeleteOnClose, True)
             chartWindow.setCentralWidget(iView)  # window takes ownership of view
             chartWindow.resize(500, 500)
@@ -128,9 +128,9 @@ class SimpleChartView(QtCharts.QChartView):
 
 
 class InteractiveChartView(QtCharts.QChartView):
-    def __init__(self, chart: QtCharts.QChart = None, parent: QWidget = None, topLevel: bool = False):
+    def __init__(self, chart: QtCharts.QChart = None, parent: QWidget = None, setInWindow: bool = False):
         super().__init__(parent)
-        self.__isTopLevel: bool = topLevel
+        self.__setInWindow: bool = setInWindow
         self.__coordX: QGraphicsItem = None
         self.__coordY: QGraphicsItem = None
         self.__callouts: List[Callout] = None
@@ -186,7 +186,7 @@ class InteractiveChartView(QtCharts.QChartView):
             oldChart.deleteLater()
 
     def resizeEvent(self, event):
-        if self.scene():
+        if self.scene() and self.chart():
             self.scene().setSceneRect(QRectF(QPointF(0, 0), event.size()))
             self.chart().resize(event.size())
             self.__coordX.setPos(
@@ -212,7 +212,7 @@ class InteractiveChartView(QtCharts.QChartView):
             self.chart().scroll(-offset.x(), offset.y())
             self.__mousePressEventPos = event.pos()
             event.accept()
-        else:
+        elif self.chart():
             self.__coordX.setText("X: {0:.2f}"
                                   .format(self.chart().mapToValue(event.pos()).x()))
             self.__coordY.setText("Y: {0:.2f}"
@@ -268,10 +268,10 @@ class InteractiveChartView(QtCharts.QChartView):
         self.__callouts = list()
 
     def mouseDoubleClickEvent(self, event: QMouseEvent) -> None:
-        if not self.__isTopLevel and event.button() == Qt.LeftButton:
+        if not self.__setInWindow and event.button() == Qt.LeftButton:
             chartWindow = InteractiveChartWindow(self)  # needs a parent to be kept alive
             # Open widget with plot
-            iView = InteractiveChartView(chart=self.chart(), topLevel=True)
+            iView = InteractiveChartView(chart=self.chart(), setInWindow=True)
             chartWindow.setAttribute(Qt.WA_DeleteOnClose, True)
             chartWindow.setCentralWidget(iView)  # window takes ownership of view
             chartWindow.resize(500, 500)

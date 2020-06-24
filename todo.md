@@ -12,7 +12,6 @@
     - [x] IMPROVE: refactor frame models with interfaces
     - [x] FIX: frame fetchMore creates problem with checkbox
 - [ ] IMPROVE: look into the possibility of doing a lazy loading from big csv (maybe with a hdf5 store)
-- [ ] IMPROVE: Add method to compare options in Operation
 - [x] New export method for operations
 - [x] Fix tab change with Operation Menu
 - [x] Add output operation
@@ -56,3 +55,9 @@
         - [ ] Log of events
     - [ ] Write to CSV / ARFF
     - [ ] Ability to stop ongoing operations
+    - [ ] Show some attribute info to help the user compile options in single operations (could
+     be done with a QCompleter on the option cell/widget)
+    - [ ] Charts
+        - [ ] Charts should not show all points (depending on zoom)
+        - [ ] Chart axis should show label as tooltip
+        - [ ] Management of axis space with rotation
