@@ -3,11 +3,13 @@ import os
 from typing import List
 
 from PySide2.QtCharts import QtCharts
-from PySide2.QtCore import Qt, QPointF, QRectF, QRect, Slot
+from PySide2.QtCore import Qt, QPointF, QRectF, QRect, Slot, QSize
 from PySide2.QtGui import QPainter, QFont, QFontMetrics, QPainterPath, QColor, QKeyEvent, QWheelEvent, \
-    QKeySequence, QMouseEvent, QCursor, QPixmap
+    QKeySequence, QMouseEvent, QCursor, QPixmap, QResizeEvent
 from PySide2.QtWidgets import QGraphicsSimpleTextItem, \
     QGraphicsItem, QWidget, QMainWindow, QMenuBar, QAction, QGraphicsView, QApplication, QFileDialog
+
+from data_preprocessor.gui.charts.utils import copyChart, computeAxisValue
 
 
 class Callout(QGraphicsItem):
@@ -118,7 +120,8 @@ class SimpleChartView(QtCharts.QChartView):
         if event.button() == Qt.LeftButton:
             chartWindow = InteractiveChartWindow(self)  # needs a parent to be kept alive
             # Open widget with plot
-            iView = InteractiveChartView(chart=self.chart(), setInWindow=True)
+            chart = copyChart(self.chart())
+            iView = InteractiveChartView(chart=chart, setInWindow=True)
             chartWindow.setAttribute(Qt.WA_DeleteOnClose, True)
             chartWindow.setCentralWidget(iView)  # window takes ownership of view
             chartWindow.resize(500, 500)
@@ -138,6 +141,11 @@ class InteractiveChartView(QtCharts.QChartView):
         # Wheel drag
         self.__mousePressEventPos: QPointF = None
         self.__panOn: bool = False
+        self.__chartIsSet: bool = False
+        # Option enable flags
+        self.__panEnabled: bool = True
+        self.__zoomEnabled: bool = True
+        self.__keySeqEnabled: bool = True
 
         self.setDragMode(QGraphicsView.NoDrag)
         self.setRubberBand(QtCharts.QChartView.RectangleRubberBand)
@@ -146,49 +154,95 @@ class InteractiveChartView(QtCharts.QChartView):
         if chart:
             self.setChart(chart)
 
+    def enablePan(self, value: bool) -> None:
+        self.__panEnabled = value
+
+    def enableZoom(self, value: bool) -> None:
+        self.__zoomEnabled = value
+        if value:
+            self.setRubberBand(QtCharts.QChartView.RectangleRubberBand)
+        else:
+            self.setRubberBand(QtCharts.QChartView.NoRubberBand)
+
+    def enableKeySequences(self, value: bool) -> None:
+        self.__keySeqEnabled = value
+
     def setChart(self, chart: QtCharts.QChart) -> None:
         # Save old chart to delete it at the end
         oldChart = self.chart()
         # New chart
-        chart_c = QtCharts.QChart()
         self.__callouts = list()
-        self.__tooltip = Callout(chart_c)
+        self.__tooltip = Callout(chart)
         series: List[QtCharts.QAbstractSeries] = chart.series()
+        chart.legend().show()
+        chart.setAcceptHoverEvents(True)
         for s in series:
-            # Create new series with same points
-            s_copy = QtCharts.QScatterSeries()
-            # s_copy.setUseOpenGL(True)
-            s_copy.append(s.points())
-            s_copy.setName(s.name())
-            # Add series to chart
-            chart_c.addSeries(s_copy)
-            s_copy.clicked.connect(self.keepCallout)
-            s_copy.hovered.connect(self.tooltip)
-        # self._chart.setMinimumSize(640, 480)
-        chart_c.legend().show()
-        chart_c.createDefaultAxes()
-        chart_c.axisX().setTitleText(chart.axisX().titleText())
-        chart_c.axisY().setTitleText(chart.axisY().titleText())
-        chart_c.setAcceptHoverEvents(True)
+            s.clicked.connect(self.keepCallout)
+            s.hovered.connect(self.tooltip)
 
         self.setRenderHint(QPainter.Antialiasing)
         # self.scene().addItem(self.__chart)
 
-        self.__coordX = QGraphicsSimpleTextItem(chart_c)
+        self.__coordX = QGraphicsSimpleTextItem(chart)
         # self.__coordX.setPos(self.__chart.size().width() / 2 - 50, self.__chart.size().height())
         self.__coordX.setText("X: ")
-        self.__coordY = QGraphicsSimpleTextItem(chart_c)
+        self.__coordY = QGraphicsSimpleTextItem(chart)
         # self.__coordY.setPos(self.__chart.size().width() / 2 + 50, self.__chart.size().height())
         self.__coordY.setText("Y: ")
 
-        super().setChart(chart_c)
+        super().setChart(chart)
         if oldChart:
             oldChart.deleteLater()
+        self.__chartIsSet = True
 
-    def resizeEvent(self, event):
-        if self.scene() and self.chart():
+    @staticmethod
+    def _updateAxisTickCount(axis: QtCharts.QAbstractAxis, newSize: QSize) -> None:
+        """ Given an axis and the size of the view, sets the number of ticks to the best value
+        avoiding too many overlapping labels """
+        if axis.type() == QtCharts.QAbstractAxis.AxisTypeCategory or axis.type() == \
+                QtCharts.QAbstractAxis.AxisTypeDateTime:
+            ticks = axis.tickCount()
+            # Decide which dimension is relevant
+            if axis.orientation() == Qt.Horizontal:
+                length = newSize.width()
+            else:
+                length = newSize.height()
+            # Get one label as string
+            label: str
+            if axis.type() == QtCharts.QAbstractAxis.AxisTypeCategory:
+                label = axis.categoriesLabels()[0]
+            else:
+                label = axis.min().toString(axis.format())
+            # Compute the optimal width of the label (in pixel)
+            metrics = QFontMetrics(axis.labelsFont())
+            optimalWidth: int = metrics.width(label)
+            optimalWidth += optimalWidth * 0.30
+            # Determine optimal number of ticks to avoid much overlapping
+            newTicks = int(length / optimalWidth) - 1
+            axis.setTickCount(newTicks)
+
+            # TODO: test if this works with categories, otherwise remove it
+            if axis.type() == QtCharts.QAbstractAxis.AxisTypeCategory:
+                allTicks = ticks + axis.minorTickCount()
+                newMinorTicks = int((allTicks - newTicks) / newTicks)
+                axis.setMinorTickCount(newMinorTicks)
+
+    def setBestTickCount(self, newSize: QSize) -> None:
+        if self.__chartIsSet:
+            xAxis = self.chart().axisX()
+            yAxis = self.chart().axisY()
+            if xAxis:
+                InteractiveChartView._updateAxisTickCount(xAxis, newSize)
+            if yAxis:
+                InteractiveChartView._updateAxisTickCount(yAxis, newSize)
+
+    def resizeEvent(self, event: QResizeEvent):
+        if self.scene() and self.__chartIsSet:
             self.scene().setSceneRect(QRectF(QPointF(0, 0), event.size()))
             self.chart().resize(event.size())
+            # Update axis
+            self.setBestTickCount(event.size())
+            # Update callouts position
             self.__coordX.setPos(
                 self.chart().size().width() / 2 - 50,
                 self.chart().size().height() - 20)
@@ -200,27 +254,40 @@ class InteractiveChartView(QtCharts.QChartView):
         super().resizeEvent(event)
 
     def mousePressEvent(self, event: QMouseEvent) -> None:
-        if event.button() == Qt.MiddleButton:
+        if self.__panEnabled and event.button() == Qt.MiddleButton:
             self.__mousePressEventPos = event.pos()
             self.__panOn = True
             QApplication.setOverrideCursor(QCursor(Qt.ClosedHandCursor))
         super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event: QMouseEvent) -> None:
-        if self.__panOn:
+        if self.__panEnabled and self.__panOn:
             offset = event.pos() - self.__mousePressEventPos
             self.chart().scroll(-offset.x(), offset.y())
             self.__mousePressEventPos = event.pos()
             event.accept()
-        elif self.chart():
-            self.__coordX.setText("X: {0:.2f}"
-                                  .format(self.chart().mapToValue(event.pos()).x()))
-            self.__coordY.setText("Y: {0:.2f}"
-                                  .format(self.chart().mapToValue(event.pos()).y()))
+        elif self.__chartIsSet:
+            metrics = QFontMetrics(self.__coordX.font())
+            xVal = self.chart().mapToValue(event.pos()).x()
+            yVal = self.chart().mapToValue(event.pos()).y()
+            # if self.chart().axisX().type() == QtCharts.QAbstractAxis.AxisTypeDateTime:
+            xText: str = 'X: {}'.format(computeAxisValue(self.chart().axisX(), xVal))
+            yText: str = 'Y: {}'.format(computeAxisValue(self.chart().axisY(), yVal))
+            xSize = metrics.width(xText, -1)
+            ySize = metrics.width(yText, -1)
+            totSize = xSize + ySize
+            self.__coordX.setPos(
+                self.chart().size().width() / 2 - (totSize / 2),
+                self.chart().size().height() - 20)
+            self.__coordY.setPos(
+                self.chart().size().width() / 2 + (totSize / 2),
+                self.chart().size().height() - 20)
+            self.__coordX.setText(xText)
+            self.__coordY.setText(yText)
         super().mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event: QMouseEvent) -> None:
-        if self.__panOn:
+        if self.__panEnabled and self.__panOn:
             self.__panOn = False
             QApplication.restoreOverrideCursor()
         super().mouseReleaseEvent(event)
@@ -234,14 +301,17 @@ class InteractiveChartView(QtCharts.QChartView):
             self.chart().scroll(0, +10)
         elif event.key() == Qt.Key_Down:
             self.chart().scroll(0, -10)
+        elif self.__keySeqEnabled and event.key() == Qt.Key_R and event.modifiers() & Qt.ControlModifier:
+            self.chart().zoomReset()
         else:
             super().keyPressEvent(event)
 
     def wheelEvent(self, event: QWheelEvent) -> None:
-        delta: int = event.angleDelta().y()
-        factor = pow(1.25, delta / 240.0)
-        self.chart().zoom(factor)
-        event.accept()
+        if self.__zoomEnabled:
+            delta: int = event.angleDelta().y()
+            factor = pow(1.25, delta / 240.0)
+            self.chart().zoom(factor)
+            event.accept()
 
     @Slot()
     def keepCallout(self):
@@ -253,7 +323,9 @@ class InteractiveChartView(QtCharts.QChartView):
         if not self.__tooltip:
             self.__tooltip = Callout(self.chart())
         if state:
-            self.__tooltip.setText('X: {0:.2f} \nY: {1:.2f} '.format(point.x(), point.y()))
+            self.__tooltip.setText('X: {} \nY: {} '
+                                   .format(computeAxisValue(self.chart().axisX(), point.x()),
+                                           computeAxisValue(self.chart().axisY(), point.y())))
             self.__tooltip.setAnchor(point)
             self.__tooltip.setZValue(11)
             self.__tooltip.updateGeometry()
@@ -271,10 +343,12 @@ class InteractiveChartView(QtCharts.QChartView):
         if not self.__setInWindow and event.button() == Qt.LeftButton:
             chartWindow = InteractiveChartWindow(self)  # needs a parent to be kept alive
             # Open widget with plot
-            iView = InteractiveChartView(chart=self.chart(), setInWindow=True)
+            chart = copyChart(self.chart())
+            iView = InteractiveChartView(chart=chart, setInWindow=True)
+            iView.enableKeySequences(False)
             chartWindow.setAttribute(Qt.WA_DeleteOnClose, True)
             chartWindow.setCentralWidget(iView)  # window takes ownership of view
-            chartWindow.resize(500, 500)
+            chartWindow.resize(600, 500)
             chartWindow.show()
             event.accept()
         super().mouseDoubleClickEvent(event)
