@@ -333,8 +333,8 @@ class AttributeTableModel(AbstractAttributeModel, QAbstractTableModel,
 
         # Connect to new model
         # NOTE: Some of these are NOT slots
-        self._frameModel.modelAboutToBeReset.connect(self.beginResetModel)
-        self._frameModel.modelReset.connect(self.endResetModel)
+        # self._frameModel.modelAboutToBeReset.connect(self.beginResetModel)
+        self._frameModel.modelReset.connect(self.onFrameReset)
         self._frameModel.headerDataChanged.connect(self.onHeaderChanged)
         self._frameModel.columnsAboutToBeInserted.connect(self.onColumnsAboutToBeInserted)
         self._frameModel.columnsAboutToBeMoved.connect(self.onColumnsAboutToBeMoved)
@@ -343,6 +343,13 @@ class AttributeTableModel(AbstractAttributeModel, QAbstractTableModel,
         self._frameModel.columnsMoved.connect(self.endMoveRows)
         self._frameModel.columnsRemoved.connect(self.endRemoveRows)
 
+        self.endResetModel()
+
+    @Slot()
+    def onFrameReset(self) -> None:
+        self.beginResetModel()
+        if self._checkable:
+            self._checked = [False] * self._frameModel.columnCount(QModelIndex())
         self.endResetModel()
 
     @Slot(QModelIndex, int, int)

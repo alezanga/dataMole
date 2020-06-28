@@ -47,6 +47,12 @@ class ScatterPlotMatrix(QWidget):
         # self.__layout.addWidget(self.__splitter)
         self.__comboModel = AttributeProxyModel([Types.String, Types.Ordinal, Types.Nominal], self)
 
+        # Error label to signal errors
+        self.errorLabel = QLabel(self)
+        self.errorLabel.setWordWrap(True)
+        sideLayout.addWidget(self.errorLabel)
+        self.errorLabel.hide()
+
         # Connect
         createButton.clicked.connect(self.showScatterPlots)
 
@@ -134,7 +140,12 @@ class ScatterPlotMatrix(QWidget):
         # Create plot with selected attributes
         attributes: List[int] = self.__matrixAttributes.model().checked
         if len(attributes) < 2:
-            return
+            self.errorLabel.setText('Select at least 2 attributes')
+            self.errorLabel.setStyleSheet('color: red')
+            self.errorLabel.show()
+            return  # stop
+        elif self.errorLabel.isVisible():
+            self.errorLabel.hide()
         # Get index of groupBy Attribute
         group: int = None
         selectedIndex = self.__colorByBox.currentIndex()

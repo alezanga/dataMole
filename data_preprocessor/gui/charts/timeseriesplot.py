@@ -59,7 +59,21 @@ class IndexTableModel(QAbstractTableModel):
 
     def setFrameModel(self, frameModel: FrameModel) -> None:
         self.beginResetModel()
+        if self.__frameModel:
+            self.__frameModel.disconnect(self)
+
+        # Reset internal fields
         self.__frameModel = frameModel
+        self.__checked = set()
+        self.__indexList = self.__frameModel.frame.getRawFrame().index.unique().to_list()
+
+        # Connect to new frame model
+        self.__frameModel.modelReset.connect(self.resetIndexList)
+        self.endResetModel()
+
+    @Slot()
+    def resetIndexList(self) -> None:
+        self.beginResetModel()
         self.__checked = set()
         self.__indexList = self.__frameModel.frame.getRawFrame().index.unique().to_list()
         self.endResetModel()
@@ -77,7 +91,7 @@ class IndexTableModel(QAbstractTableModel):
     def data(self, index: QModelIndex, role: int = Qt.DisplayRole) -> Any:
         if not index.isValid():
             return None
-        if role == Qt.DisplayRole:
+        if role == Qt.DisplayRole or role == Qt.EditRole:
             if index.column() == 0:
                 return index.row() in self.__checked
             elif index.column() == 1:
@@ -206,6 +220,7 @@ class TimeSeriesPlot(QWidget):
         p.setHorizontalPolicy(QSizePolicy.Ignored)
         self.chartView.setSizePolicy(p)
         self.workbench = workbench
+        self.searchableIndexTableModel: QSortFilterProxyModel = QSortFilterProxyModel(self)
 
         self.splitter = QSplitter(Qt.Horizontal, self)
         self.splitter.addWidget(self.chartView)
@@ -276,8 +291,6 @@ class TimeSeriesPlot(QWidget):
         timeIndexName: str = dataframe.columns[timeIndex]
         filteredDf = dataframe.iloc[:, [timeIndex, *attributes]].sort_values(by=timeIndexName, axis=0,
                                                                              ascending=True)
-        # Update attributes, which is the position of the selected attributes in the new filtered object
-        attributes = list(range(1, 1 + len(attributes)))
         # filteredDf has timeIndex at position 0, attributes following
 
         # Create X axis
@@ -422,29 +435,33 @@ class TimeSeriesPlot(QWidget):
         self.settingsPanel.timeAxisAttributeCB.setModel(filteredModel)
         safeDelete(m)
         # Set up index table
-        indexTableModel = IndexTableModel()
-        indexTableModel.setFrameModel(frameModel)
-        searchableModel = QSortFilterProxyModel(self)
-        searchableModel.setSourceModel(indexTableModel)
-        indexTableModel.setParent(searchableModel)
-        searchableModel.setFilterKeyColumn(1)
-        self.settingsPanel.indexTable.searchBar.textEdited.connect(
-            searchableModel.setFilterRegularExpression)
-        m = self.settingsPanel.indexTable.model()
-        self.settingsPanel.indexTable.setModel(searchableModel)
-        self.settingsPanel.indexTable.tableView.horizontalHeader().sectionClicked.connect(
-            indexTableModel.onHeaderClicked)
-        safeDelete(m)
+        if self.searchableIndexTableModel.sourceModel():
+            indexTableModel: IndexTableModel = self.searchableIndexTableModel.sourceModel()
+            indexTableModel.setFrameModel(frameModel)
+        else:
+            # Searchable model has not a source model
+            indexTableModel: IndexTableModel = IndexTableModel(self.searchableIndexTableModel)
+            indexTableModel.setFrameModel(frameModel)
+            # Set up proxy model
+            self.searchableIndexTableModel.setSourceModel(indexTableModel)
+            self.searchableIndexTableModel.setFilterKeyColumn(1)
+            # Connect view to proxy model
+            self.settingsPanel.indexTable.setModel(self.searchableIndexTableModel)
+            self.settingsPanel.indexTable.searchBar.textEdited.connect(
+                self.searchableIndexTableModel.setFilterRegularExpression)
+            self.settingsPanel.indexTable.tableView.horizontalHeader().sectionClicked.connect(
+                indexTableModel.onHeaderClicked)
 
     def resetViews(self) -> None:
         m = self.settingsPanel.indexTable.model()
         if m:
-            self.settingsPanel.indexTable.setModel(QSortFilterProxyModel())
+            self.searchableIndexTableModel = QSortFilterProxyModel(self)
+            self.settingsPanel.indexTable.setModel(self.searchableIndexTableModel)
             safeDelete(m)
 
         m = self.settingsPanel.timeAxisAttributeCB.model()
         if m:
-            self.settingsPanel.timeAxisAttributeCB.setModel(QSortFilterProxyModel())
+            self.settingsPanel.timeAxisAttributeCB.setModel(QSortFilterProxyModel(self))
             safeDelete(m)
 
         # TODO Remove chart
