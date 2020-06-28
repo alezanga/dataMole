@@ -60,4 +60,5 @@
     - [ ] Charts
         - [ ] Charts should not show all points (depending on zoom)
         - [ ] Chart axis should show label as tooltip
-        - [ ] Management of axis space with rotation
+        - [x] Management of axis space with rotation
+        - [x] Scatterplot could be smarter (less groupby)

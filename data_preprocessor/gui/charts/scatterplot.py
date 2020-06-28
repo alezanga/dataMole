@@ -1,5 +1,7 @@
-from typing import List
+from typing import List, Optional, Union, Tuple
 
+import numpy as np
+import pandas as pd
 from PySide2.QtCharts import QtCharts
 from PySide2.QtCore import Slot, QPointF, Qt, QModelIndex, QMargins
 from PySide2.QtGui import QFont
@@ -48,38 +50,63 @@ class ScatterPlotMatrix(QWidget):
         # Connect
         createButton.clicked.connect(self.showScatterPlots)
 
-    def __createScatterPlot(self, xCol: int, yCol: int, groupBy: int = None) -> QtCharts.QChart():
-        df = self.__frameModel.frame.getRawFrame()
-        # notNanRows = ~df.iloc[:, [xCol, yCol]].isnull().any(axis=1) (series ignore Nans)
-        xColS: str = self.__frameModel.shape.col_names[xCol]
-        yColS: str = self.__frameModel.shape.col_names[yCol]
-        # If ordinal attributes must be replace by its integer code
-        xType: Types = self.__frameModel.shape.col_types[xCol]
-        yType: Types = self.__frameModel.shape.col_types[yCol]
-        if xType == Types.Ordinal or yType == Types.Ordinal:
+    @staticmethod
+    def __processCategoricalColumn(df: pd.DataFrame) -> pd.DataFrame:
+        """ For every categorical column in 'df' replace categories with their numerical code,
+        propagating Nan values. Categorical columns are converted to float """
+        categoricalColumns = df.select_dtypes(include='category').columns.to_list()
+        if categoricalColumns:
             df = df.copy(True)
-            if xType == Types.Ordinal:
-                df[xColS] = df[xColS].cat.codes
-            if yType == Types.Ordinal:
-                df[yColS] = df[yColS].cat.codes
-        allSeries: List[QtCharts.QScatterSeries] = list()
-        if groupBy is not None:
-            groupS: str = self.__frameModel.shape.col_names[groupBy]
-            categories = df.groupby(groupS)[[xColS, yColS]].apply(lambda x: x.values.tolist())
-            i = 0
-            for name, values in categories.items():
-                series = QtCharts.QScatterSeries()
-                series.append(list(map(lambda t: QPointF(*t), values)))
-                series.setName(str(name))
-                allSeries.append(series)
-                i += 1
+            df[categoricalColumns] = \
+                df[categoricalColumns].apply(lambda c: c.cat.codes, axis=0).replace(-1, np.nan)
+        return df
+
+    @staticmethod
+    def __createSeriesFor2Columns(df: pd.DataFrame, xCol: str, yCol: str) -> \
+            Tuple[QtCharts.QScatterSeries, QtCharts.QScatterSeries]:
+        """ Create two scatter series, the second one with inverted x and y values
+
+        :param df: a dataframe
+        :param xCol: the name of the column with X values for plain series
+        :param yCol: the name of the column with Y values for plain series
+        :return a tuple with the plain series as the first element, and the inverted one as second
+        """
+        qSeries1 = QtCharts.QScatterSeries()
+        points = list(map(lambda t: QPointF(*t), df[[xCol, yCol]].itertuples(index=False, name=None)))
+        qSeries1.append(points)
+
+        # Inverted series
+        qSeries2 = QtCharts.QScatterSeries()
+        points = list(map(lambda qp: QPointF(qp.y(), qp.x()), points))
+        qSeries2.append(points)
+        return qSeries1, qSeries2
+
+    @staticmethod
+    def __createScatterSeries(df: Union[pd.DataFrame, pd.core.groupby.DataFrameGroupBy], xCol: str,
+                              yCol: str, groupBy: bool) -> \
+            Tuple[List[QtCharts.QScatterSeries], List[QtCharts.QScatterSeries]]:
+        allSeriesPlain = list()
+        allSeriesInverted = list()
+        if groupBy:
+            df: pd.core.groupby.DataFrameGroupBy
+            for groupName, groupedDf in df:
+                plain, inverted = ScatterPlotMatrix.__createSeriesFor2Columns(groupedDf, xCol, yCol)
+                plain.setName(str(groupName))
+                inverted.setName(str(groupName))
+                allSeriesPlain.append(plain)
+                allSeriesInverted.append(inverted)
         else:
-            points = list(df.iloc[:, [xCol, yCol]].itertuples(index=False, name=None))
-            series = QtCharts.QScatterSeries()
-            series.append(list(map(lambda t: QPointF(*t), points)))
-            allSeries.append(series)
+            df: pd.DataFrame
+            plain, inverted = ScatterPlotMatrix.__createSeriesFor2Columns(df, xCol, yCol)
+            allSeriesPlain.append(plain)
+            allSeriesInverted.append(inverted)
+        return allSeriesPlain, allSeriesInverted
+
+    @staticmethod
+    def __setupChartFromSeries(seriesList: List[QtCharts.QScatterSeries], xAxisName: str,
+                               yAxisName: str) -> QtCharts.QChart:
         chart = QtCharts.QChart()
-        for series in allSeries:
+        for series in seriesList:
             series.setMarkerSize(8)
             series.setUseOpenGL(True)
             chart.addSeries(series)
@@ -87,8 +114,8 @@ class ScatterPlotMatrix(QWidget):
         chart.legend().setVisible(False)
         chart.createDefaultAxes()
         # Add axes names but hide them
-        chart.axisX().setTitleText(xColS)
-        chart.axisY().setTitleText(yColS)
+        chart.axisX().setTitleText(xAxisName)
+        chart.axisY().setTitleText(yAxisName)
         chart.axisX().setTitleVisible(False)
         chart.axisY().setTitleVisible(False)
         # Set font size for axis
@@ -108,22 +135,51 @@ class ScatterPlotMatrix(QWidget):
         attributes: List[int] = self.__matrixAttributes.model().checked
         if len(attributes) < 2:
             return
-        for r in attributes:
+        # Get index of groupBy Attribute
+        group: int = None
+        selectedIndex = self.__colorByBox.currentIndex()
+        if self.__comboModel.rowCount() > 0 and selectedIndex != -1:
+            index: QModelIndex = self.__comboModel.mapToSource(
+                self.__comboModel.index(selectedIndex, 0, QModelIndex()))
+            group = index.row() if index.isValid() else None
+
+        # Get attributes of interest
+        toKeep: List[int] = attributes if group is None else [group, *attributes]
+        filterDf = self.__frameModel.frame.getRawFrame().iloc[:, toKeep]
+        groupName: Optional[str] = filterDf.columns[0] if group is not None else None
+        # Convert categories to numeric, but exclude groupBy attributes since categories are needed there
+        processed = self.__processCategoricalColumn(filterDf.iloc[:, 1:] if groupName else filterDf)
+        # Save attribute names for later use. Groupby column name is purposely excluded
+        attributesColumnNames: List[str] = processed.columns.to_list()
+        if groupName:
+            df = pd.concat([filterDf.loc[:, groupName], processed], axis=1, ignore_index=False)
+            # Group by selected attribute, if present
+            df = df.groupby(groupName)
+        else:
+            df = filterDf
+
+        # Populate the matrix
+        for r in range(len(attributes)):
             self.__matrixLayout.setRowStretch(r, 1)
-            for c in attributes:
-                self.__matrixLayout.setColumnStretch(c, 1)
+            self.__matrixLayout.setColumnStretch(r, 1)
+            for c in range(len(attributes)):
                 if r == c:
-                    name: str = self.__frameModel.frame.colnames[r]
+                    name: str = attributesColumnNames[r]
                     self.__matrixLayout.addWidget(QLabel(name, self), r, c, Qt.AlignCenter)
-                else:
-                    group: int = None
-                    selectedIndex = self.__colorByBox.currentIndex()
-                    if self.__comboModel.rowCount() > 0 and selectedIndex != -1:
-                        index: QModelIndex = self.__comboModel.mapToSource(
-                            self.__comboModel.index(selectedIndex, 0, QModelIndex()))
-                        group = index.row() if index.isValid() else None
-                    chart = self.__createScatterPlot(xCol=c, yCol=r, groupBy=group)
-                    self.__matrixLayout.addWidget(SimpleChartView(chart, self), r, c)
+                elif r < c:
+                    xColName: str = attributesColumnNames[c]
+                    yColName: str = attributesColumnNames[r]
+                    plainSeriesList, invertedSeriesList = \
+                        self.__createScatterSeries(df=df, xCol=xColName, yCol=yColName,
+                                                   groupBy=bool(groupName))
+                    plainChart = ScatterPlotMatrix.__setupChartFromSeries(plainSeriesList,
+                                                                          xAxisName=xColName,
+                                                                          yAxisName=yColName)
+                    invertedChart = ScatterPlotMatrix.__setupChartFromSeries(invertedSeriesList,
+                                                                             xAxisName=yColName,
+                                                                             yAxisName=xColName)
+                    self.__matrixLayout.addWidget(SimpleChartView(plainChart, self), r, c)
+                    self.__matrixLayout.addWidget(SimpleChartView(invertedChart, self), c, r)
         self.__matrixLayout.setSpacing(2)
 
     def clearScatterPlotMatrix(self) -> None:
