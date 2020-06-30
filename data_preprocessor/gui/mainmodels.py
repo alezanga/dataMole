@@ -550,7 +550,7 @@ class SearchableAttributeTableWidget(QWidget):
                                     showTypes=showTypes)
         self.__model: AttributeProxyModel = self.__setUpProxies(model, filterTypes)
 
-        self.tableView = IncrementalAttributeTableView(parent=self)
+        self.tableView = SignalTableView(parent=self)
 
         self.__searchBar = QLineEdit(self)
         self.__searchBar.setPlaceholderText('Search')
@@ -612,6 +612,10 @@ class SearchableAttributeTableWidget(QWidget):
             if self.__model.typeColumn is not None:
                 hh.setSectionResizeMode(self.__model.typeColumn, QHeaderView.Stretch)
             self.tableView.verticalHeader().setDefaultAlignment(Qt.AlignHCenter)
+            # Set delegate for checkbox
+            if self.__model.checkboxColumn is not None:
+                self.tableView.setItemDelegateForColumn(self.__model.checkboxColumn,
+                                                        BooleanBoxDelegate(self))
             # Connect search and checkbox click
             self.__searchBar.textChanged.connect(self.setFilterRegularExpression)
             self.__searchBar.textChanged.connect(self.refreshHeaderCheckbox)
@@ -633,83 +637,38 @@ class SearchableAttributeTableWidget(QWidget):
             self.__model.headerDataChanged.emit(Qt.Horizontal, section, section)
 
 
-class IncrementalAttributeTableView(QTableView):
-    selectedAttributeChanged = Signal(int)
+class SignalTableView(QTableView):
+    selectedRowChanged = Signal(int, int)
 
-    def __init__(self, period: int = 0, parent: QWidget = None):
+    def __init__(self, parent: QWidget = None):
         super().__init__(parent)
-        self.__timer = QBasicTimer()
-        self.__timerPeriodMs = period
         self.setSelectionBehavior(QTableView.SelectRows)
         self.setSelectionMode(QTableView.SingleSelection)
         self.setAlternatingRowColors(True)
-
-    def setModel(self, model: AttributeTableModel) -> None:
-        """ Reimplemented to start fetch timer """
-        if self.__timer.isActive():
-            self.__timer.stop()
-            logging.debug('Model about to be set. Fetch timer stopped')
-        super().setModel(model)
-        # Add timer to periodically fetch more rows
-        if self.__timerPeriodMs:
-            self.__timer.start(self.__timerPeriodMs, self)
-            logging.debug('Model set. Fetch timer started')
-        else:
-            logging.debug('Model set. Timer not activated (period=0)')
-        checkable: int = model.checkboxColumn
-        if checkable is not None:
-            self.setItemDelegateForColumn(checkable, BooleanBoxDelegate(self))
-
-    def timerEvent(self, event: QTimerEvent) -> None:
-        if event.timerId() == self.__timer.timerId():
-            more = self.__fetchMoreRows()
-            if not more:
-                self.__timer.stop()
-                logging.debug('Fetch timer stopped')
-        super().timerEvent(event)
-
-    def reset(self) -> None:
-        """ Reimplemented to start fetch timer when model is reset """
-        # Stop to avoid problems while model is reset
-        if self.__timer.isActive():
-            self.__timer.stop()
-            logging.debug('Model about to be reset. Fetch timer stopped')
-        super().reset()
-        if self.__timerPeriodMs:
-            # Restart timer
-            self.__timer.start(self.__timerPeriodMs, self)
-            logging.debug('Model reset. Fetch timer started')
-        else:
-            logging.debug('Model reset. Timer not activated (period=0)')
-
-    def __fetchMoreRows(self, parent: QModelIndex = QModelIndex()) -> bool:
-        """
-        Tries to fetch more data from the model
-
-        :return True if new data were fetched, False otherwise
-        """
-        model = self.model()
-        if model is None or not model.canFetchMore(parent):
-            return False
-        model.fetchMore(parent)
-        return True
 
     def selectionChanged(self, selected: QItemSelection, deselected: QItemSelection) -> None:
         """ Emit signal when current selection changes """
         super().selectionChanged(selected, deselected)
         current: QModelIndex = selected.indexes()[0] if selected.indexes() else QModelIndex()
+        previous: QModelIndex = deselected.indexes()[0] if deselected.indexes() else QModelIndex()
+        crow: int = -1
+        prow: int = -1
+        if isinstance(self.model(), QAbstractProxyModel):
+            current = self.model().mapToSource(current) if current.isValid() else current
+            previous = self.model().mapToSource(previous) if previous.isValid() else previous
         if current.isValid():
-            index: QModelIndex = self.model().mapToSource(current)
-            row: int = index.row()
-            self.selectedAttributeChanged.emit(row)
-        else:
-            self.selectedAttributeChanged.emit(-1)
+            crow = current.row()
+        if previous.isValid():
+            prow = previous.row()
+        self.selectedRowChanged.emit(crow, prow)
 
     def mouseReleaseEvent(self, event: QtGui.QMouseEvent) -> None:
+        selection: List[QModelIndex] = self.selectedIndexes()
+        previousRow: QModelIndex = selection[0].row() if selection and selection[0].isValid() else -1
         super().mouseReleaseEvent(event)
         index = self.indexAt(event.pos())
         if not index.isValid():
-            self.selectedAttributeChanged.emit(-1)
+            self.selectedRowChanged.emit(-1, previousRow)
 
 
 class BooleanBoxDelegate(QStyledItemDelegate):

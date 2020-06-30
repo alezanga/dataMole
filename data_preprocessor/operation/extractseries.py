@@ -3,15 +3,15 @@ from typing import Any, Dict, List, Tuple, Iterable
 import pandas as pd
 from PySide2.QtCore import Slot, QModelIndex, Qt, \
     QSortFilterProxyModel, QConcatenateTablesProxyModel, QStringListModel, QAbstractItemModel, QLocale, \
-    QPersistentModelIndex, Signal, QItemSelection
-from PySide2.QtGui import QMouseEvent
+    QPersistentModelIndex
 from PySide2.QtWidgets import QWidget, QTableView, QHBoxLayout, QVBoxLayout, \
     QLineEdit, QFormLayout, QHeaderView, QPushButton, QStyledItemDelegate, QComboBox
 
 from data_preprocessor import data
 from data_preprocessor.data.types import Types
 from data_preprocessor.gui import AbsOperationEditor
-from data_preprocessor.gui.mainmodels import SearchableAttributeTableWidget, AttributeTableModel
+from data_preprocessor.gui.mainmodels import SearchableAttributeTableWidget, AttributeTableModel, \
+    SignalTableView
 from data_preprocessor.gui.workbench import WorkbenchModel, WorkbenchView
 from data_preprocessor.operation.interface.exceptions import OptionValidationError
 from data_preprocessor.operation.interface.operation import Operation
@@ -156,15 +156,14 @@ class _ExtractSeriesWidget(QWidget):
         self.removeSeriesButton = QPushButton('Remove', self)
         self.addSeriesButton.clicked.connect(self.addSeries)
         self.removeSeriesButton.clicked.connect(self.removeSeries)
-        self.seriesView.setSelectionMode(QTableView.SingleSelection)
-        self.seriesView.setSelectionBehavior(QTableView.SelectRows)
         self.seriesView.setDragDropMode(QTableView.InternalMove)
         self.seriesView.setDragDropOverwriteMode(False)
         self.seriesView.setModel(self.seriesModel)
         self.seriesView.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.seriesView.verticalHeader().hide()
 
         # Connect selection to change
-        self.seriesView.selectedItemChanged.connect(self.onSeriesSelectionChanged)
+        self.seriesView.selectedRowChanged.connect(self.onSeriesSelectionChanged)
         # When a series is added it should be immediately edited
         self.seriesModel.rowsInserted.connect(self.editSeriesName)
 
@@ -191,12 +190,11 @@ class _ExtractSeriesWidget(QWidget):
         self.removeTimeButton = QPushButton('Remove', self)
         self.addTimeButton.clicked.connect(self.addTimeLabel)
         self.removeTimeButton.clicked.connect(self.removeTimeLabel)
-        self.timeAxisView.setSelectionMode(QTableView.SingleSelection)
-        self.timeAxisView.setSelectionBehavior(QTableView.SelectRows)
         self.timeAxisView.setDragDropMode(QTableView.InternalMove)
         self.timeAxisView.setDragDropOverwriteMode(False)
         self.timeAxisView.setModel(self.timeAxisModel)
         self.timeAxisView.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.timeAxisView.verticalHeader().hide()
         self.timeAxisModel.rowsInserted.connect(self.editTimeLabelName)
 
         # Concatenation model
@@ -205,6 +203,7 @@ class _ExtractSeriesWidget(QWidget):
         self.timeSeriesDataView.setSelectionMode(QTableView.NoSelection)
         self.timeSeriesDataView.setItemDelegateForColumn(1, ComboBoxDelegate(self.timeAxisModel,
                                                                              self.timeSeriesDataView))
+        self.timeSeriesDataView.verticalHeader().hide()
         # Update the label column when some label changes in the label table
         self.timeAxisModel.dataChanged.connect(self.timeSeriesDataModel.timeAxisLabelChanged)
 
@@ -430,33 +429,6 @@ class ConcatenatedModel(QConcatenateTablesProxyModel):
             self.dataChanged.emit(self.index(0, 1, QModelIndex()),
                                   self.index(self.rowCount() - 1, 1, QModelIndex()),
                                   [Qt.DisplayRole])
-
-
-class SignalTableView(QTableView):
-    selectedItemChanged = Signal(int, int)
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.verticalHeader().hide()
-
-    def selectionChanged(self, selected: QItemSelection, deselected: QItemSelection) -> None:
-        """ Emit signal when current selection changes """
-        super().selectionChanged(selected, deselected)
-        current: QModelIndex = selected.indexes()[0] if selected.indexes() else QModelIndex()
-        previous: QModelIndex = deselected.indexes()[0] if deselected.indexes() else QModelIndex()
-        crow: int = -1
-        prow: int = -1
-        if current.isValid():
-            crow = current.row()
-        if previous.isValid():
-            prow = previous.row()
-        self.selectedItemChanged.emit(crow, prow)
-
-    def mouseReleaseEvent(self, event: QMouseEvent) -> None:
-        super().mouseReleaseEvent(event)
-        index = self.indexAt(event.pos())
-        if not index.isValid():
-            self.selectedItemChanged.emit(-1, -1)
 
 
 class ComboBoxDelegate(QStyledItemDelegate):
