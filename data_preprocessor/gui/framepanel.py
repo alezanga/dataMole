@@ -55,8 +55,9 @@ class FramePanel(QWidget):
         self.name.setText(name)
         self.columns.setText(str(self.__currentFrameModel.columnCount()))
         self.rows.setText(str(self.__currentFrameModel.rowCount()))
-        index = self.__currentFrameModel.frame.shape.index
-        self.index.setText(index if index else 'default')
+        shape = self.__currentFrameModel.frame.shape
+        self.index.setText(shape.index[0] if len(shape.index) == 1 else
+                           '[{}]'.format(','.join(shape.index)))
 
     @Slot(int)
     def onFrameSelectionChanged(self, selected: int) -> None:

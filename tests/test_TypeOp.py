@@ -1,5 +1,3 @@
-import copy
-
 import pandas as pd
 import pytest
 
@@ -24,9 +22,9 @@ def test_cat_toNumeric():
     op.setOptions(attributes={0: dict()})
 
     # Predict output shape
-    os = copy.deepcopy(f.shape).col_type_dict
+    os = f.shape.columnsDict
     os['col1'] = Types.Numeric
-    assert op.getOutputShape().col_type_dict == os
+    assert op.getOutputShape().columnsDict == os
 
     # Removing options/input_shape causes None to be returned
     op.removeInputShape(0)
@@ -35,14 +33,15 @@ def test_cat_toNumeric():
     op.unsetOptions()
     assert op.getOutputShape() is None
     op.setOptions(attributes={0: dict()})
-    assert op.getOutputShape().col_type_dict == os  # Re-adding everything
+    assert op.getOutputShape().columnsDict == os  # Re-adding everything
 
     g = op.execute(f)
     gd = {'col1': [3.0, 0.0, 5.0, 6.0, 0.0],
           'col2': [3, 4, 5, 6, 0],
           'col3': ['123', '2', '0.43', '4', '90']}
     assert g.to_dict() == gd
-    assert g.shape.col_type_dict == os
+    assert g.shape.columnsDict == os
+    assert g.shape.indexDict == f.shape.indexDict
 
 
 def test_str_toNumeric():
@@ -59,10 +58,10 @@ def test_str_toNumeric():
     op.setOptions(attributes={0: dict(), 2: dict()})
 
     # Predict output shape
-    os = copy.deepcopy(f.shape).col_type_dict
+    os = f.shape.columnsDict
     os['col1'] = Types.Numeric
     os['col3'] = Types.Numeric
-    assert op.getOutputShape().col_type_dict == os
+    assert op.getOutputShape().columnsDict == os
 
     # Removing options/input_shape causes None to be returned
     op.removeInputShape(0)
@@ -71,14 +70,15 @@ def test_str_toNumeric():
     op.unsetOptions()
     assert op.getOutputShape() is None
     op.setOptions(attributes={0: dict(), 2: dict()})
-    assert op.getOutputShape().col_type_dict == os  # Re-adding everything
+    assert op.getOutputShape().columnsDict == os  # Re-adding everything
 
     g = op.execute(f)
     gd = {'col1': [3, 0, 5, 6, 0],
           'col2': [3, 4, 5, 6, 0],
           'col3': [123.0, 2.0, 0.43, 4.0, 90.0]}
     assert g.to_dict() == gd
-    assert g.shape.col_type_dict == os
+    assert g.shape.columnsDict == os
+    assert g.shape.indexDict == f.shape.indexDict
 
 
 def test_unsetOptions_toNumeric():
@@ -160,10 +160,10 @@ def test_str_toCategory():
     op.setOptions(attributes={1: {'cat': '3.0 4.0 0.0', 'ordered': True}, 2: dict()})
 
     # Predict output shape
-    os = copy.deepcopy(f.shape).col_type_dict
+    os = f.shape.columnsDict
     os['col3'] = Types.Nominal
     os['col2'] = Types.Ordinal
-    assert op.getOutputShape().col_type_dict == os
+    assert op.getOutputShape().columnsDict == os
 
     # Removing options/input_shape causes None to be returned
     op.removeInputShape(0)
@@ -172,14 +172,14 @@ def test_str_toCategory():
     op.unsetOptions()
     assert op.getOutputShape() is None
     op.setOptions(attributes={1: {'cat': '3.0 4.0 0.0', 'ordered': True}, 2: dict()})
-    assert op.getOutputShape().col_type_dict == os  # Re-adding everything
+    assert op.getOutputShape().columnsDict == os  # Re-adding everything
 
     g = op.execute(f)
     gd = {'col1': [3, 0, 5, 6, 0],
           'col2': ['3.0', '4.0', None, None, '0.0'],
           'col3': ['123', '2', '0.43', 'nan', '90']}
     assert nan_to_None(g.to_dict()) == gd
-    assert g.shape.col_type_dict == os
+    assert g.shape.columnsDict == os
 
 
 def test_num_toCategory():
@@ -195,10 +195,10 @@ def test_num_toCategory():
     op.setOptions(attributes={1: dict(), 2: dict()})
 
     # Predict output shape
-    os = copy.deepcopy(f.shape).col_type_dict
+    os = f.shape.columnsDict
     os['col2'] = Types.Nominal
     os['col4'] = Types.Nominal
-    assert op.getOutputShape().col_type_dict == os
+    assert op.getOutputShape().columnsDict == os
 
     # Removing options/input_shape causes None to be returned
     op.removeInputShape(0)
@@ -207,7 +207,7 @@ def test_num_toCategory():
     op.unsetOptions()
     assert op.getOutputShape() is None
     op.setOptions(attributes={1: dict(), 2: dict()})
-    assert op.getOutputShape().col_type_dict == os  # Re-adding everything
+    assert op.getOutputShape().columnsDict == os  # Re-adding everything
 
     g = op.execute(f)
     gd = {'col1': [3, 0, 5, 6, 0],
@@ -215,7 +215,7 @@ def test_num_toCategory():
           'col3': ['123', '2', '0.43', '4', '90'],
           'col4': ["1.0", "2.0", "3.0", "4.0", "5.0"]}
     assert g.to_dict() == gd
-    assert g.shape.col_type_dict == os
+    assert g.shape.columnsDict == os
 
 
 def test_cat_toCategory():
@@ -231,8 +231,8 @@ def test_cat_toCategory():
     op.setOptions(attributes={0: {'cat': '5 0'}})
 
     # Predict output shape
-    os = copy.deepcopy(f.shape).col_type_dict
-    assert op.getOutputShape().col_type_dict == os
+    os = f.shape.columnsDict
+    assert op.getOutputShape().columnsDict == os
 
     # Removing options/input_shape causes None to be returned
     op.removeInputShape(0)
@@ -241,7 +241,7 @@ def test_cat_toCategory():
     op.unsetOptions()
     assert op.getOutputShape() is None
     op.setOptions(attributes={0: {'cat': '5 0'}})
-    assert op.getOutputShape().col_type_dict == os  # Re-adding everything
+    assert op.getOutputShape().columnsDict == os  # Re-adding everything
 
     g = op.execute(f)
     gd = {'col1': ["5", "0", "5", None, "0"],
@@ -249,7 +249,7 @@ def test_cat_toCategory():
           'col3': ['123', '2', '0.43', '4', '90'],
           'col4': [1.0, 2.0, 3.0, 4.0, 5.0]}
     assert nan_to_None(g.to_dict()) == gd
-    assert g.shape.col_type_dict == os
+    assert g.shape.columnsDict == os
 
 
 def test_ordinal_to_ordinal_cat():
@@ -263,14 +263,14 @@ def test_ordinal_to_ordinal_cat():
     op.setOptions(attributes={0: {'cat': '5 0 1', 'ordered': True}})
 
     # Predict output shape
-    os = copy.deepcopy(f.shape).col_type_dict
-    assert op.getOutputShape().col_type_dict == os
+    os = f.shape.columnsDict
+    assert op.getOutputShape().columnsDict == os
 
     g = op.execute(f)
     gd = {'col1': ["5", "0", "5", None, "0"],
           'col2': [3.0, 4.0, 5.1, 6.0, 0.0]}
     assert nan_to_None(g.to_dict()) == gd
-    assert g.shape.col_type_dict == os
+    assert g.shape.columnsDict == os
     assert list(g.getRawFrame()['col1'].dtype.categories) == ['5', '0', '1']
     assert g.getRawFrame()['col1'].dtype.ordered
 
@@ -286,15 +286,15 @@ def test_ordinal_to_nominal_cat():
     op.setOptions(attributes={0: {'cat': '5 0 1 2', 'ordered': False}})
 
     # Predict output shape
-    os = copy.deepcopy(f.shape).col_type_dict
+    os = f.shape.columnsDict
     os['col1'] = Types.Nominal
-    assert op.getOutputShape().col_type_dict == os
+    assert op.getOutputShape().columnsDict == os
 
     g = op.execute(f)
     gd = {'col1': ["5", "0", "5", None, "0"],
           'col2': [3.0, 4.0, 5.1, 6.0, 0.0]}
     assert nan_to_None(g.to_dict()) == gd
-    assert g.shape.col_type_dict == os
+    assert g.shape.columnsDict == os
     assert list(g.getRawFrame()['col1'].dtype.categories) == ['5', '0', '1', '2']
     assert g.getRawFrame()['col1'].dtype.ordered is False
 
@@ -314,15 +314,15 @@ def test_nominal_to_nominal_cat():
     op.setOptions(attributes={0: {'cat': 'U 0 1 2', 'ordered': False}})
 
     # Predict output shape
-    os = copy.deepcopy(f.shape).col_type_dict
+    os = f.shape.columnsDict
     os['col1'] = Types.Nominal
-    assert op.getOutputShape().col_type_dict == os
+    assert op.getOutputShape().columnsDict == os
 
     g = op.execute(f)
     gd = {'col1': [None, "0", None, 'U', None],
           'col2': [3.0, 4.0, 5.1, 6.0, 0.0]}
     assert nan_to_None(g.to_dict()) == gd
-    assert g.shape.col_type_dict == os
+    assert g.shape.columnsDict == os
     assert list(g.getRawFrame()['col1'].dtype.categories) == ['U', '0', '1', '2']
     assert g.getRawFrame()['col1'].dtype.ordered is False
 
@@ -338,15 +338,15 @@ def test_nominal_to_ordinal_cat():
     op.setOptions(attributes={0: {'cat': 'U 0 1 5', 'ordered': True}})
 
     # Predict output shape
-    os = copy.deepcopy(f.shape).col_type_dict
+    os = f.shape.columnsDict
     os['col1'] = Types.Ordinal
-    assert op.getOutputShape().col_type_dict == os
+    assert op.getOutputShape().columnsDict == os
 
     g = op.execute(f)
     gd = {'col1': ['5', '0', '5', 'U', None],
           'col2': [3.0, 4.0, 5.1, 6.0, 0.0]}
     assert nan_to_None(g.to_dict()) == gd
-    assert g.shape.col_type_dict == os
+    assert g.shape.columnsDict == os
     assert list(g.getRawFrame()['col1'].dtype.categories) == ['U', '0', '1', '5']
     assert g.getRawFrame()['col1'].dtype.ordered is True
 
@@ -364,12 +364,12 @@ def test_str_to_Timestamp_raise():
     op.addInputShape(f.shape, 0)
     assert op.getOutputShape() is None
     op.setOptions(attributes={3: {'format': '%d%m%Y'}}, errors='raise')
-    sd = f.shape.copy(True)
-    sd.col_types[3] = Types.Datetime
+    sd = f.shape.clone()
+    sd.colTypes[3] = Types.Datetime
     assert op.getOutputShape() == sd
 
     g = op.execute(f)
-    dateCol = g.columnsAt('cold').getRawFrame()
+    dateCol = g.getRawFrame()['cold']
     assert op.getOutputShape() == g.shape == sd
 
 
@@ -388,8 +388,8 @@ def test_str_to_Timestamp_coerce():
     assert op.getOutputShape() is None
     op.setOptions(attributes={0: dict(), 2: {'format': '%Y %B'}, 3: {'format': '%d%m%Y'}},
                   errors='raise')
-    assert op.getOutputShape().col_types == [Types.Datetime, Types.Numeric, Types.Datetime,
-                                             Types.Datetime]
+    assert op.getOutputShape().colTypes == [Types.Datetime, Types.Numeric, Types.Datetime,
+                                            Types.Datetime]
 
     # Raise exception since pandas cannot convert all values to datetime
     with pytest.raises(Exception):
@@ -425,5 +425,5 @@ def test_str_to_Timestamp_validation():
 
     op.setOptions(attributes={0: {'format': '%d'}}, errors='coerce')
     assert op.hasOptions()
-    assert op.getOutputShape().col_types == [Types.Datetime, Types.Numeric, Types.String,
-                                             Types.String]
+    assert op.getOutputShape().colTypes == [Types.Datetime, Types.Numeric, Types.String,
+                                            Types.String]

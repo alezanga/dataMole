@@ -5,7 +5,7 @@ import pandas as pd
 
 from ..interface.operation import Operation
 from ... import data
-from ...data.types import Types
+from ...data.types import Types, Type
 
 
 class AttributeStatistics(Operation):
@@ -56,7 +56,7 @@ class Hist(Operation):
         else:
             return col.value_counts().to_dict()
 
-    def setOptions(self, attribute: int, attType: Types, bins: int = None) -> None:
+    def setOptions(self, attribute: int, attType: Type, bins: int = None) -> None:
         self.__attribute = attribute
         self.__type = attType
         self.__nBins = bins if bins else None

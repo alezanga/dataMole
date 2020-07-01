@@ -5,7 +5,7 @@ from PySide2.QtCore import Qt, Slot
 from PySide2.QtWidgets import QWidget, QCheckBox, QVBoxLayout, QGroupBox, QGridLayout, QLabel
 
 from data_preprocessor import data
-from data_preprocessor.data.types import Types
+from data_preprocessor.data.types import Types, Type
 from data_preprocessor.gui.editor.interface import AbsOperationEditor
 from .interface.exceptions import OptionValidationError
 from .interface.graph import GraphOperation
@@ -43,8 +43,8 @@ class JoinOp(GraphOperation):
         else:
             # onleft and onright must be set
             suffixes = (self.__lsuffix, self.__rsuffix)
-            l_col = dfl.shape.col_names[self.__left_on]
-            r_col = dfr.shape.col_names[self.__right_on]
+            l_col = dfl.shape.colNames[self.__left_on]
+            r_col = dfr.shape.colNames[self.__right_on]
             return data.Frame(dfl.getRawFrame().merge(dfr.getRawFrame(), how=self.__type.value,
                                                       left_on=l_col,
                                                       right_on=r_col,
@@ -57,7 +57,7 @@ class JoinOp(GraphOperation):
     def shortDescription(self) -> str:
         return 'Allows to join two tables. Can handle four type of join: left, right, outer and inner'
 
-    def acceptedTypes(self) -> List[Types]:
+    def acceptedTypes(self) -> List[Type]:
         return [Types.Numeric, Types.Ordinal, Types.Nominal, Types.String]
 
     def setOptions(self, ls: str, rs: str, onindex: bool, onleft: int, onright: int,
@@ -73,8 +73,8 @@ class JoinOp(GraphOperation):
                 (not self.shapes[0].index or not self.shapes[1].index):
             errors.append(('index', 'Error: join on indices require both indices to be set'))
         if not onindex and all(self.shapes):
-            type_l = self.shapes[0].col_types[onleft]
-            type_r = self.shapes[1].col_types[onright]
+            type_l = self.shapes[0].colTypes[onleft]
+            type_r = self.shapes[1].colTypes[onright]
             if type_l != type_r:
                 errors.append(('type_mismatch',
                                'Error: column types must match. Instead got \'{}\' and \'{}\''
@@ -213,7 +213,7 @@ class _JoinEditor(AbsOperationEditor):
 
 
 class _JoinPanel(QGroupBox):
-    def __init__(self, title: str, shape: data.Shape, types: List[Types], parent=None):
+    def __init__(self, title: str, shape: data.Shape, types: List[Type], parent=None):
         super().__init__(title, parent)
         self.box = AttributeComboBox(shape, types, 'Select the attribute', self)
         self.suffix = TextOptionWidget('Suffix', self)

@@ -4,7 +4,7 @@ import numpy as np
 from PySide2.QtWidgets import QHeaderView
 
 from data_preprocessor import data
-from data_preprocessor.data.types import Types
+from data_preprocessor.data.types import Types, Type
 from data_preprocessor.gui import AbsOperationEditor
 from data_preprocessor.gui.editor.OptionsEditorFactory import OptionsEditorFactory
 from data_preprocessor.gui.mainmodels import FrameModel
@@ -89,7 +89,7 @@ class MergeValuesOp(GraphOperation):
     def shortDescription(self) -> str:
         return 'Substitute all specified values in a attribute and substitute them with a single value'
 
-    def acceptedTypes(self) -> List[Types]:
+    def acceptedTypes(self) -> List[Type]:
         return [Types.String, Types.Ordinal, Types.Nominal, Types.Numeric]
 
     def setOptions(self, table: Dict[int, Dict[str, str]], inverted: bool) -> None:
@@ -97,7 +97,7 @@ class MergeValuesOp(GraphOperation):
             raise OptionValidationError([('nooptions', 'Error: no attributes are selected')])
         options: Dict[int, Tuple[List[List], List]] = dict()
         for c, opt in table.items():
-            type_c = self.shapes[0].col_types[c]
+            type_c = self.shapes[0].colTypes[c]
             values: str = opt.get('values', None)
             replace: str = opt.get('replace', None)
             if not values or not replace:

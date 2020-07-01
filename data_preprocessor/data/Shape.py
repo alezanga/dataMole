@@ -1,7 +1,7 @@
 import copy
 from typing import List, Dict
 
-from data_preprocessor.data.types import Types
+from data_preprocessor.data.types import Type, IndexType
 
 
 class Shape:
@@ -10,18 +10,15 @@ class Shape:
     """
 
     def __init__(self):
-        self.col_names: List[str] = list()
-        self.col_types: List[Types] = list()
-        self.n_columns: int = 0
-        self.index: str = None
-
-    # Note: in Pandas the index col is not a column of the frame
+        self.colNames: List[str] = list()
+        self.colTypes: List[Type] = list()
+        self.index: List[str] = list()
+        self.indexTypes: List[IndexType] = list()
 
     def __eq__(self, other):
         if isinstance(other, self.__class__):
-            return self.__dict__ == other.__dict__
-        else:
-            return False
+            return self.columnsDict == other.columnsDict and self.indexDict == other.indexDict
+        return False
 
     def __ne__(self, other):
         return not self.__eq__(other)
@@ -29,30 +26,25 @@ class Shape:
     def __str__(self):
         return str(self.__dict__)
 
-    def copy(self, deep: bool = True) -> 'Shape':
-        if deep:
-            return copy.deepcopy(self)
-        else:
-            return copy.copy(self)
+    def __deepcopy__(self, memodict=None) -> 'Shape':
+        # Disable deepcopy since it does not make sense to deepcopy str and Type objects
+        return self.clone()
+
+    def clone(self) -> 'Shape':
+        return copy.copy(self)
 
     @property
-    def col_type_dict(self) -> Dict[str, Types]:
-        return dict(zip(self.col_names, self.col_types))
+    def columnsDict(self) -> Dict[str, Type]:
+        return dict(zip(self.colNames, self.colTypes))
 
-    def has_index(self) -> bool:
-        """
-        Return whether index is set
-        """
-        if self.index is not None:
-            return True
-        else:
-            return False
+    @property
+    def indexDict(self) -> Dict[str, Type]:
+        return dict(zip(self.index, self.indexTypes))
 
-    def cols_known(self) -> bool:
-        """
-        Return whether the name and types of every columns is known
-        """
-        if self.n_columns is not None and self.n_columns >= 0 and self.col_names and self.col_types:
-            return True
-        else:
-            return False
+    @property
+    def nColumns(self) -> int:
+        return len(self.colNames)
+
+    @property
+    def nIndexLevels(self) -> int:
+        return len(self.index)

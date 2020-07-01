@@ -12,10 +12,10 @@ def test_ohe():
     op.setOptions(attributes=[2], includeNan=True)
 
     op.addInputShape(f.shape, 0)
-    s = f.shape.copy()
-    del s.col_names[2]
-    del s.col_types[2]
-    s = s.col_type_dict
+    s = f.shape.clone()
+    del s.colNames[2]
+    del s.colTypes[2]
+    s = s.columnsDict
     s['col3_2'] = Types.Nominal
     s['col3_nan'] = Types.Nominal
     s['col3_q'] = Types.Nominal
@@ -23,4 +23,4 @@ def test_ohe():
 
     g = op.execute(f)
 
-    assert g != f and g.shape.col_type_dict == s
+    assert g != f and g.shape.columnsDict == s

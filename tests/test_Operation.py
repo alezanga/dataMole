@@ -28,7 +28,7 @@ def test_add_removeInputShape():
     mop = MyOp()
 
     gs = f.shape
-    gs.col_names[0] = 'hola'
+    gs.colNames[0] = 'hola'
 
     mop.addInputShape(f.shape, pos=1)
     mop.addInputShape(gs, pos=0)

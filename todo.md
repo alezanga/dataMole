@@ -50,15 +50,15 @@
 - [x] Add Signal object to communicate operation status to the View
 - [x] Add methods to launch specific signals in Operation
 - USABILITY
-    - [ ] Notification system
+    - [ ] Notification system (time)
         - [ ] Basic notification for every event
         - [ ] Log of events
-    - [ ] Write to CSV / ARFF
+    - [ ] Write to CSV / ARFF (time)
     - [ ] Ability to stop ongoing operations
     - [ ] Show some attribute info to help the user compile options in single operations (could
      be done with a QCompleter on the option cell/widget)
     - [ ] Charts
-        - [ ] Charts should not show all points (depending on zoom)
+        - [ ] Charts should not show all points (depending on zoom) (time)
         - [ ] Chart axis should show label as tooltip
         - [x] Management of axis space with rotation
         - [x] Scatterplot could be smarter (less groupby)

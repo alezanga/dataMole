@@ -2,7 +2,7 @@ from abc import abstractmethod
 from typing import Union, List, Optional, Iterable, final
 
 from data_preprocessor import data
-from data_preprocessor.data.types import Types, ALL_TYPES
+from data_preprocessor.data.types import ALL_TYPES, Type
 from data_preprocessor.gui.editor.interface import AbsOperationEditor
 from data_preprocessor.gui.workbench import WorkbenchModel
 from .operation import Operation
@@ -262,7 +262,7 @@ class InputGraphOperation(GraphOperation):
         """
         pass
 
-    def acceptedTypes(self) -> List[Types]:
+    def acceptedTypes(self) -> List[Type]:
         """ Accepts all types """
         # Input operations are not concerned with types
         return ALL_TYPES
@@ -316,7 +316,7 @@ class OutputGraphOperation(GraphOperation):
     variables
     """
 
-    def acceptedTypes(self) -> List[Types]:
+    def acceptedTypes(self) -> List[Type]:
         """ Accepts all types """
         return ALL_TYPES
 

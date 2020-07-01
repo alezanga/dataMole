@@ -7,7 +7,7 @@ from PySide2.QtWidgets import QWidget, QPushButton, QHBoxLayout, QVBoxLayout, QL
     QSizePolicy
 
 from data_preprocessor import data
-from data_preprocessor.data.types import Types
+from data_preprocessor.data.types import Type
 
 
 class AbsOperationEditor(QWidget):
@@ -33,7 +33,7 @@ class AbsOperationEditor(QWidget):
 
         # Standard options
         self.errorHandlers: Dict[str, Callable] = dict()
-        self.acceptedTypes: List[Types] = list()
+        self.acceptedTypes: List[Type] = list()
         self.inputShapes: List[Optional[data.Shape]] = list()
         self.workbench: 'WorkbenchModel' = None
 

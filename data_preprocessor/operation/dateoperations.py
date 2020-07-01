@@ -6,7 +6,7 @@ from PySide2.QtWidgets import QWidget, QDateEdit, QTimeEdit, QCheckBox, QButtonG
     QSpacerItem
 
 from data_preprocessor import data
-from data_preprocessor.data.types import Types
+from data_preprocessor.data.types import Types, Type
 from data_preprocessor.gui import AbsOperationEditor
 from data_preprocessor.operation.interface.exceptions import OptionValidationError
 from data_preprocessor.operation.interface.graph import GraphOperation
@@ -48,7 +48,7 @@ class DateDiscretizer(GraphOperation):
     def shortDescription(self) -> str:
         return 'Discretize date and times based on ranges'
 
-    def acceptedTypes(self) -> List[Types]:
+    def acceptedTypes(self) -> List[Type]:
         return [Types.Datetime]
 
     def hasOptions(self) -> bool:
@@ -91,8 +91,8 @@ class DateDiscretizer(GraphOperation):
     def getOutputShape(self) -> Optional[data.Shape]:
         if not self.hasOptions() or not self.shapes[0]:
             return None
-        s = self.shapes[0].copy(True)
-        s.col_types[self.__attribute] = Types.Ordinal
+        s = self.shapes[0].clone()
+        s.colTypes[self.__attribute] = Types.Ordinal
         return s
 
     def getEditor(self) -> AbsOperationEditor:

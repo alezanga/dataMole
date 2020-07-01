@@ -43,7 +43,7 @@ def test_merge_numeric():
     op.setOptions(table={1: {'values': '1.0 3.0 4.0;  6  0', 'replace': '-1;-2'},
                          0: {'values': '1 4', 'replace': '7'}},
                   inverted=False)
-    s = f.shape.copy()
+    s = f.shape.clone()
     assert op.getOutputShape() == s
 
     g = op.execute(f)
@@ -66,7 +66,7 @@ def test_merge_numeric_inverted():
     op.setOptions(table={1: {'values': '1.0 3.0 4.0;  6  0', 'replace': '-1;-2'},
                          0: {'values': '1 4', 'replace': '7'}},
                   inverted=True)
-    s = f.shape.copy()
+    s = f.shape.clone()
     assert op.getOutputShape() == s
 
     g = op.execute(f)
@@ -93,9 +93,9 @@ def test_merge_category():
         }},
         inverted=False)
 
-    s = f.shape.copy()
+    s = f.shape.clone()
     assert op.getOutputShape() == s
-    assert s.col_types[1] == Types.Nominal
+    assert s.colTypes[1] == Types.Nominal
 
     g = op.execute(f)
 
@@ -122,9 +122,9 @@ def test_merge_category_inverted():
         }},
         inverted=True)
 
-    s = f.shape.copy()
+    s = f.shape.clone()
     assert op.getOutputShape() == s
-    assert s.col_types[1] == Types.Nominal
+    assert s.colTypes[1] == Types.Nominal
 
     g = op.execute(f)
 
@@ -139,18 +139,15 @@ def test_merge_category_inverted():
 def test_merge_string():
     d = {'cowq': [1, 2, None, 4.0, None], 'col3': ['q', '2', 'c', '4', 'q']}
     f = data.Frame(d)
-    f = f.setIndex('col3')
 
     op = MergeValuesOp()
     op.addInputShape(f.shape, 0)
     op.setOptions(table={
-        1: {
-            'values': 'q 2; nAn',
+        1: {'values': 'q 2; nAn',
             'replace': '-1;-2'}},
         inverted=False)
 
-    s = f.shape.copy()
-    assert f.shape.col_types[1] == Types.String
+    s = f.shape.clone()
     assert op.getOutputShape() == s
 
     g = op.execute(f)
@@ -163,7 +160,6 @@ def test_merge_nan():
     d = {'cowq': [1, 2, 3, 4.0, 10], 'col2': pd.Categorical(["3", "4", "5", "6", "0"]),
          'col3': ['q', '2', 'c', '4', 'x']}
     f = data.Frame(d)
-    f = f.setIndex('col3')
 
     op = MergeValuesOp()
     op.addInputShape(f.shape, 0)
@@ -176,8 +172,8 @@ def test_merge_nan():
             'replace': 'naN'}},
         inverted=False)
 
-    s = f.shape.copy()
-    assert f.shape.col_types[1] == Types.Nominal
+    s = f.shape.clone()
+    assert f.shape.colTypes[1] == Types.Nominal
     assert op.getOutputShape() == s
 
     g = op.execute(f)
@@ -191,7 +187,6 @@ def test_merge_from_nan():
     d = {'cowq': [1, 2, None, 4.0, None], 'col2': pd.Categorical(["3", "4", "5", "6", "0"]),
          'col3': ['q', '2', 'c', '4', 'x']}
     f = data.Frame(d)
-    f = f.setIndex('col3')
 
     op = MergeValuesOp()
     op.addInputShape(f.shape, 0)
@@ -201,8 +196,8 @@ def test_merge_from_nan():
             'replace': '-1;-2'}},
         inverted=False)
 
-    s = f.shape.copy()
-    assert f.shape.col_types[1] == Types.Nominal
+    s = f.shape.clone()
+    assert f.shape.colTypes[1] == Types.Nominal
     assert op.getOutputShape() == s
 
     g = op.execute(f)
@@ -218,7 +213,6 @@ def test_merge_index_val():
          'date': pd.Series(['05-09-1988', '22-12-1994', '21-11-1995', '22-06-1994', '12-12-2012'],
                            dtype='datetime64[ns]')}
     f = data.Frame(d)
-    f = f.setIndex('col2')
 
     op = MergeValuesOp()
     op.addInputShape(f.shape, 0)
@@ -226,11 +220,12 @@ def test_merge_index_val():
         'values': '3 4;  6  0', 'replace': 'h; nan'}
     }, inverted=False)
 
-    s = f.shape.copy()
+    s = f.shape.clone()
     os = op.getOutputShape()
-    assert f.shape.col_types[1] == Types.Nominal == os.col_types[1]
+    assert f.shape.colTypes[1] == Types.Nominal == os.colTypes[1]
     assert os == s
 
     g = op.execute(f)
     assert g.shape == f.shape
-    assert nan_to_None(g.columnsAt('col2').to_dict()) == {'col2': ["h", "h", "5", None, None]}
+    assert nan_to_None(data.Frame(g.getRawFrame()['col2']).to_dict()) == \
+           {'col2': ["h", "h", "5", None, None]}

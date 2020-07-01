@@ -5,7 +5,7 @@ import pandas as pd
 from PySide2.QtWidgets import QWidget, QCheckBox, QVBoxLayout
 
 from data_preprocessor import data
-from data_preprocessor.data.types import Types
+from data_preprocessor.data.types import Types, Type
 from data_preprocessor.gui import AbsOperationEditor
 from data_preprocessor.gui.mainmodels import SearchableAttributeTableWidget, FrameModel
 from data_preprocessor.operation.interface.graph import GraphOperation
@@ -19,7 +19,7 @@ class OneHotEncodeOp(GraphOperation):
 
     def execute(self, df: data.Frame) -> data.Frame:
         pdf = df.getRawFrame().copy(deep=True)
-        prefixes = itemgetter(*self.__attributes)(self.shapes[0].col_names)
+        prefixes = itemgetter(*self.__attributes)(self.shapes[0].colNames)
         npdf = pd.get_dummies(pdf.iloc[:, self.__attributes], prefix=prefixes,
                               dummy_na=self.__includeNan, dtype=int)
         npdf = npdf.astype('category', copy=False)
@@ -49,7 +49,7 @@ class OneHotEncodeOp(GraphOperation):
     def needsOptions(self) -> bool:
         return True
 
-    def acceptedTypes(self) -> List[Types]:
+    def acceptedTypes(self) -> List[Type]:
         return [Types.Ordinal, Types.Nominal, Types.String]
 
     def getOptions(self) -> Iterable:

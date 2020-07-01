@@ -29,7 +29,7 @@ class AttributePanel(QWidget):
         layout.addWidget(self._statPanel, 1)
         layout.addWidget(self._histPanel, 3)
         self.setLayout(layout)
-        self._attributeTable.tableView.selectedAttributeChanged.connect(self.onAttributeSelectionChanged)
+        self._attributeTable.tableView.selectedRowChanged.connect(self.onAttributeSelectionChanged)
         self._histPanel.slider.valueChanged.connect(self.onHistSliderChange)
         self._histPanel.slider.setEnabled(False)
         self._histPanel.label.setEnabled(False)

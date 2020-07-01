@@ -20,8 +20,8 @@ def test_execute():
     g = data.Frame(e)
     f = f.setIndex('id')
     g = g.setIndex('id')
-    fShape = f.shape.copy(True)
-    gShape = g.shape.copy(True)
+    fShape = f.shape.clone()
+    gShape = g.shape.clone()
     w = WorkbenchModelMock()
     w.setDataframeByName('frameF', f)
     w.setDataframeByName('frameG', g)
@@ -34,7 +34,7 @@ def test_execute():
     timeLabels = ['wave1', 'wave2', 'wave3', 'wave4']
 
     options = {
-        'diab': [('frameG', 1, 3), ('frameF', 2, 1), ('frameF', 1, 0), ('frameG', 2, 2)]
+        'diab': [('frameG', 0, 3), ('frameF', 1, 1), ('frameF', 0, 0), ('frameG', 1, 2)]
     }
 
     op.setOptions(series=options, time=timeLabels, outName='frameR')
@@ -67,4 +67,4 @@ def test_execute():
             {'diab': 3.4, 'time': 'wave1'}, {'diab': 4.0, 'time': 'wave2'},
             {'diab': None, 'time': 'wave3'}, {'diab': None, 'time': 'wave4'}]
     }
-    assert r.shape.col_type_dict == {'diab': Types.Numeric, 'time': Types.Ordinal}
+    assert r.shape.columnsDict == {'diab': Types.Numeric, 'time': Types.Ordinal}

@@ -2,7 +2,7 @@ from abc import abstractmethod, ABC
 from typing import Any, Iterable, List
 
 from data_preprocessor import data
-from data_preprocessor.data.types import Types, ALL_TYPES
+from data_preprocessor.data.types import ALL_TYPES, Type
 
 
 class Operation(ABC):
@@ -96,7 +96,7 @@ class Operation(ABC):
         """
         pass
 
-    def acceptedTypes(self) -> List[Types]:
+    def acceptedTypes(self) -> List[Type]:
         """
         Return the column types that this operation accepts. If not relevant may avoid
         reimplementation.

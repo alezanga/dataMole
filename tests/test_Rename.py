@@ -1,5 +1,3 @@
-import copy
-
 from data_preprocessor.data import Frame
 from data_preprocessor.operation.rename import RenameOp
 
@@ -12,8 +10,8 @@ def test_rename():
     op.addInputShape(f.shape, pos=0)
     op.setOptions(names={0: 'col4', 2: 'col1'})
 
-    os = copy.deepcopy(f.shape)
-    os.col_names = ['col4', 'col2', 'col1']
+    os = f.shape.clone()
+    os.colNames = ['col4', 'col2', 'col1']
 
     assert op.getOutputShape() == os
 

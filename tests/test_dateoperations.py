@@ -21,8 +21,8 @@ def test_discretize_by_date():
     assert op.getOutputShape() is None
     op.addInputShape(f.shape, 0)
     assert op.getOutputShape() is None
-    shapeDict = f.shape.col_type_dict
-    assert shapeDict['cold'] == Types.String
+    shapeDict = f.shape.columnsDict
+    assert shapeDict['cold'] is Types.String
 
     intervals = [(pd.Interval(pd.Timestamp('01-01-1950'), pd.Timestamp('01-01-1970')), '50'),
                  (pd.Interval(pd.Timestamp('01-01-1970'), pd.Timestamp('01-01-1990')), '70'),
@@ -31,10 +31,10 @@ def test_discretize_by_date():
 
     op.setOptions(attribute=2, intervals=intervals, byDate=True, byTime=False)
     shapeDict['cold'] = Types.Ordinal
-    assert op.getOutputShape().col_type_dict == shapeDict
+    assert op.getOutputShape().columnsDict == shapeDict
 
     g = op.execute(f)
-    assert g.shape.col_type_dict == shapeDict
+    assert g.shape.columnsDict == shapeDict
 
     output = nan_to_None(g.to_dict())
     assert output == {'col2': [3, 4, 5.1, 6, 0],
@@ -59,7 +59,7 @@ def test_discretize_by_date_with_None():
     assert op.getOutputShape() is None
     op.addInputShape(f.shape, 0)
     assert op.getOutputShape() is None
-    shapeDict = f.shape.col_type_dict
+    shapeDict = f.shape.columnsDict
     assert shapeDict['cold'] == Types.Datetime
 
     intervals = [(pd.Interval(pd.Timestamp('01-01-1950'), pd.Timestamp('01-01-1970')), '50'),
@@ -69,10 +69,11 @@ def test_discretize_by_date_with_None():
 
     op.setOptions(attribute=2, intervals=intervals, byDate=True, byTime=False)
     shapeDict['cold'] = Types.Ordinal
-    assert op.getOutputShape().col_type_dict == shapeDict
+    assert op.getOutputShape().columnsDict == shapeDict
 
     g = op.execute(f)
-    assert g.shape.col_type_dict == shapeDict
+    assert g.shape.columnsDict == shapeDict
+    assert g.shape.indexDict == f.shape.indexDict
 
     output = nan_to_None(g.to_dict())
     assert output == {'col2': [3, 4, 5.1, 6, 0],
@@ -97,7 +98,7 @@ def test_discretize_by_date_and_time():
     assert op.getOutputShape() is None
     op.addInputShape(f.shape, 0)
     assert op.getOutputShape() is None
-    shapeDict = f.shape.col_type_dict
+    shapeDict = f.shape.columnsDict
     assert shapeDict['cold'] == Types.Datetime
 
     intervals = [
@@ -107,10 +108,11 @@ def test_discretize_by_date_and_time():
 
     op.setOptions(attribute=2, intervals=intervals, byDate=True, byTime=True)
     shapeDict['cold'] = Types.Ordinal
-    assert op.getOutputShape().col_type_dict == shapeDict
+    assert op.getOutputShape().columnsDict == shapeDict
 
     g = op.execute(f)
-    assert g.shape.col_type_dict == shapeDict
+    assert g.shape.columnsDict == shapeDict
+    assert g.shape.indexDict == f.shape.indexDict
 
     output = nan_to_None(g.to_dict())
     assert output == {'col2': [3, 4, 5.1, 6, 0],
@@ -135,7 +137,7 @@ def test_discretize_set_options_exceptions():
     assert op.getOutputShape() is None
     op.addInputShape(f.shape, 0)
     assert op.getOutputShape() is None
-    shapeDict = f.shape.col_type_dict
+    shapeDict = f.shape.columnsDict
     assert shapeDict['cold'] == Types.Datetime
 
     intervals = [

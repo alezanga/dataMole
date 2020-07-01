@@ -1,5 +1,7 @@
 from typing import Iterable, Dict, Any, List, Optional
 
+import pandas as pd
+
 from data_preprocessor import data
 from data_preprocessor.gui import AbsOperationEditor, OptionsEditorFactory
 from data_preprocessor.gui.mainmodels import FrameModel
@@ -8,13 +10,23 @@ from data_preprocessor.operation.interface.graph import GraphOperation
 from tests.utilities import numpy_equal
 
 
-def find_duplicates(df):
-    groups = df.columns.to_series().groupby(df.dtypes).groups
+def find_duplicates(df: pd.DataFrame) -> List[str]:
+    # Convert categories to str
+    catTypes: List[str] = df.select_dtypes(include='category').columns.to_list()
+    notCat: List[str] = df.select_dtypes(exclude='category').columns.to_list()
+
+    if catTypes:
+        copy_df = df[catTypes].astype(object)
+        copy_df = pd.concat([copy_df, df[notCat]], axis=1)
+    else:
+        copy_df = df
+
+    groups = copy_df.columns.to_series().groupby(copy_df.dtypes).groups
     duplicates = list()
 
     for t, v in groups.items():
-        cs = df[v].columns
-        vs = df[v]
+        cs = copy_df[v].columns
+        vs = copy_df[v]
         lcs = len(cs)
         for i in range(lcs):
             ia = vs.iloc[:, i].values
@@ -33,12 +45,18 @@ class RemoveBijections(GraphOperation):
 
     def execute(self, df: data.Frame) -> data.Frame:
         df = df.getRawFrame()
+        colOrder: List[str] = df.columns.to_list()
 
-        duplicates = find_duplicates(df)
+        subDf = df.iloc[:, self.__selected]
+
+        duplicates = find_duplicates(subDf)
 
         if duplicates:
             df = df.copy(True)
             df = df.drop(duplicates, axis=1)
+            # Keep original order
+            order = [c for c in colOrder if c not in duplicates]
+            df = df[order]
         return data.Frame(df)
 
     @staticmethod

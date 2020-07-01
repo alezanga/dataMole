@@ -8,7 +8,7 @@ from PySide2.QtWidgets import QHeaderView, QItemEditorFactory, QStyledItemDelega
 from pandas.api.types import CategoricalDtype
 
 from data_preprocessor import data
-from data_preprocessor.data.types import Types
+from data_preprocessor.data.types import Types, Type
 from data_preprocessor.gui.editor.interface import AbsOperationEditor
 from .interface.exceptions import OptionValidationError
 from .interface.graph import GraphOperation
@@ -29,7 +29,7 @@ class ToNumericOp(GraphOperation):
 
     def execute(self, df: data.Frame) -> data.Frame:
         # If type of attribute is not accepted
-        columns = df.shape.col_types
+        columns = df.shape.colTypes
         items = itemgetter(*self.__attributes)(columns)
         if not all(map(lambda x: x in self.acceptedTypes(),
                        items if isinstance(items, tuple) else (items,))):
@@ -48,7 +48,7 @@ class ToNumericOp(GraphOperation):
     def shortDescription(self) -> str:
         return 'Convert one attribute to Numeric values. All types except Datetime can be converted'
 
-    def acceptedTypes(self) -> List[Types]:
+    def acceptedTypes(self) -> List[Type]:
         return [Types.String, Types.Ordinal, Types.Nominal]
 
     def setOptions(self, attributes: Dict[int, Dict[str, str]]) -> None:
@@ -81,15 +81,9 @@ class ToNumericOp(GraphOperation):
     def getOutputShape(self) -> Union[data.Shape, None]:
         if not self.hasOptions() or not self._shapes[0]:
             return None
-        # If type is not accepted
-        columns = self._shapes[0].col_types
-        items = itemgetter(*self.__attributes)(columns)
-        if not all(map(lambda x: x in self.acceptedTypes(),
-                       items if isinstance(items, tuple) else (items,))):
-            return None
-        s = self._shapes[0].copy()
+        s = self._shapes[0].clone()
         for i in self.__attributes:
-            s.col_types[i] = Types.Numeric
+            s.colTypes[i] = Types.Numeric
         return s
 
     @staticmethod
@@ -133,7 +127,7 @@ class ToCategoricalOp(GraphOperation):
             .astype(dtype=str, errors='raise')
         # Set to nan where values where nan
         raw_df.iloc[:, columnIndexes] = raw_df.iloc[:, columnIndexes].mask(isNan, np.nan)
-        colNames = df.shape.col_names
+        colNames = df.shape.colNames
         # To category
         conversions: Dict[str, CategoricalDtype] = dict([
             (lambda i, opts: (colNames[i], CategoricalDtype(categories=opts[0],  # can be None
@@ -152,7 +146,7 @@ class ToCategoricalOp(GraphOperation):
         return 'Convert one attribute to categorical type. Every different value will be considered a ' \
                'new category'
 
-    def acceptedTypes(self) -> List[Types]:
+    def acceptedTypes(self) -> List[Type]:
         return [Types.String, Types.Numeric, Types.Ordinal, Types.Nominal]
 
     def setOptions(self, attributes: Dict[int, Dict[str, Any]]) -> None:
@@ -212,15 +206,9 @@ class ToCategoricalOp(GraphOperation):
     def getOutputShape(self) -> Union[data.Shape, None]:
         if not self.hasOptions() or not self._shapes[0]:
             return None
-        # If type is not accepted
-        columns = self._shapes[0].col_types
-        items = itemgetter(*self.__attributes)(columns)
-        if not all(map(lambda x: x in self.acceptedTypes(),
-                       items if isinstance(items, tuple) else (items,))):
-            return None
-        s = self._shapes[0].copy()
+        s = self._shapes[0].clone()
         for i, opt in self.__attributes.items():
-            s.col_types[i] = Types.Ordinal if opt[1] is True else Types.Nominal
+            s.colTypes[i] = Types.Ordinal if opt[1] is True else Types.Nominal
         return s
 
     @staticmethod
@@ -261,7 +249,7 @@ class ToTimestamp(GraphOperation):
     def name() -> str:
         return 'toDatetime'
 
-    def acceptedTypes(self) -> List[Types]:
+    def acceptedTypes(self) -> List[Type]:
         return [Types.String]
 
     def shortDescription(self) -> str:
@@ -322,9 +310,9 @@ class ToTimestamp(GraphOperation):
     def getOutputShape(self) -> Optional[data.Shape]:
         if not self.hasOptions() or not self._shapes[0]:
             return None
-        s: data.Shape = self._shapes[0].copy(True)
+        s: data.Shape = self._shapes[0].clone()
         for i in self.__attributes.keys():
-            s.col_types[i] = Types.Datetime
+            s.colTypes[i] = Types.Datetime
         return s
 
     @staticmethod

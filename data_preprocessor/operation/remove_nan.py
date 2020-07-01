@@ -254,7 +254,7 @@ class _RemoveNanEditor(AbsOperationEditor):
                 self.__slider.setEnabled(True)
             else:
                 if self.__mode == 'row':
-                    self.__slider.setMaximum(self.inputShapes[0].n_columns)
+                    self.__slider.setMaximum(self.inputShapes[0].nColumns)
                     self._onValueChanged(self.__slider.value())
                 else:
                     self.__bodyLayout.replaceWidget(self.__slider, self.__numBox)
@@ -298,5 +298,5 @@ class _RemoveNanEditor(AbsOperationEditor):
 
     def refresh(self) -> None:
         if self.__mode == 'row' and self.__group.checkedId() == 0:
-            self.__slider.setMaximum(self.inputShapes[0].n_columns)
+            self.__slider.setMaximum(self.inputShapes[0].nColumns)
             self.__slider.setEnabled(True)

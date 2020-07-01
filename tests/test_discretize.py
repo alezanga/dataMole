@@ -1,10 +1,10 @@
-from typing import List, Tuple
+from typing import List, Tuple, Dict
 
 import numpy as np
 import pytest
 
 from data_preprocessor import data
-from data_preprocessor.data.types import Types
+from data_preprocessor.data.types import Types, Type, IndexType
 from data_preprocessor.operation.discretize import BinsDiscretizer, BinStrategy, RangeDiscretizer
 from data_preprocessor.operation.interface.exceptions import OptionValidationError
 from tests.utilities import nan_to_None
@@ -19,9 +19,9 @@ def test_discretize_num_uniform():
                   drop=True)
 
     op.addInputShape(f.shape, 0)
-    s = f.shape.copy(True)
-    s.col_types[0] = Types.Nominal
-    s.col_types[1] = Types.Nominal
+    s = f.shape.clone()
+    s.colTypes[0] = Types.Nominal
+    s.colTypes[1] = Types.Nominal
     assert op.getOutputShape() == s
 
     g = op.execute(f)
@@ -42,12 +42,11 @@ def test_discretize_num_uniform_nondrop():
                   drop=False)
 
     op.addInputShape(f.shape, 0)
-    s = f.shape.copy(True)
-    s.col_names.append('col1_discretized')
-    s.col_names.append('col2_discretized')
-    s.col_types.append(Types.Nominal)
-    s.col_types.append(Types.Nominal)
-    s.n_columns += 2
+    s = f.shape.clone()
+    s.colNames.append('col1_discretized')
+    s.colNames.append('col2_discretized')
+    s.colTypes.append(Types.Nominal)
+    s.colTypes.append(Types.Nominal)
     assert op.getOutputShape() == s
 
     g = op.execute(f)
@@ -82,9 +81,9 @@ def test_discretize_range_drop():
                   drop=True)
 
     op.addInputShape(f.shape, 0)
-    s = f.shape.copy(True)
-    s.col_types[0] = Types.Ordinal
-    s.col_types[1] = Types.Ordinal
+    s = f.shape.clone()
+    s.colTypes[0] = Types.Ordinal
+    s.colTypes[1] = Types.Ordinal
     assert op.getOutputShape() == s
 
     g = op.execute(f)
@@ -106,11 +105,10 @@ def test_discretize_range_nodrop():
                   drop=False)
 
     op.addInputShape(f.shape, 0)
-    s = f.shape.copy(True)
-    s.col_types[1] = Types.Numeric
-    s.col_names.append('col2_bins')
-    s.col_types.append(Types.Ordinal)
-    s.n_columns += 1
+    s = f.shape.clone()
+    s.colTypes[1] = Types.Numeric
+    s.colNames.append('col2_bins')
+    s.colTypes.append(Types.Ordinal)
     assert op.getOutputShape() == s
 
     g = op.execute(f)

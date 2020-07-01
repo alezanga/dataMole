@@ -5,15 +5,15 @@ from typing import Any, List, Union, Dict, Tuple, Optional
 
 from PySide2 import QtGui
 from PySide2.QtCore import QAbstractTableModel, QModelIndex, Qt, Signal, Slot, QAbstractItemModel, \
-    QSortFilterProxyModel, QBasicTimer, QTimerEvent, QItemSelection, QThreadPool, QEvent, QRect, QPoint, \
-    QRegularExpression
+    QSortFilterProxyModel, QItemSelection, QThreadPool, QEvent, QRect, QPoint, \
+    QRegularExpression, QIdentityProxyModel, QAbstractProxyModel
 from PySide2.QtGui import QPainter
 from PySide2.QtWidgets import QWidget, QTableView, QLineEdit, QVBoxLayout, QHeaderView, QLabel, \
     QHBoxLayout, QStyleOptionViewItem, QStyleOptionButton, QStyle, QApplication, \
     QStyledItemDelegate
 
 from data_preprocessor.data import Frame, Shape
-from data_preprocessor.data.types import Types, ALL_TYPES
+from data_preprocessor.data.types import Types, Type, ALL_TYPES
 from data_preprocessor.operation.computations.statistics import AttributeStatistics, Hist
 from data_preprocessor.threads import Worker
 
@@ -27,12 +27,10 @@ class FrameModel(QAbstractTableModel):
     """ Table model for a single dataframe """
 
     DataRole = MyRoles.DataRole
-    COL_BATCH_SIZE = 50
-
     statisticsComputed = Signal(tuple)
     statisticsError = Signal(tuple)
 
-    def __init__(self, parent: QWidget = None, frame: Union[Frame, Shape] = Frame(), nrows: int = 10):
+    def __init__(self, parent: QWidget = None, frame: Union[Frame, Shape] = Frame()):
         super().__init__(parent)
         if isinstance(frame, Frame):
             self.__frame: Frame = frame
@@ -43,9 +41,6 @@ class FrameModel(QAbstractTableModel):
         else:
             self.__frame: Frame = Frame()
             self.__shape: Shape = Shape()
-        self.__n_rows: int = nrows
-        # Change this to COL_BATCH_SIZE to reactivate fetchMore
-        self.__loadedCols: int = self.__shape.n_columns
         # Dictionary { attributeIndex: value }
         self._statistics: Dict[int, Dict[str, object]] = dict()
         self._histogram: Dict[int, Dict[Any, int]] = dict()
@@ -70,33 +65,27 @@ class FrameModel(QAbstractTableModel):
     def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:
         if parent.isValid():
             return 0
-        return self.__frame.nRows if self.__frame.nRows < self.__n_rows else self.__n_rows
+        return self.frame.nRows  # True number of rows
 
     def columnCount(self, parent: QModelIndex = QModelIndex()) -> int:
         if parent.isValid():
             return 0
-        allCols = self.__shape.n_columns
-        # NOTE: incremental loading is disabled
-        # if allCols < self.__loadedCols:
-        #     return allCols
-        # return self.__loadedCols
-        return allCols
+        return self.__shape.nColumns
 
     def data(self, index: QModelIndex, role: int = ...) -> Any:
-        if index.isValid() and index.row() < self.__n_rows:
+        if index.isValid() and index.row() < self.__renderMaxRows:
             if role == Qt.DisplayRole:
-                return str(self.__frame.at((index.row(), index.column())))
+                return str(self.__frame.getRawFrame().iloc[index.row(), index.column()])
         return None
 
     def headerData(self, section: int, orientation: Qt.Orientation, role: int = Qt.DisplayRole) -> Any:
         if orientation == Qt.Horizontal:
             if role == Qt.DisplayRole:
-                return self.__shape.col_names[section] + '\n' + self.__shape.col_types[section].value
+                return self.__shape.colNames[section] + '\n' + self.__shape.colTypes[section].name
             elif role == FrameModel.DataRole.value:
-                return self.__shape.col_names[section], self.__shape.col_types[section]
+                return self.__shape.colNames[section], self.__shape.colTypes[section]
         elif orientation == Qt.Vertical and role == Qt.DisplayRole:
-            if self.__shape.has_index():
-                return self.__frame.index[section]
+            return self.__frame.indexValues[section]
         return None
 
     def setHeaderData(self, section: int, orientation: Qt.Orientation, value: Any, role: int = ...) \
@@ -107,23 +96,10 @@ class FrameModel(QAbstractTableModel):
             names[section] = value
             self.__frame = self.__frame.rename({self.headerData(section, orientation,
                                                                 FrameModel.DataRole.value)[0]: value})
-            self.__shape.col_names[section] = value
+            self.__shape.colNames[section] = value
             self.headerDataChanged.emit(orientation, section, section)
             return True
         return False
-
-    def canFetchMore(self, parent: QModelIndex) -> bool:
-        """ Returns True if more columns should be displayed, False otherwise """
-        if self.__shape.n_columns > self.__loadedCols:
-            return True
-        return False
-
-    def fetchMore(self, parent: QModelIndex):
-        remainder = self.__shape.n_columns - self.__loadedCols
-        colsToFetch = min(remainder, self.COL_BATCH_SIZE)
-        self.beginInsertColumns(parent, self.__loadedCols, self.__loadedCols + colsToFetch - 1)
-        self.__loadedCols += colsToFetch
-        self.endInsertColumns()
 
     @property
     def statistics(self) -> Dict[int, Dict[str, object]]:
@@ -135,7 +111,7 @@ class FrameModel(QAbstractTableModel):
 
     def computeStatistics(self, attribute: int) -> None:
         """ Compute statistics for a given attribute """
-        attType = self.__shape.col_types[attribute]
+        attType = self.__shape.colTypes[attribute]
         if self.__frame.nRows == 0:
             return self.onWorkerError((attribute, attType, 'stat'), tuple())
         stats = AttributeStatistics()
@@ -146,7 +122,7 @@ class FrameModel(QAbstractTableModel):
         QThreadPool.globalInstance().start(statWorker)
 
     def computeHistogram(self, attribute: int, histBins: int) -> None:
-        attType = self.__shape.col_types[attribute]
+        attType = self.__shape.colTypes[attribute]
         if self.__frame.nRows == 0:
             return self.onWorkerError((attribute, attType, 'hist'), tuple())
         hist = Hist()
@@ -157,7 +133,7 @@ class FrameModel(QAbstractTableModel):
         QThreadPool.globalInstance().start(histWorker)
 
     @Slot(object, object)
-    def onWorkerSuccess(self, identifier: Tuple[int, Types, str], result: Dict[Any, Any]) -> None:
+    def onWorkerSuccess(self, identifier: Tuple[int, Type, str], result: Dict[Any, Any]) -> None:
         attribute, attType, mode = identifier
         if mode == 'stat':
             self._statistics[attribute] = result
@@ -168,11 +144,61 @@ class FrameModel(QAbstractTableModel):
         self.statisticsComputed.emit(identifier)
 
     @Slot(object, tuple)
-    def onWorkerError(self, identifier: Tuple[int, Types, str],
+    def onWorkerError(self, identifier: Tuple[int, Type, str],
                       error: Tuple[type, Exception, str]) -> None:
         if error:
             logging.error('Statistics computation failed with {}: {}\n{}'.format(*error))
         self.statisticsError.emit(identifier)
+
+
+class IncrementalRenderFrameModel(QIdentityProxyModel):
+    # TODO: see how to use this
+    DEFAULT_COL_BATCH_SIZE = 50
+    DEFAULT_ROW_BATCH_SIZE = 50
+
+    def __init__(self, rowBatch: int = DEFAULT_ROW_BATCH_SIZE,
+                 colBatch: int = DEFAULT_COL_BATCH_SIZE, parent: QWidget = None):
+        super().__init__(parent)
+        self._batchRows: int = rowBatch
+        self._batchCols: int = colBatch
+        self.__loadedCols: int = self._batchCols
+        self.__loadedRows: int = self._batchRows
+        self._scrollMode: str = None  # {'row', 'column'}
+
+    def setBatchRowSize(self, size: int) -> None:
+        self._batchRows = size
+
+    def setBatchColSize(self, size: int) -> None:
+        self._batchCols = size
+
+    def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:
+        if parent.isValid():
+            return 0
+        return min(self.__loadedRows, self.sourceModel().rowCount())
+
+    def columnCount(self, parent: QModelIndex = QModelIndex()) -> int:
+        if parent.isValid():
+            return 0
+        return min(self.__loadedCols, self.sourceModel().columnCount())
+
+    def canFetchMore(self, parent: QModelIndex) -> bool:
+        """ Returns True if more columns should be displayed, False otherwise """
+        return self.__loadedCols < self.sourceModel().columnCount() if self._scrollMode == 'column' \
+            else self.__loadedRows < self.sourceModel().rowCount()
+
+    def fetchMore(self, parent: QModelIndex):
+        if self._scrollMode == 'column':
+            remainder = self.sourceModel().columnCount() - self.__loadedCols
+            colsToFetch = min(remainder, self._batchCols)
+            self.beginInsertColumns(parent, self.__loadedCols, self.__loadedCols + colsToFetch - 1)
+            self.__loadedCols += colsToFetch
+            self.endInsertColumns()
+        elif self._scrollMode == 'row':
+            remainder = self.sourceModel().rowCount() - self.__loadedRows
+            rowsToFetch = min(remainder, self._batchRows)
+            self.beginInsertRows(parent, self.__loadedRows, self.__loadedRows + rowsToFetch - 1)
+            self.__loadedRows += rowsToFetch
+            self.endInsertRows()
 
 
 class AbstractAttributeModel(abc.ABC):
@@ -395,19 +421,19 @@ class AttributeTableModel(AbstractAttributeModel, QAbstractTableModel,
             if index.column() == self.checkboxColumn:
                 return self._checked[index.row()]
             name: str
-            col_type: Types
+            col_type: Type
             name, col_type = self._frameModel.headerData(index.row(), orientation=Qt.Horizontal,
                                                          role=FrameModel.DataRole.value)
             value = None
             if index.column() == self.nameColumn:
                 value = name
             elif index.column() == self.typeColumn:
-                value = col_type.value
+                value = col_type.name
             return value
         elif role == Qt.ToolTipRole and index.column() == self.typeColumn:
             _, col_type = self._frameModel.headerData(index.row(), orientation=Qt.Horizontal,
                                                       role=FrameModel.DataRole.value)
-            if col_type == Types.Ordinal:
+            if col_type is Types.Ordinal:
                 sortedCategories = self._frameModel.frame.getRawFrame() \
                                        .iloc[:, index.row()].dtype.categories
                 return ' < '.join(sortedCategories)
@@ -455,29 +481,91 @@ class AttributeTableModel(AbstractAttributeModel, QAbstractTableModel,
             flags |= Qt.ItemIsEditable
         return flags
 
-    def canFetchMore(self, parent: QModelIndex) -> bool:
-        return self._frameModel.canFetchMore(parent)
 
-    def fetchMore(self, parent: QModelIndex) -> None:
-        self._frameModel.fetchMore(parent)
-        if self._checkable:
-            new_rows = self.rowCount() - len(self._checked)
-            self._checked.extend([False] * new_rows)
+class AttributeWithIndexModel(QIdentityProxyModel):
+    # TODO: test this (DRAFT)
+    def mapToSource(self, proxyIndex: QModelIndex) -> QModelIndex:
+        if not proxyIndex.isValid():
+            return QModelIndex()
+        if proxyIndex.model() != self:
+            return QModelIndex()
+        proxyRow = proxyIndex.row()
+        proxyColumn = proxyIndex.column()
+        indexLevels = len(self.sourceModel().frameModel().shape.index)
+        if proxyRow < indexLevels:
+            return QModelIndex()
+        return self.sourceModel().index(proxyRow - indexLevels, proxyColumn, proxyIndex.parent())
+
+    def mapFromSource(self, sourceIndex: QModelIndex) -> QModelIndex:
+        if not sourceIndex.isValid():
+            return QModelIndex()
+        if sourceIndex.model() != self.sourceModel():
+            return QModelIndex()
+        sourceRow = sourceIndex.row()
+        sourceColumn = sourceIndex.column()
+        indexLevels = len(self.sourceModel().frameModel().shape.index)
+        return self.index(sourceRow + indexLevels, sourceColumn, sourceColumn.parent())
+
+    def data(self, proxyIndex: QModelIndex, role: int = Qt.DisplayRole) -> Any:
+        if not proxyIndex.isValid():
+            return None
+
+        if role == Qt.DisplayRole or role == Qt.EditRole:
+            if proxyIndex.column() == self.checkboxColumn:
+                return None
+            proxyRow: int = proxyIndex.row()
+            proxyColumn: int = proxyIndex.column()
+
+            indexes: List[str] = self.sourceModel().frameModel().shape.index
+            indexTypes: List[Type] = self.sourceModel().frameModel().shape.indexTypes
+            indexLevels: int = len(indexes)
+            if proxyRow < indexLevels:
+                if proxyColumn == self.sourceModel().nameColumn:
+                    return indexes[proxyRow]
+                if proxyColumn == self.sourceModel().typeColumn:
+                    return indexTypes[proxyRow]
+        return super().data(proxyIndex, role)
+
+    def rowCount(self, parent: QModelIndex = ...) -> int:
+        if parent.isValid():
+            return 0
+        return self.sourceModel().rowCount(parent) + len(self.sourceModel().frameModel().shape.index)
+
+    def setData(self, index: QModelIndex, value: str, role: int = ...) -> bool:
+        if not index.isValid():
+            return False
+        # indexes: List[str] = self.sourceModel().frameModel().shape.index
+        # indexLevels: int = len(indexes)
+        # if role == Qt.EditRole and index.row() < indexLevels:
+        #     value = value.strip()
+        #     # Edit a index
+        #     if value:
+        #         if indexLevels > 1:
+        #             frame = self.sourceModel().frameModel().frame.getRawFrame() \
+        #                 .index.set_names(value)
+        return super().setData(index, value, role)
+
+    def flags(self, index: QModelIndex) -> Qt.ItemFlags:
+        indexes: List[str] = self.sourceModel().frameModel().shape.index
+        indexLevels: int = len(indexes)
+        if index.row() < indexLevels:
+            return Qt.ItemIsSelectable | Qt.ItemIsEnabled
+        return super().flags(index)
 
 
 class AttributeProxyModel(AbstractAttributeModel, QSortFilterProxyModel,
                           metaclass=AttributeProxyModelMeta):
     """ Proxy model to filter attributes to show """
 
-    def __init__(self, filterTypes: List[Types], parent: QWidget = None):
+    def __init__(self, filterTypes: List[Type], parent: QWidget = None):
         super().__init__(parent)
-        self._filterTypes: Optional[List[Types]] = filterTypes if (filterTypes and filterTypes !=
-                                                                   ALL_TYPES) else None
+        self._filterTypes: Optional[List[Type]] = filterTypes if (filterTypes and filterTypes !=
+                                                                  ALL_TYPES) else None
 
     def __isAcceptedByType(self, source_row: int, _: QModelIndex) -> bool:
         """ Returns True iff source_row has an accepted type """
         if self._filterTypes:
-            rowType: Types = self.frameModel().shape.col_types[source_row]
+            rowType: Type = self.frameModel().shape.colTypes[source_row]
             return rowType in self._filterTypes
         return True
 
@@ -542,7 +630,7 @@ class AttributeProxyModel(AbstractAttributeModel, QSortFilterProxyModel,
 class SearchableAttributeTableWidget(QWidget):
     def __init__(self, parent: QWidget = None,
                  checkable: bool = False, editable: bool = False,
-                 showTypes: bool = False, filterTypes: List[Types] = None):
+                 showTypes: bool = False, filterTypes: List[Type] = None):
         super().__init__(parent)
         # Models
         model = AttributeTableModel(parent=self, checkable=checkable,
@@ -570,7 +658,7 @@ class SearchableAttributeTableWidget(QWidget):
         self.setLayout(layout)
 
     @staticmethod
-    def __setUpProxies(model: AttributeTableModel, filterTypes: List[Types]) -> AttributeTableModel:
+    def __setUpProxies(model: AttributeTableModel, filterTypes: List[Type]) -> AttributeTableModel:
         # Add type filter and search
         model1 = AttributeProxyModel(filterTypes=filterTypes,
                                      parent=model)
@@ -581,7 +669,7 @@ class SearchableAttributeTableWidget(QWidget):
     def model(self) -> AttributeProxyModel:
         return self.__model
 
-    def setAttributeModel(self, model: AttributeTableModel, filterTypes: List[Types] = None) -> None:
+    def setAttributeModel(self, model: AttributeTableModel, filterTypes: List[Type] = None) -> None:
         """
         Sets a custom AttributeTableModel. If the source frame is present it also updates view.
         This method is provided as an alternative to building everything in the constructor.

@@ -71,8 +71,8 @@ def dataframeDiffLog(df1, df2) -> str:
     """
     shape1 = df1.shape
     shape2 = df2.shape
-    cols1 = set(zip(shape1.col_names, shape1.col_types))
-    cols2 = set(zip(shape2.col_names, shape2.col_types))
+    cols1 = set(zip(shape1.colNames, shape1.colTypes))
+    cols2 = set(zip(shape2.colNames, shape2.colTypes))
     newCols = cols2 - cols1
     dropCols = cols1 - (cols1 & cols2)
     # Now pretty print them
@@ -84,8 +84,8 @@ def dataframeDiffLog(df1, df2) -> str:
                                                                             not newSeries.empty else None,
                                                                             '\n' + str(dropSeries) if
                                                                             not dropSeries.empty else None)
-    msg += 'Original number of columns: {:d}\nNew number of columns: {:d}\n'.format(shape1.n_columns,
-                                                                                    shape2.n_columns)
+    msg += 'Original number of columns: {:d}\nNew number of columns: {:d}\n'.format(shape1.nColumns,
+                                                                                    shape2.nColumns)
     msg += 'Original number of rows: {:d}\nNew number of rows: {:d}'.format(df1.nRows, df2.nRows)
     return msg
 

@@ -385,7 +385,7 @@ class TimeSeriesPlot(QWidget):
         i = self.settingsPanel.timeAxisAttributeCB.currentIndex()
         timeIndex: int = timeIndexModel.mapToSource(timeIndexModel.index(i, 0, QModelIndex())).row()
         # Get the type of time attribute
-        timeType: Types = self.settingsPanel.valuesTable.model().frameModel().shape.col_types[timeIndex]
+        timeType: Types = self.settingsPanel.valuesTable.model().frameModel().shape.colTypes[timeIndex]
         # Get the pandas dataframe
         dataframe: pd.DataFrame = self.settingsPanel.valuesTable.model().frameModel().frame.getRawFrame()
 

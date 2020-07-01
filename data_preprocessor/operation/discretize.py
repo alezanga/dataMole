@@ -10,7 +10,7 @@ from PySide2.QtGui import QIntValidator
 from PySide2.QtWidgets import QHeaderView
 
 from data_preprocessor import data
-from data_preprocessor.data.types import Types
+from data_preprocessor.data.types import Types, Type
 from data_preprocessor.gui import AbsOperationEditor
 from data_preprocessor.gui.editor.OptionsEditorFactory import OptionsEditorFactory
 from data_preprocessor.gui.mainmodels import FrameModel
@@ -57,7 +57,7 @@ class BinsDiscretizer(GraphOperation, ExecutionLog):
                 f.iloc[(~nr).to_list(), [col]] = result
                 f.iloc[:, col] = f.iloc[:, col].astype('category')
             else:
-                colName: str = self.shapes[0].col_names[col] + '_discretized'
+                colName: str = self.shapes[0].colNames[col] + '_discretized'
                 f.loc[:, colName] = np.nan
                 f.loc[(~nr).to_list(), [colName]] = result
                 f.loc[:, colName] = f.loc[:, colName].astype('category')
@@ -72,7 +72,7 @@ class BinsDiscretizer(GraphOperation, ExecutionLog):
     def logMessage(self) -> str:
         return self.__logMessage
 
-    def acceptedTypes(self) -> List[Types]:
+    def acceptedTypes(self) -> List[Type]:
         return [Types.Numeric]
 
     @staticmethod
@@ -157,17 +157,16 @@ class BinsDiscretizer(GraphOperation, ExecutionLog):
     def getOutputShape(self) -> Optional[data.Shape]:
         if not self.hasOptions() or self.shapes[0] is None:
             return None
-        s = self.shapes[0].copy(True)
+        s = self.shapes[0].clone()
         if self.__dropTransformed:
             # Shape does not change
             for col in self.__attributes.keys():
-                s.col_types[col] = Types.Nominal
+                s.colTypes[col] = Types.Nominal
         else:
             for col in self.__attributes.keys():
-                colName: str = self.shapes[0].col_names[col] + '_discretized'
-                s.col_names.append(colName)  # new column with suffix
-                s.col_types.append(Types.Nominal)
-                s.n_columns += 1
+                colName: str = self.shapes[0].colNames[col] + '_discretized'
+                s.colNames.append(colName)  # new column with suffix
+                s.colTypes.append(Types.Nominal)
         return s
 
     @staticmethod
@@ -200,7 +199,7 @@ class RangeDiscretizer(GraphOperation, ExecutionLog):
         self.__logMessage = 'OPTIONS:\nDrop old columns: {}\nAttributes:'.format(self.__dropTransformed)
         for c, o in self.__attributes.items():
             result = pd.cut(f.iloc[:, c], bins=o[0], labels=o[1], duplicates='drop')
-            colName: str = self.shapes[0].col_names[c]
+            colName: str = self.shapes[0].colNames[c]
             newColName: str = colName if self.__dropTransformed else colName + '_bins'
             self.__logMessage += '\n\'{}\' => bins: {}, labels: {}'.format(colName, o[0], o[1])
             f.loc[:, newColName] = result
@@ -209,16 +208,15 @@ class RangeDiscretizer(GraphOperation, ExecutionLog):
     def getOutputShape(self) -> Optional[data.Shape]:
         if self.shapes[0] is None and not self.hasOptions():
             return None
-        s = self.shapes[0].copy(True)
+        s = self.shapes[0].clone()
         if self.__dropTransformed:
             for c in self.__attributes.keys():
-                s.col_types[c] = Types.Ordinal
+                s.colTypes[c] = Types.Ordinal
         else:
             for c in self.__attributes.keys():
-                colName: str = s.col_names[c] + '_bins'
-                s.col_names.append(colName)
-                s.col_types.append(Types.Ordinal)
-                s.n_columns += 1
+                colName: str = s.colNames[c] + '_bins'
+                s.colNames.append(colName)
+                s.colTypes.append(Types.Ordinal)
         return s
 
     @staticmethod
@@ -249,7 +247,7 @@ class RangeDiscretizer(GraphOperation, ExecutionLog):
                'last case the new attribute will have the same name as the original with \'_bins\' ' \
                'suffix.'
 
-    def acceptedTypes(self) -> List[Types]:
+    def acceptedTypes(self) -> List[Type]:
         return [Types.Numeric]
 
     def hasOptions(self) -> bool:

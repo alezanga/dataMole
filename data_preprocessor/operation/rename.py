@@ -5,7 +5,7 @@ from PySide2.QtCore import Qt, QModelIndex
 from PySide2.QtWidgets import QWidget
 
 from data_preprocessor import data
-from data_preprocessor.data.types import Types, ALL_TYPES
+from data_preprocessor.data.types import ALL_TYPES, Type
 from data_preprocessor.gui.editor.interface import AbsOperationEditor
 from .interface.graph import GraphOperation
 from ..gui.mainmodels import AttributeTableModel, FrameModel, SearchableAttributeTableWidget
@@ -65,9 +65,9 @@ class RenameOp(GraphOperation):
             return None
 
         # Shape is the same as before with name changed
-        s = copy.deepcopy(self._shapes[0])
+        s = self._shapes[0].clone()
         for index, name in self.__names.items():
-            s.col_names[index] = name
+            s.colNames[index] = name
 
         return s
 
@@ -75,7 +75,7 @@ class RenameOp(GraphOperation):
     def isOutputShapeKnown() -> bool:
         return True
 
-    def acceptedTypes(self) -> List[Types]:
+    def acceptedTypes(self) -> List[Type]:
         return ALL_TYPES
 
     @staticmethod

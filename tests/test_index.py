@@ -1,7 +1,8 @@
 import pandas as pd
 
 from data_preprocessor import data
-from data_preprocessor.data.types import Types
+from data_preprocessor.data import Shape
+from data_preprocessor.data.types import Types, IndexType
 from data_preprocessor.operation.index import SetIndexOp
 
 
@@ -13,25 +14,20 @@ def test_set_index_num():
     g = data.Frame(e)
 
     op = SetIndexOp()
-    op.setOptions(0)
+    op.setOptions(selected={0: None})
 
     assert op.getOutputShape() is None
 
     op.addInputShape(g.shape, 0)
-    s = {
-        'cowq': Types.Numeric,
-        'col2': Types.Nominal,
-        'col3': Types.String,
-        'date': Types.Datetime
-    }
-    os = op.getOutputShape()
-    assert os.col_type_dict == s
-    assert os.index == 'cowq'
+    s = Shape()
+    s.colNames = ['col3', 'col2', 'date']
+    s.colTypes = [Types.String, Types.Nominal, Types.Datetime]
+    s.index = ['cowq']
+    s.indexTypes = [IndexType(Types.Numeric)]
+    assert op.getOutputShape() == s
 
     h = op.execute(g)
-    hs = h.shape
-    assert hs.col_type_dict == s
-    assert hs.index == 'cowq'
+    assert h.shape == s
 
 
 def test_set_index_cat():
@@ -42,25 +38,20 @@ def test_set_index_cat():
     g = data.Frame(e)
 
     op = SetIndexOp()
-    op.setOptions(1)
+    op.setOptions(selected={1: None, 2: None})
 
     assert op.getOutputShape() is None
 
     op.addInputShape(g.shape, 0)
-    s = {
-        'cowq': Types.Numeric,
-        'col2': Types.Nominal,
-        'col3': Types.String,
-        'date': Types.Datetime
-    }
-    os = op.getOutputShape()
-    assert os.col_type_dict == s
-    assert os.index == 'col2'
+    s = Shape()
+    s.colNames = ['date', 'cowq']
+    s.colTypes = [Types.Datetime, Types.Numeric]
+    s.index = ['col3', 'col2']
+    s.indexTypes = [IndexType(Types.String), IndexType(Types.Nominal)]
+    assert op.getOutputShape() == s
 
     h = op.execute(g)
-    hs = h.shape
-    assert hs.col_type_dict == s
-    assert hs.index == 'col2'
+    assert h.shape == s
 
 
 def test_set_index_date():
@@ -71,25 +62,22 @@ def test_set_index_date():
     g = data.Frame(e)
 
     op = SetIndexOp()
-    op.setOptions(3)
+    op.setOptions(selected={3: None})
 
     assert op.getOutputShape() is None
 
     op.addInputShape(g.shape, 0)
-    s = {
-        'cowq': Types.Numeric,
-        'col2': Types.Ordinal,
-        'col3': Types.String,
-        'date': Types.Datetime
-    }
+    s = Shape()
+    s.colNames = ['cowq', 'col2', 'col3']
+    s.colTypes = [Types.Numeric, Types.Ordinal, Types.String]
+    s.index = ['date']
+    s.indexTypes = [IndexType(Types.Datetime)]
     os = op.getOutputShape()
-    assert os.col_type_dict == s
-    assert os.index == 'date'
+    assert os == s
 
     h = op.execute(g)
     hs = h.shape
-    assert hs.col_type_dict == s
-    assert hs.index == 'date'
+    assert hs == s
 
 
 def test_set_index_string():
@@ -100,22 +88,19 @@ def test_set_index_string():
     g = data.Frame(e)
 
     op = SetIndexOp()
-    op.setOptions(2)
+    op.setOptions(selected={2: None})
 
     assert op.getOutputShape() is None
 
     op.addInputShape(g.shape, 0)
-    s = {
-        'cowq': Types.Numeric,
-        'col2': Types.Nominal,
-        'col3': Types.String,
-        'date': Types.Datetime
-    }
+    s = Shape()
+    s.colNames = ['cowq', 'col2', 'date']
+    s.colTypes = [Types.Numeric, Types.Nominal, Types.Datetime]
+    s.index = ['col3']
+    s.indexTypes = [IndexType(Types.String)]
     os = op.getOutputShape()
-    assert os.col_type_dict == s
-    assert os.index == 'col3'
+    assert os == s
 
     h = op.execute(g)
     hs = h.shape
-    assert hs.col_type_dict == s
-    assert hs.index == 'col3'
+    assert hs == s

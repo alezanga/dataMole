@@ -5,7 +5,7 @@ from PySide2.QtWidgets import QWidget, QVBoxLayout, QLineEdit, QComboBox, QCompl
     QSizePolicy, QButtonGroup, QGridLayout, QRadioButton
 
 from data_preprocessor import data
-from data_preprocessor.data.types import Types
+from data_preprocessor.data.types import Type
 
 
 class QtABCMeta(type(QWidget), ABCMeta):
@@ -98,22 +98,22 @@ class TextOptionWidget(OptionWidget):
 
 
 class AttributeComboBox(OptionWidget):
-    def __init__(self, shape: data.Shape, typesFilter: List[Types], label: str = '',
+    def __init__(self, shape: data.Shape, typesFilter: List[Type], label: str = '',
                  parent: QWidget = None):
         super().__init__(label, parent)
         self._inputShape: data.Shape = None
-        self._typesFilter: List[Types] = None
+        self._typesFilter: List[Type] = None
         self._attribute = QComboBox()
         self._attribute.setEditable(True)
         self.refresh(shape, typesFilter)
         self._layout.addWidget(self._attribute)
 
-    def refresh(self, shape: data.Shape, typesFilter: List[Types]) -> None:
+    def refresh(self, shape: data.Shape, typesFilter: List[Type]) -> None:
         self._inputShape: data.Shape = shape
-        self._typesFilter: List[Types] = typesFilter
+        self._typesFilter: List[Type] = typesFilter
         if shape:
-            self._attributelist = ['{} ({})'.format(n, str(t.value)) for n, t in zip(shape.col_names,
-                                                                                     shape.col_types) if
+            self._attributelist = ['{} ({})'.format(n, str(t.name)) for n, t in zip(shape.colNames,
+                                                                                    shape.colTypes) if
                                    t in typesFilter]
         else:
             self._attributelist = list()

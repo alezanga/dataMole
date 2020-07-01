@@ -17,7 +17,7 @@ def test_nan_noremove():
     op.setOptions(number=1, percentage=None)
 
     op.addInputShape(f.shape, 0)
-    s = f.shape.copy()
+    s = f.shape.clone()
     assert op.getOutputShape() == s
 
     g = op.execute(f)
@@ -35,7 +35,7 @@ def test_nan_removerows_bynum():
     op.setOptions(number=1, percentage=None)
 
     op.addInputShape(f.shape, 0)
-    s = f.shape.copy()
+    s = f.shape.clone()
     assert op.getOutputShape() == s
 
     g = op.execute(f)
@@ -54,7 +54,7 @@ def test_nan_removerows_byperc():
     op.setOptions(number=12121, percentage=0.3)
 
     op.addInputShape(f.shape, 0)
-    s = f.shape.copy()
+    s = f.shape.clone()
     assert op.getOutputShape() == s
 
     g = op.execute(f)
@@ -112,7 +112,8 @@ def test_remove_column():
 
     assert g != f and g.shape != f.shape
     assert g.nRows == 5 == f.nRows
-    assert g.shape.col_names == ['col1', 'col3', 'date']
+    assert g.shape.colNames == ['col3', 'date']
+    assert g.shape.colTypes == [Types.String, Types.String]
 
     op.setOptions(percentage=None, number=3)
     g = op.execute(f)
@@ -124,7 +125,7 @@ def test_remove_column():
     assert g != f and g.nRows == 5
     # Removes also date because of None
     assert g.to_dict() == {'col3': ['q', '2', 'c', '4', 'x']}
-    assert g.shape.col_types == [Types.String]
+    assert g.shape.colTypes == [Types.String]
 
     op.setOptions(percentage=0.6, number=0)  # remove nothing
     g = op.execute(f)
@@ -136,10 +137,9 @@ def test_remove_column():
     g = op.execute(f)
     assert g != f and g.nRows == 5
     # Removes also date because of None
-    s = f.shape.copy()
-    i = s.col_names.index('col2')
-    del s.col_types[i]
-    del s.col_names[i]
-    s.n_columns -= 1
-    s.index = 'col1'
+    s = f.shape.clone()
+    i = s.colNames.index('col2')
+    del s.colTypes[i]
+    del s.colNames[i]
+    s.index = ['col1']
     assert g.shape == s
