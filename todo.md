@@ -57,6 +57,7 @@
     - [ ] Ability to stop ongoing operations
     - [ ] Show some attribute info to help the user compile options in single operations (could
      be done with a QCompleter on the option cell/widget)
+    - [ ] User manual in-app
     - [ ] Charts
         - [ ] Charts should not show all points (depending on zoom) (time)
         - [ ] Chart axis should show label as tooltip

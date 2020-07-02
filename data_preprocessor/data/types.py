@@ -19,6 +19,9 @@ class Type(abc.ABC):
     def __ne__(self, other) -> bool:
         return not self.__eq__(other)
 
+    def __hash__(self) -> int:
+        return hash(self.name)
+
 
 class Categorical(Type):
     pass
@@ -28,7 +31,7 @@ class Categorical(Type):
 class Datetime(Type):
     @property
     def name(self) -> str:
-        return 'datetime'
+        return 'Datetime'
 
 
 @singleton
@@ -77,6 +80,9 @@ class IndexType(Type):
 
     def __ne__(self, other) -> bool:
         return not self.__eq__(other)
+
+    def __hash__(self) -> int:
+        return hash((self.name, self.__type))
 
 
 class Types:

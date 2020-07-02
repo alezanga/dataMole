@@ -8,7 +8,7 @@ from data_preprocessor.operation.interface.exceptions import OptionValidationErr
 from data_preprocessor.operation.interface.graph import GraphOperation
 
 
-class SetIndexOp(GraphOperation):
+class SetIndex(GraphOperation):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.__columns: List[int] = list()
@@ -92,4 +92,73 @@ class SetIndexOp(GraphOperation):
         return -1
 
 
-export = SetIndexOp
+class ResetIndex(GraphOperation):
+    def execute(self, df: data.Frame) -> data.Frame:
+        f = df.getRawFrame()
+        columns = set(f.columns.to_list())
+        indexNames = set(f.index.names)
+        conflicts = columns & indexNames
+        if conflicts:
+            # There are columns named as index columns. Rename index
+            f.index = f.index.set_names([col + '_index' for col in conflicts], level=conflicts if len(
+                indexNames) > 1 else None)
+        # Reset index adding indexes as columns. Now there cannot be naming conflicts
+        f = f.reset_index(drop=False)
+        return data.Frame(f)
+
+    @staticmethod
+    def name() -> str:
+        return 'Reset index'
+
+    def shortDescription(self) -> str:
+        return 'Sets a default numeric index on the dataframe. The old indexes are re-inserted in the ' \
+               'dataframe as columns'
+
+    def longDescription(self) -> str:
+        return 'The operation tries to insert index columns back in the dataframe as columns. If the ' \
+               'dataframes already contains column with an index name, the columns will be added with ' \
+               'a \'_index\' suffix.'
+
+    def acceptedTypes(self) -> List[Type]:
+        return ALL_TYPES
+
+    def hasOptions(self) -> bool:
+        return True
+
+    def setOptions(self, *args, **kwargs) -> None:
+        pass
+
+    def getOptions(self) -> Iterable:
+        pass
+
+    def unsetOptions(self) -> None:
+        pass
+
+    def needsOptions(self) -> bool:
+        return False
+
+    def getEditor(self) -> AbsOperationEditor:
+        pass
+
+    @staticmethod
+    def isOutputShapeKnown() -> bool:
+        return True
+
+    @staticmethod
+    def minInputNumber() -> int:
+        return 1
+
+    @staticmethod
+    def maxInputNumber() -> int:
+        return 1
+
+    @staticmethod
+    def minOutputNumber() -> int:
+        return 1
+
+    @staticmethod
+    def maxOutputNumber() -> int:
+        return -1
+
+
+export = [SetIndex, ResetIndex]

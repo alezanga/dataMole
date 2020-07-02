@@ -3,7 +3,7 @@ import pandas as pd
 from data_preprocessor import data
 from data_preprocessor.data import Shape
 from data_preprocessor.data.types import Types, IndexType
-from data_preprocessor.operation.index import SetIndexOp
+from data_preprocessor.operation.index import SetIndex, ResetIndex
 
 
 def test_set_index_num():
@@ -13,7 +13,7 @@ def test_set_index_num():
                            dtype='datetime64[ns]')}
     g = data.Frame(e)
 
-    op = SetIndexOp()
+    op = SetIndex()
     op.setOptions(selected={0: None})
 
     assert op.getOutputShape() is None
@@ -29,6 +29,20 @@ def test_set_index_num():
     h = op.execute(g)
     assert h.shape == s
 
+    # Reset index
+
+    op = ResetIndex()
+    assert op.getOutputShape() is None
+    op.addInputShape(h.shape, 0)
+    s = Shape()
+    s.colNames = ['cowq', 'col2', 'date', 'col3']
+    s.colTypes = [Types.Numeric, Types.Nominal, Types.Datetime, Types.String]
+    s.index = ['Unnamed']
+    s.indexTypes = [IndexType(Types.Numeric)]
+    assert op.getOutputShape() == s
+    j = op.execute(h)
+    assert j.shape == s
+
 
 def test_set_index_cat():
     e = {'cowq': [1, 2, 3, 4.0, 10], 'col2': pd.Categorical(['3', 4, 5, 6, 0]),
@@ -37,7 +51,7 @@ def test_set_index_cat():
                            dtype='datetime64[ns]')}
     g = data.Frame(e)
 
-    op = SetIndexOp()
+    op = SetIndex()
     op.setOptions(selected={1: None, 2: None})
 
     assert op.getOutputShape() is None
@@ -53,6 +67,20 @@ def test_set_index_cat():
     h = op.execute(g)
     assert h.shape == s
 
+    # Reset index
+
+    op = ResetIndex()
+    assert op.getOutputShape() is None
+    op.addInputShape(h.shape, 0)
+    s = Shape()
+    s.colNames = ['cowq', 'col2', 'date', 'col3']
+    s.colTypes = [Types.Numeric, Types.Nominal, Types.Datetime, Types.String]
+    s.index = ['Unnamed']
+    s.indexTypes = [IndexType(Types.Numeric)]
+    assert op.getOutputShape() == s
+    j = op.execute(h)
+    assert j.shape == s
+
 
 def test_set_index_date():
     e = {'cowq': [1, 2, 3, 4.0, 10], 'col2': pd.Categorical(['3', 4, 5, 6, 0], ordered=True),
@@ -61,7 +89,7 @@ def test_set_index_date():
                            dtype='datetime64[ns]')}
     g = data.Frame(e)
 
-    op = SetIndexOp()
+    op = SetIndex()
     op.setOptions(selected={3: None})
 
     assert op.getOutputShape() is None
@@ -79,6 +107,20 @@ def test_set_index_date():
     hs = h.shape
     assert hs == s
 
+    # Reset index
+
+    op = ResetIndex()
+    assert op.getOutputShape() is None
+    op.addInputShape(h.shape, 0)
+    s = Shape()
+    s.colNames = ['cowq', 'col2', 'date', 'col3']
+    s.colTypes = [Types.Numeric, Types.Ordinal, Types.Datetime, Types.String]
+    s.index = ['Unnamed']
+    s.indexTypes = [IndexType(Types.Numeric)]
+    assert op.getOutputShape() == s
+    j = op.execute(h)
+    assert j.shape == s
+
 
 def test_set_index_string():
     e = {'cowq': [1, 2, 3, 4.0, 10], 'col2': pd.Categorical(['3', 4, 5, 6, 0]),
@@ -87,7 +129,7 @@ def test_set_index_string():
                            dtype='datetime64[ns]')}
     g = data.Frame(e)
 
-    op = SetIndexOp()
+    op = SetIndex()
     op.setOptions(selected={2: None})
 
     assert op.getOutputShape() is None
@@ -104,3 +146,17 @@ def test_set_index_string():
     h = op.execute(g)
     hs = h.shape
     assert hs == s
+
+    # Reset index
+
+    op = ResetIndex()
+    assert op.getOutputShape() is None
+    op.addInputShape(h.shape, 0)
+    s = Shape()
+    s.colNames = ['cowq', 'col2', 'date', 'col3']
+    s.colTypes = [Types.Numeric, Types.Nominal, Types.Datetime, Types.String]
+    s.index = ['Unnamed']
+    s.indexTypes = [IndexType(Types.Numeric)]
+    assert op.getOutputShape() == s
+    j = op.execute(h)
+    assert j.shape == s

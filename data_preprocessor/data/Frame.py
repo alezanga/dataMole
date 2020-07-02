@@ -87,8 +87,8 @@ class Frame:
         if len(index) == 1:
             pi = pd.Index(getDataForType(indexTypes[0].type), name=index[0])
         else:
-            values = list(zip(*[getDataForType(dt.type) for dt in indexTypes]))
-            pi = pd.MultiIndex.from_tuples(values, names=index)
+            values = [getDataForType(dt.type) for dt in indexTypes]
+            pi = pd.MultiIndex.from_arrays(values, names=index)
         df = df.set_index(pi)
         return Frame(df)
 
@@ -143,7 +143,6 @@ class Frame:
         :return: a new frame with the new index
         """
         d = self.__df.set_index(col, drop=True, inplace=False)
-        d.index.name = col
         return Frame(d)
 
     def head(self, n: int = 10) -> pd.DataFrame:

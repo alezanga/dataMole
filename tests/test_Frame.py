@@ -84,7 +84,7 @@ def test_shape_index():
     assert f.nRows == 5
 
 
-def test_fromShape():
+def test_fromShape_datetime():
     d = {'col1': [1, 2, 3, 4.0, 10], 'col2': [3, 4, 5, 6, 0], 'col3': ['q', '2', 'c', '4', 'x'],
          'cold': pd.Series(['05-09-1988', '22-12-1994', '21-11-1995', '22-06-1994', '12-12-2012'],
                            dtype='datetime64[ns]')}
@@ -99,4 +99,41 @@ def test_fromShape():
     s.colTypes = [Types.Numeric, Types.Numeric]
     s.index = ['col3', 'cold']
     s.indexTypes = [IndexType(Types.String), IndexType(Types.Datetime)]
+    assert g.shape == s == f.shape
+
+
+def test_fromShape_single_index():
+    d = {'col1': [1, 2, 3, 4.0, 10], 'col2': [3, 4, 5, 6, 0], 'col3': ['q', '2', 'c', '4', 'x'],
+         'cold': pd.Series(['05-09-1988', '22-12-1994', '21-11-1995', '22-06-1994', '12-12-2012'],
+                           dtype='datetime64[ns]')}
+    f = Frame(d)
+    f = f.setIndex('col1')
+
+    g = Frame.fromShape(f.shape)
+
+    s = Shape()
+    # fromShape does preserve index
+    s.colNames = ['cold', 'col2', 'col3']
+    s.colTypes = [Types.Datetime, Types.Numeric, Types.String]
+    s.index = ['col1']
+    s.indexTypes = [IndexType(Types.Numeric)]
+    assert g.shape == s == f.shape
+
+
+def test_fromShape_categories():
+    d = {'col1': [1, 2, 3, 4.0, 10], 'col2': pd.Categorical([3, 4, 5, 6, 0]),
+         'col3': pd.Categorical(['q', '2', 'c', '4', 'x'], ordered=True),
+         'cold': pd.Series(['05-09-1988', '22-12-1994', '21-11-1995', '22-06-1994', '12-12-2012'],
+                           dtype='datetime64[ns]')}
+    f = Frame(d)
+    f = f.setIndex(['col2', 'col3', 'col1'])
+
+    g = Frame.fromShape(f.shape)
+
+    s = Shape()
+    # fromShape does preserve index
+    s.colNames = ['cold']
+    s.colTypes = [Types.Datetime]
+    s.index = ['col3', 'col1', 'col2']
+    s.indexTypes = [IndexType(Types.Ordinal), IndexType(Types.Numeric), IndexType(Types.Nominal)]
     assert g.shape == s == f.shape

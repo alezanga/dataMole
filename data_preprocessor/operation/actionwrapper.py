@@ -85,42 +85,51 @@ class OperationWrapper(QObject):
         self.result = None  # hold the result when available
         self._outputNameBox: Optional[TextOptionWidget] = None
         self._inputComboBox: Optional[QComboBox] = None
-        self._isGraphOperation: bool = False
+        self._hasInputOutputOptions: bool = False
+        self.__worker: Optional[threads.Worker] = None
+
+    def __setUpInputOutputLayout(self) -> QFormLayout:
+        # Add input and output boxes
+        self._inputComboBox = QComboBox(self.editor)
+        self._inputComboBox.setModel(self.operation.workbench)
+        self._outputNameBox = TextOptionWidget(parent=self.editor)
+        self._outputNameBox.widget.textChanged.connect(self._validateOutputName)
+        self._inputComboBox.currentIndexChanged.connect(self._setInput)
+        ioLayout = QFormLayout()
+        ioLayout.addRow('Input data:', self._inputComboBox)
+        ioLayout.addRow('Output name:', self._outputNameBox)
+        completer = QCompleter(self._outputNameBox)
+        completer.setModel(self.operation.workbench)
+        completer.setFilterMode(Qt.MatchContains)
+        completer.setModelSorting(QCompleter.CaseInsensitivelySortedModel)
+        completer.setCompletionMode(QCompleter.UnfilteredPopupCompletion)
+        self._outputNameBox.widget.setCompleter(completer)
+        return ioLayout
 
     def start(self):
-        if not self.operation.needsOptions():
-            return self.onAcceptEditor()
-        self.editor = self.operation.getEditor()
+        if self.operation.needsOptions():
+            # Get editor from operation
+            self.editor = self.operation.getEditor()
+            self.editor.setUpEditor()
+            # Notice that this wrapper does setOptions in the editor (since they are one-shot editors)
+            self.editor.setParent(None)
+        else:
+            # Create empty editor
+            self.editor = AbsOperationEditor(None)
+        # Configure title, description and connect
         self.editor.setWindowTitle(self.operation.name())
+        self.editor.setDescription(self.operation.shortDescription(), self.operation.longDescription())
         self.editor.acceptAndClose.connect(self.onAcceptEditor)
         self.editor.rejectAndClose.connect(self.editor.close)
-        self.editor.setDescription(self.operation.shortDescription(), self.operation.longDescription())
-        self.editor.setUpEditor()
-        options = self.operation.getOptions()
-        if isinstance(options, dict):
-            self.editor.setOptions(**options)
-        else:
-            self.editor.setOptions(*options)
-        self.editor.setParent(None)
-        if isinstance(self.operation, GraphOperation):
-            self._isGraphOperation = True
-            # Add input and output boxes
-            self._inputComboBox = QComboBox(self.editor)
-            self._inputComboBox.setModel(self.operation.workbench)
-            self._outputNameBox = TextOptionWidget(parent=self.editor)
-            self._outputNameBox.widget.textChanged.connect(self._validateOutputName)
-            self._inputComboBox.currentIndexChanged.connect(self._setInput)
-            ioLayout = QFormLayout()
-            ioLayout.addRow('Input data:', self._inputComboBox)
-            ioLayout.addRow('Output name:', self._outputNameBox)
-            completer = QCompleter(self._outputNameBox)
-            completer.setModel(self.operation.workbench)
-            completer.setFilterMode(Qt.MatchContains)
-            completer.setModelSorting(QCompleter.CaseInsensitivelySortedModel)
-            completer.setCompletionMode(QCompleter.UnfilteredPopupCompletion)
-            self._outputNameBox.widget.setCompleter(completer)
+        # If it is a GraphOperation we should add input and output LineEdit
+        if isinstance(self.operation, GraphOperation) or not self.operation.needsOptions():
+            self._hasInputOutputOptions = True
+            ioLayout = self.__setUpInputOutputLayout()
             self.editor.layout().insertLayout(1, ioLayout)
+            # Set input to default value (first entry)
             self._setInput(0)
+            # Set a default output name (name of input)
+            self._outputNameBox.setData(self._inputComboBox.currentText())
         # Set up editor dependencies
         self.operation.injectEditor(self.editor)
         # Show editor
@@ -130,14 +139,15 @@ class OperationWrapper(QObject):
     @Slot()
     def onAcceptEditor(self) -> None:
         try:
-            # Validate and set standard options
-            options = self.editor.getOptions()
-            if isinstance(options, dict):
-                self.operation.setOptions(**options)
-            else:
-                self.operation.setOptions(*options)
-            if self._isGraphOperation:
-                # Validate and set new options
+            if self.operation.needsOptions():
+                # Validate and set standard options
+                options = self.editor.getOptions()
+                if isinstance(options, dict):
+                    self.operation.setOptions(**options)
+                else:
+                    self.operation.setOptions(*options)
+            if self._hasInputOutputOptions:
+                # Validate and set input and output options
                 name: str = self._outputNameBox.getData()
                 if name is not None:
                     name = name.strip()
@@ -163,7 +173,7 @@ class OperationWrapper(QObject):
 
     @Slot(object, object)
     def _onSuccess(self, _, f: Any) -> None:
-        if self._isGraphOperation:
+        if self._hasInputOutputOptions:
             # For graph operations result is immediately set in workbench
             self.operation.workbench.setDataframeByName(self.operation.outName, f)
         else:
