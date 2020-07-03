@@ -752,11 +752,12 @@ class SignalTableView(QTableView):
 
     def mouseReleaseEvent(self, event: QtGui.QMouseEvent) -> None:
         selection: List[QModelIndex] = self.selectedIndexes()
-        previousRow: QModelIndex = selection[0].row() if selection and selection[0].isValid() else -1
+        if selection:
+            previousRow: QModelIndex = selection[0].row() if selection and selection[0].isValid() else -1
+            index = self.indexAt(event.pos())
+            if not index.isValid():
+                self.selectedRowChanged.emit(-1, previousRow)
         super().mouseReleaseEvent(event)
-        index = self.indexAt(event.pos())
-        if not index.isValid():
-            self.selectedRowChanged.emit(-1, previousRow)
 
 
 class BooleanBoxDelegate(QStyledItemDelegate):

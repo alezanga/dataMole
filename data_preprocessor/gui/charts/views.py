@@ -215,26 +215,27 @@ class InteractiveChartView(QtCharts.QChartView):
                 label = axis.min().toString(axis.format())
             # Compute the optimal width of the label (in pixel)
             metrics = QFontMetrics(axis.labelsFont())
-            optimalWidth: int = metrics.width(label)
-            optimalWidth += optimalWidth * 0.30
+            optimalWidth: int = metrics.horizontalAdvance(label) * 1.9
             # Determine optimal number of ticks to avoid much overlapping
             newTicks = int(length / optimalWidth) - 1
             axis.setTickCount(newTicks)
 
             # TODO: test if this works with categories, otherwise remove it
             if axis.type() == QtCharts.QAbstractAxis.AxisTypeCategory:
-                allTicks = ticks + axis.minorTickCount()
-                newMinorTicks = int((allTicks - newTicks) / newTicks)
-                axis.setMinorTickCount(newMinorTicks)
+                if newTicks < ticks:
+                    ratio = 1 - (newTicks / ticks)  # range (0, 1)
+                    angleRange = 180  # max degree rotation
+                    rot = ratio * angleRange
+                    axis.setLabelsAngle(rot)
 
     def setBestTickCount(self, newSize: QSize) -> None:
         if self.__chartIsSet:
             xAxis = self.chart().axisX()
             yAxis = self.chart().axisY()
             if xAxis:
-                InteractiveChartView._updateAxisTickCount(xAxis, newSize)
+                self._updateAxisTickCount(xAxis, newSize)
             if yAxis:
-                InteractiveChartView._updateAxisTickCount(yAxis, newSize)
+                self._updateAxisTickCount(yAxis, newSize)
 
     def resizeEvent(self, event: QResizeEvent):
         if self.scene() and self.__chartIsSet:

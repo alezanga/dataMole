@@ -1,5 +1,5 @@
 import math
-from typing import List
+from typing import List, Optional
 
 from PySide2.QtCharts import QtCharts
 from PySide2.QtCore import QDateTime
@@ -16,8 +16,10 @@ def randomColors(count: int) -> List[QColor]:
     return colors
 
 
-def computeAxisValue(axis: QtCharts.QAbstractAxis, value: float) -> str:
+def computeAxisValue(axis: Optional[QtCharts.QAbstractAxis], value: float) -> str:
     """ Provide the label to be visualized at coordinate 'value' of the specified axis """
+    if not axis:
+        return '-'
     if axis.type() == QtCharts.QAbstractAxis.AxisTypeDateTime:
         axis: QtCharts.QDateTimeAxis
         qDate = QDateTime.fromMSecsSinceEpoch(int(value))
@@ -50,6 +52,7 @@ def copyAxis(chart: QtCharts.QChart, axis: QtCharts.QAbstractAxis) -> QtCharts.Q
         a_copy = QtCharts.QDateTimeAxis(chart)
         a_copy.setMin(axis.min())
         a_copy.setMax(axis.max())
+        a_copy.setFormat(axis.format())
         a_copy.setTickCount(axis.tickCount())
     else:
         raise NotImplementedError('Cannot copy axis of type {}'.format(str(axis.type())))
