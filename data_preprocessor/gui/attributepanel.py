@@ -3,9 +3,11 @@ from typing import Dict, Optional, Tuple, Any
 
 from PySide2.QtCharts import QtCharts
 from PySide2.QtCore import Slot, Qt
-from PySide2.QtWidgets import QWidget, QVBoxLayout, QGridLayout, QLabel, QLayoutItem, QSlider
+from PySide2.QtWidgets import QWidget, QVBoxLayout, QGridLayout, QLabel, QLayoutItem, QSlider, \
+    QPushButton, QSizePolicy
 
 from data_preprocessor.data.types import Types
+from data_preprocessor.gui.diffpanel import DataframeView
 from data_preprocessor.gui.mainmodels import FrameModel, SearchableAttributeTableWidget
 from data_preprocessor.gui.waitingspinnerwidget import QtWaitingSpinner
 from data_preprocessor.gui.workbench import WorkbenchModel
@@ -33,6 +35,12 @@ class AttributePanel(QWidget):
         self._histPanel.slider.valueChanged.connect(self.onHistSliderChange)
         self._histPanel.slider.setEnabled(False)
         self._histPanel.label.setEnabled(False)
+
+        # Add view frame
+        viewButton = QPushButton('View as dataframe', self)
+        viewButton.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        self._attributeTable.layout().itemAt(0).layout().insertWidget(0, viewButton, 1, Qt.AlignLeft)
+        viewButton.clicked.connect(self.viewFrame)
 
     @Slot(int)
     def onFrameSelectionChanged(self, frameIndex: int) -> None:
@@ -121,6 +129,18 @@ class AttributePanel(QWidget):
             self._statPanel.spinner.stop()
         elif mode == 'hist':
             self._histPanel.spinner.stop()
+
+    @Slot()
+    def viewFrame(self) -> None:
+        if not self._frameModel:
+            return
+        w = DataframeView(self)
+        w.setAttribute(Qt.WA_DeleteOnClose)
+        w.setWindowFlags(Qt.Window)
+        w.setWindowTitle('Dataframe view')
+        w.setWorkbench(self._workbench)
+        w.setDataframe(self._frameModel.name)
+        w.show()
 
 
 class StatisticsPanel(QWidget):

@@ -7,7 +7,7 @@ from PySide2 import QtGui
 from PySide2.QtCore import QAbstractTableModel, QModelIndex, Qt, Signal, Slot, QAbstractItemModel, \
     QSortFilterProxyModel, QItemSelection, QThreadPool, QEvent, QRect, QPoint, \
     QRegularExpression, QIdentityProxyModel, QAbstractProxyModel
-from PySide2.QtGui import QPainter
+from PySide2.QtGui import QPainter, QFont
 from PySide2.QtWidgets import QWidget, QTableView, QLineEdit, QVBoxLayout, QHeaderView, QLabel, \
     QHBoxLayout, QStyleOptionViewItem, QStyleOptionButton, QStyle, QApplication, \
     QStyledItemDelegate
@@ -70,10 +70,10 @@ class FrameModel(QAbstractTableModel):
     def columnCount(self, parent: QModelIndex = QModelIndex()) -> int:
         if parent.isValid():
             return 0
-        return self.__shape.nColumns
+        return self.frame.nColumns
 
     def data(self, index: QModelIndex, role: int = ...) -> Any:
-        if index.isValid() and index.row() < self.__renderMaxRows:
+        if index.isValid():
             if role == Qt.DisplayRole:
                 return str(self.__frame.getRawFrame().iloc[index.row(), index.column()])
         return None
@@ -84,8 +84,9 @@ class FrameModel(QAbstractTableModel):
                 return self.__shape.colNames[section] + '\n' + self.__shape.colTypes[section].name
             elif role == FrameModel.DataRole.value:
                 return self.__shape.colNames[section], self.__shape.colTypes[section]
+        # Vertical header shows row number
         elif orientation == Qt.Vertical and role == Qt.DisplayRole:
-            return self.__frame.indexValues[section]
+            return section
         return None
 
     def setHeaderData(self, section: int, orientation: Qt.Orientation, value: Any, role: int = ...) \
@@ -152,9 +153,8 @@ class FrameModel(QAbstractTableModel):
 
 
 class IncrementalRenderFrameModel(QIdentityProxyModel):
-    # TODO: see how to use this
-    DEFAULT_COL_BATCH_SIZE = 50
-    DEFAULT_ROW_BATCH_SIZE = 50
+    DEFAULT_COL_BATCH_SIZE = 300
+    DEFAULT_ROW_BATCH_SIZE = 400
 
     def __init__(self, rowBatch: int = DEFAULT_ROW_BATCH_SIZE,
                  colBatch: int = DEFAULT_COL_BATCH_SIZE, parent: QWidget = None):
@@ -165,6 +165,9 @@ class IncrementalRenderFrameModel(QIdentityProxyModel):
         self.__loadedRows: int = self._batchRows
         self._scrollMode: str = None  # {'row', 'column'}
 
+    def setScrollMode(self, mode: str) -> None:
+        self._scrollMode = mode
+
     def setBatchRowSize(self, size: int) -> None:
         self._batchRows = size
 
@@ -172,17 +175,63 @@ class IncrementalRenderFrameModel(QIdentityProxyModel):
         self._batchCols = size
 
     def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:
-        if parent.isValid():
+        if parent.isValid() or not self.sourceModel():
             return 0
         return min(self.__loadedRows, self.sourceModel().rowCount())
 
     def columnCount(self, parent: QModelIndex = QModelIndex()) -> int:
-        if parent.isValid():
+        if parent.isValid() or not self.sourceModel():
             return 0
-        return min(self.__loadedCols, self.sourceModel().columnCount())
+        return min(self.__loadedCols, self.sourceModel().columnCount()) + len(
+            self.sourceModel().shape.index)
+
+    def data(self, proxyIndex: QModelIndex, role: int = Qt.DisplayRole) -> Any:
+        if not proxyIndex.isValid():
+            return None
+        if 0 <= proxyIndex.column() < len(self.sourceModel().shape.index):
+            if role == Qt.DisplayRole:
+                return self.sourceModel().frame.indexValues[proxyIndex.row()]
+            elif role == Qt.FontRole or role == Qt.BackgroundRole or role == Qt.ForegroundRole:
+                return self.headerData(proxyIndex.row(), Qt.Vertical, role)
+        return super().data(proxyIndex, role)
+
+    def headerData(self, section: int, orientation: Qt.Orientation, role: int = Qt.DisplayRole) -> Any:
+        if not self.sourceModel():
+            return None
+        indexLen: int = 0
+        if orientation == Qt.Horizontal:
+            indexes: List[str] = self.sourceModel().shape.index
+            indexLen = len(indexes)
+            if 0 <= section < indexLen:
+                if role == Qt.DisplayRole:
+                    return indexes[section] + '\n(index)'
+                elif role == Qt.FontRole:
+                    font: QFont = QFont()
+                    font.setBold(True)
+                    return font
+        return super().headerData(section - indexLen, orientation, role)
+
+    def mapToSource(self, proxyIndex: QModelIndex) -> QModelIndex:
+        indexLen = len(self.sourceModel().shape.index)
+        if proxyIndex.isValid() and proxyIndex.column() >= indexLen:
+            sourceIndex = self.sourceModel().createIndex(proxyIndex.row(),
+                                                         proxyIndex.column() - indexLen)
+        else:
+            sourceIndex = QModelIndex()  # super().mapToSource(proxyIndex)
+        return sourceIndex
+
+    def mapFromSource(self, sourceIndex: QModelIndex) -> QModelIndex:
+        if sourceIndex.isValid():
+            indexLen = len(self.sourceModel().shape.index)
+            proxyIndex = self.createIndex(sourceIndex.row(), sourceIndex.column() + indexLen)
+        else:
+            proxyIndex = QModelIndex()  # super().mapFromSource(sourceIndex)
+        return proxyIndex
 
     def canFetchMore(self, parent: QModelIndex) -> bool:
         """ Returns True if more columns should be displayed, False otherwise """
+        if not self.sourceModel():
+            return False
         return self.__loadedCols < self.sourceModel().columnCount() if self._scrollMode == 'column' \
             else self.__loadedRows < self.sourceModel().rowCount()
 
