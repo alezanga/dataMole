@@ -110,9 +110,10 @@ class WorkbenchModel(QAbstractListModel):
         # Reset connected models by showing an empty frame. This also delete their reference
         frame_model.setFrame(frame=d.Frame())
         # Now delete row
-        rowName: str = self.index(row, 0, QModelIndex()).data(Qt.DisplayRole)
         del self.__workbench[row]
-        del self.__nameToIndex[rowName]
+        # Recreate updated dictionary
+        self.__nameToIndex = {name: (i if i < row else i - 1)
+                              for name, i in self.__nameToIndex.items() if i != row}
         self.endRemoveRows()
         return True
 
@@ -131,9 +132,9 @@ class WorkbenchModel(QAbstractListModel):
 
 
 class WorkbenchView(QTableView):
-    selectedRowChanged = Signal(int)
+    selectedRowChanged = Signal([int], [str])
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, editable: bool = True):
         super().__init__(parent)
         self.setSelectionMode(QListView.SingleSelection)
         self.horizontalHeader().setStretchLastSection(True)
@@ -146,9 +147,12 @@ class WorkbenchView(QTableView):
         self.verticalHeader().setDragDropOverwriteMode(False)
         self.verticalHeader().setDropIndicatorShown(True)
         self.verticalHeader().hide()
+        self._editable = editable
+        if not self._editable:
+            self.setEditTriggers(QListView.NoEditTriggers)
 
     def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
-        if event.key() == Qt.Key_Delete:
+        if event.key() == Qt.Key_Delete and self._editable:
             for index in self.selectedIndexes():
                 self.model().removeRow(index.row())
         else:
@@ -159,9 +163,11 @@ class WorkbenchView(QTableView):
         super().selectionChanged(selected, deselected)
         current: QModelIndex = selected.indexes()[0] if selected.indexes() else QModelIndex()
         if current.isValid():
-            self.selectedRowChanged.emit(current.row())
+            self.selectedRowChanged[int].emit(current.row())
+            self.selectedRowChanged[str].emit(current.data(Qt.DisplayRole))
         else:
-            self.selectedRowChanged.emit(-1)
+            self.selectedRowChanged[int].emit(-1)
+            self.selectedRowChanged[str].emit('')
 
     def mousePressEvent(self, event: QtGui.QMouseEvent):
         super().mousePressEvent(event)

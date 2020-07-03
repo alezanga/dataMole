@@ -250,7 +250,7 @@ class TimeSeriesPlot(QWidget):
             # Time axis is Ordinal (time are str labels)
             xAxis = QtCharts.QCategoryAxis()
             for cat, code in zip(timeSeries, timeSeries.cat.codes):
-                xAxis.append(cat, code + 1)
+                xAxis.append(cat, code)
             xAxis.setStartValue(0)
             xAxis.setLabelsPosition(QtCharts.QCategoryAxis.AxisLabelsPositionOnValue)
         xAxis.setTitleText('Time')
@@ -283,6 +283,8 @@ class TimeSeriesPlot(QWidget):
             points = list(map(lambda t: QPointF(*t), zip(timeValues, valueSeries)))
             qSeries.append(points)
             qSeries.setName(colName)
+            qSeries.setPointsVisible(True)
+            qSeries.setUseOpenGL(True)
             allSeries.append(qSeries)
         return allSeries
 

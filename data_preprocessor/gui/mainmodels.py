@@ -726,7 +726,7 @@ class SearchableAttributeTableWidget(QWidget):
 
 
 class SignalTableView(QTableView):
-    selectedRowChanged = Signal(int, int)
+    selectedRowChanged = Signal((int, int), (str, str))
 
     def __init__(self, parent: QWidget = None):
         super().__init__(parent)
@@ -741,6 +741,8 @@ class SignalTableView(QTableView):
         previous: QModelIndex = deselected.indexes()[0] if deselected.indexes() else QModelIndex()
         crow: int = -1
         prow: int = -1
+        cdata: str = current.data(Qt.DisplayRole)
+        pdata: str = previous.data(Qt.DisplayRole)
         if isinstance(self.model(), QAbstractProxyModel):
             current = self.model().mapToSource(current) if current.isValid() else current
             previous = self.model().mapToSource(previous) if previous.isValid() else previous
@@ -748,7 +750,10 @@ class SignalTableView(QTableView):
             crow = current.row()
         if previous.isValid():
             prow = previous.row()
-        self.selectedRowChanged.emit(crow, prow)
+        self.selectedRowChanged[int, int].emit(crow, prow)
+        # If data is string, also emit the signal with string
+        if isinstance(cdata, str):
+            self.selectedRowChanged[str, str].emit(cdata, pdata)
 
     def mouseReleaseEvent(self, event: QtGui.QMouseEvent) -> None:
         selection: List[QModelIndex] = self.selectedIndexes()
