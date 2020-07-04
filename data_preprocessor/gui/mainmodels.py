@@ -7,7 +7,7 @@ from PySide2 import QtGui
 from PySide2.QtCore import QAbstractTableModel, QModelIndex, Qt, Signal, Slot, QAbstractItemModel, \
     QSortFilterProxyModel, QItemSelection, QThreadPool, QEvent, QRect, QPoint, \
     QRegularExpression, QIdentityProxyModel, QAbstractProxyModel
-from PySide2.QtGui import QPainter, QFont
+from PySide2.QtGui import QPainter
 from PySide2.QtWidgets import QWidget, QTableView, QLineEdit, QVBoxLayout, QHeaderView, QLabel, \
     QHBoxLayout, QStyleOptionViewItem, QStyleOptionButton, QStyle, QApplication, \
     QStyledItemDelegate
@@ -70,7 +70,7 @@ class FrameModel(QAbstractTableModel):
     def columnCount(self, parent: QModelIndex = QModelIndex()) -> int:
         if parent.isValid():
             return 0
-        return self.frame.nColumns
+        return self.shape.nColumns
 
     def data(self, index: QModelIndex, role: int = ...) -> Any:
         if index.isValid():
@@ -182,51 +182,73 @@ class IncrementalRenderFrameModel(QIdentityProxyModel):
     def columnCount(self, parent: QModelIndex = QModelIndex()) -> int:
         if parent.isValid() or not self.sourceModel():
             return 0
-        return min(self.__loadedCols, self.sourceModel().columnCount()) + len(
-            self.sourceModel().shape.index)
-
-    def data(self, proxyIndex: QModelIndex, role: int = Qt.DisplayRole) -> Any:
-        if not proxyIndex.isValid():
-            return None
-        if 0 <= proxyIndex.column() < len(self.sourceModel().shape.index):
-            if role == Qt.DisplayRole:
-                return self.sourceModel().frame.indexValues[proxyIndex.row()]
-            elif role == Qt.FontRole or role == Qt.BackgroundRole or role == Qt.ForegroundRole:
-                return self.headerData(proxyIndex.row(), Qt.Vertical, role)
-        return super().data(proxyIndex, role)
+        return min(self.__loadedCols, self.sourceModel().columnCount())
+        # + len(self.sourceModel().shape.index)
 
     def headerData(self, section: int, orientation: Qt.Orientation, role: int = Qt.DisplayRole) -> Any:
         if not self.sourceModel():
             return None
-        indexLen: int = 0
-        if orientation == Qt.Horizontal:
-            indexes: List[str] = self.sourceModel().shape.index
-            indexLen = len(indexes)
-            if 0 <= section < indexLen:
-                if role == Qt.DisplayRole:
-                    return indexes[section] + '\n(index)'
-                elif role == Qt.FontRole:
-                    font: QFont = QFont()
-                    font.setBold(True)
-                    return font
-        return super().headerData(section - indexLen, orientation, role)
+        if orientation == Qt.Vertical and 0 <= section < self.sourceModel().frame.nRows:
+            indexes: List = self.sourceModel().frame.indexValues
+            indexLen: int = len(self.sourceModel().shape.index)
+            if role == Qt.DisplayRole:
+                if indexLen == 1:
+                    return str(indexes[section])
+                else:
+                    return ' | '.join([str(i) for i in indexes[section]])
+        return super().headerData(section, orientation, role)
 
-    def mapToSource(self, proxyIndex: QModelIndex) -> QModelIndex:
-        indexLen = len(self.sourceModel().shape.index)
-        if proxyIndex.isValid() and proxyIndex.column() >= indexLen:
-            sourceIndex = self.sourceModel().createIndex(proxyIndex.row(),
-                                                         proxyIndex.column() - indexLen)
-        else:
-            sourceIndex = QModelIndex()  # super().mapToSource(proxyIndex)
-        return sourceIndex
+    # def data(self, proxyIndex: QModelIndex, role: int = Qt.DisplayRole) -> Any:
+    #     if not proxyIndex.isValid():
+    #         return None
+    #     if 0 <= proxyIndex.column() < len(self.sourceModel().shape.index):
+    #         if role == Qt.DisplayRole:
+    #             return self.sourceModel().frame.indexValues[proxyIndex.row()]
+    #         elif role == Qt.FontRole or role == Qt.BackgroundRole or role == Qt.ForegroundRole:
+    #             return self.headerData(proxyIndex.row(), Qt.Vertical, role)
+    #     return super().data(proxyIndex, role)
 
-    def mapFromSource(self, sourceIndex: QModelIndex) -> QModelIndex:
-        if sourceIndex.isValid():
-            indexLen = len(self.sourceModel().shape.index)
-            proxyIndex = self.createIndex(sourceIndex.row(), sourceIndex.column() + indexLen)
-        else:
-            proxyIndex = QModelIndex()  # super().mapFromSource(sourceIndex)
-        return proxyIndex
+    # def headerData(self, section: int, orientation: Qt.Orientation, role: int = Qt.DisplayRole) -> Any:
+    #     if not self.sourceModel():
+    #         return None
+    #     indexLen: int = 0
+    #     if orientation == Qt.Horizontal:
+    #         indexes: List[str] = self.sourceModel().shape.index
+    #         indexLen = len(indexes)
+    #         if 0 <= section < indexLen:
+    #             if role == Qt.DisplayRole:
+    #                 return indexes[section] + '\n(index)'
+    #             elif role == Qt.FontRole:
+    #                 font: QFont = QFont()
+    #                 font.setBold(True)
+    #                 return font
+    #     return super().headerData(section - indexLen, orientation, role)
+    #
+    # def mapToSource(self, proxyIndex: QModelIndex) -> QModelIndex:
+    #     indexLen = len(self.sourceModel().shape.index)
+    #     sourceIndex = super(IncrementalRenderFrameModel, self).mapToSource(proxyIndex)
+    #     if sourceIndex.isValid():
+    #         return self.sourceModel().createIndex(sourceIndex.row(), sourceIndex.column() - indexLen)
+    #     return sourceIndex
+    #     # if proxyIndex.isValid() and proxyIndex.column() >= indexLen:
+    #     #     sourceIndex = self.sourceModel().createIndex(proxyIndex.row(),
+    #     #                                                  proxyIndex.column() - indexLen)
+    #     # else:
+    #     #     sourceIndex = QModelIndex()  # super().mapToSource(proxyIndex)
+    #     # return sourceIndex
+    #
+    # def mapFromSource(self, sourceIndex: QModelIndex) -> QModelIndex:
+    #     indexLen = len(self.sourceModel().shape.index)
+    #     proxyIndex = super(IncrementalRenderFrameModel, self).mapFromSource(sourceIndex)
+    #     if proxyIndex.isValid():
+    #         return self.createIndex(proxyIndex.row(), proxyIndex.column() + indexLen)
+    #     return proxyIndex
+    #     # if sourceIndex.isValid():
+    #     #     indexLen = len(self.sourceModel().shape.index)
+    #     #     proxyIndex = self.createIndex(sourceIndex.row(), sourceIndex.column() + indexLen)
+    #     # else:
+    #     #     proxyIndex = QModelIndex()  # super().mapFromSource(sourceIndex)
+    #     # return proxyIndex
 
     def canFetchMore(self, parent: QModelIndex) -> bool:
         """ Returns True if more columns should be displayed, False otherwise """

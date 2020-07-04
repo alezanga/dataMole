@@ -1,8 +1,9 @@
 import sys
 
-from PySide2.QtCore import Slot
+from PySide2.QtCore import Slot, Qt
 from PySide2.QtWidgets import QWidget, QTableView, QSplitter, QHBoxLayout, QComboBox, QVBoxLayout
 
+from data_preprocessor.gui.indexheaderview import IndexHeaderView
 from data_preprocessor.gui.mainmodels import IncrementalRenderFrameModel
 from data_preprocessor.gui.workbench import WorkbenchModel
 
@@ -16,6 +17,8 @@ class DataframeView(QWidget):
         layout.addWidget(self.inputCB)
         layout.addWidget(self.dataView)
         self._workbench: WorkbenchModel = None
+        vh = IndexHeaderView(Qt.Vertical, self.dataView)
+        self.dataView.setVerticalHeader(vh)
 
     def setWorkbench(self, w: WorkbenchModel) -> None:
         self.inputCB.setModel(w)
