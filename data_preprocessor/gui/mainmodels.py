@@ -161,8 +161,8 @@ class IncrementalRenderFrameModel(QIdentityProxyModel):
         super().__init__(parent)
         self._batchRows: int = rowBatch
         self._batchCols: int = colBatch
-        self.__loadedCols: int = self._batchCols
-        self.__loadedRows: int = self._batchRows
+        self._loadedCols: int = self._batchCols
+        self._loadedRows: int = self._batchRows
         self._scrollMode: str = None  # {'row', 'column'}
 
     def setScrollMode(self, mode: str) -> None:
@@ -177,98 +177,45 @@ class IncrementalRenderFrameModel(QIdentityProxyModel):
     def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:
         if parent.isValid() or not self.sourceModel():
             return 0
-        return min(self.__loadedRows, self.sourceModel().rowCount())
+        return min(self._loadedRows, self.sourceModel().rowCount())
 
     def columnCount(self, parent: QModelIndex = QModelIndex()) -> int:
         if parent.isValid() or not self.sourceModel():
             return 0
-        return min(self.__loadedCols, self.sourceModel().columnCount())
-        # + len(self.sourceModel().shape.index)
+        return min(self._loadedCols, self.sourceModel().columnCount())
 
     def headerData(self, section: int, orientation: Qt.Orientation, role: int = Qt.DisplayRole) -> Any:
         if not self.sourceModel():
             return None
-        if orientation == Qt.Vertical and 0 <= section < self.sourceModel().frame.nRows:
+        if orientation == Qt.Vertical:
             indexes: List = self.sourceModel().frame.indexValues
-            indexLen: int = len(self.sourceModel().shape.index)
+            indexLen: int = self.sourceModel().shape.nIndexLevels
             if role == Qt.DisplayRole:
                 if indexLen == 1:
                     return str(indexes[section])
                 else:
-                    return ' | '.join([str(i) for i in indexes[section]])
+                    return '  '.join([str(i) for i in indexes[section]])
         return super().headerData(section, orientation, role)
-
-    # def data(self, proxyIndex: QModelIndex, role: int = Qt.DisplayRole) -> Any:
-    #     if not proxyIndex.isValid():
-    #         return None
-    #     if 0 <= proxyIndex.column() < len(self.sourceModel().shape.index):
-    #         if role == Qt.DisplayRole:
-    #             return self.sourceModel().frame.indexValues[proxyIndex.row()]
-    #         elif role == Qt.FontRole or role == Qt.BackgroundRole or role == Qt.ForegroundRole:
-    #             return self.headerData(proxyIndex.row(), Qt.Vertical, role)
-    #     return super().data(proxyIndex, role)
-
-    # def headerData(self, section: int, orientation: Qt.Orientation, role: int = Qt.DisplayRole) -> Any:
-    #     if not self.sourceModel():
-    #         return None
-    #     indexLen: int = 0
-    #     if orientation == Qt.Horizontal:
-    #         indexes: List[str] = self.sourceModel().shape.index
-    #         indexLen = len(indexes)
-    #         if 0 <= section < indexLen:
-    #             if role == Qt.DisplayRole:
-    #                 return indexes[section] + '\n(index)'
-    #             elif role == Qt.FontRole:
-    #                 font: QFont = QFont()
-    #                 font.setBold(True)
-    #                 return font
-    #     return super().headerData(section - indexLen, orientation, role)
-    #
-    # def mapToSource(self, proxyIndex: QModelIndex) -> QModelIndex:
-    #     indexLen = len(self.sourceModel().shape.index)
-    #     sourceIndex = super(IncrementalRenderFrameModel, self).mapToSource(proxyIndex)
-    #     if sourceIndex.isValid():
-    #         return self.sourceModel().createIndex(sourceIndex.row(), sourceIndex.column() - indexLen)
-    #     return sourceIndex
-    #     # if proxyIndex.isValid() and proxyIndex.column() >= indexLen:
-    #     #     sourceIndex = self.sourceModel().createIndex(proxyIndex.row(),
-    #     #                                                  proxyIndex.column() - indexLen)
-    #     # else:
-    #     #     sourceIndex = QModelIndex()  # super().mapToSource(proxyIndex)
-    #     # return sourceIndex
-    #
-    # def mapFromSource(self, sourceIndex: QModelIndex) -> QModelIndex:
-    #     indexLen = len(self.sourceModel().shape.index)
-    #     proxyIndex = super(IncrementalRenderFrameModel, self).mapFromSource(sourceIndex)
-    #     if proxyIndex.isValid():
-    #         return self.createIndex(proxyIndex.row(), proxyIndex.column() + indexLen)
-    #     return proxyIndex
-    #     # if sourceIndex.isValid():
-    #     #     indexLen = len(self.sourceModel().shape.index)
-    #     #     proxyIndex = self.createIndex(sourceIndex.row(), sourceIndex.column() + indexLen)
-    #     # else:
-    #     #     proxyIndex = QModelIndex()  # super().mapFromSource(sourceIndex)
-    #     # return proxyIndex
 
     def canFetchMore(self, parent: QModelIndex) -> bool:
         """ Returns True if more columns should be displayed, False otherwise """
         if not self.sourceModel():
             return False
-        return self.__loadedCols < self.sourceModel().columnCount() if self._scrollMode == 'column' \
-            else self.__loadedRows < self.sourceModel().rowCount()
+        return self._loadedCols < self.sourceModel().columnCount() if self._scrollMode == 'column' \
+            else self._loadedRows < self.sourceModel().rowCount()
 
     def fetchMore(self, parent: QModelIndex):
         if self._scrollMode == 'column':
-            remainder = self.sourceModel().columnCount() - self.__loadedCols
+            remainder = self.sourceModel().columnCount() - self._loadedCols
             colsToFetch = min(remainder, self._batchCols)
-            self.beginInsertColumns(parent, self.__loadedCols, self.__loadedCols + colsToFetch - 1)
-            self.__loadedCols += colsToFetch
+            self.beginInsertColumns(parent, self._loadedCols, self._loadedCols + colsToFetch - 1)
+            self._loadedCols += colsToFetch
             self.endInsertColumns()
         elif self._scrollMode == 'row':
-            remainder = self.sourceModel().rowCount() - self.__loadedRows
+            remainder = self.sourceModel().rowCount() - self._loadedRows
             rowsToFetch = min(remainder, self._batchRows)
-            self.beginInsertRows(parent, self.__loadedRows, self.__loadedRows + rowsToFetch - 1)
-            self.__loadedRows += rowsToFetch
+            self.beginInsertRows(parent, self._loadedRows, self._loadedRows + rowsToFetch - 1)
+            self._loadedRows += rowsToFetch
             self.endInsertRows()
 
 

@@ -8,6 +8,7 @@ from data_preprocessor.decorators.generic import singleton
 from data_preprocessor.flow.OperationDag import OperationDag
 from data_preprocessor.gui.attributepanel import AttributePanel
 from data_preprocessor.gui.chartpanel import ChartPanel
+from data_preprocessor.gui.diffpanel import DataframeSideBySideView, DiffDataframeWidget
 from data_preprocessor.gui.framepanel import FramePanel
 from data_preprocessor.gui.graph.controller import GraphController
 from data_preprocessor.gui.graph.scene import GraphScene
@@ -93,10 +94,13 @@ class MainWindow(QMainWindow):
         menuBar = QMenuBar()
         fileMenu = menuBar.addMenu('File')
         flowMenu = menuBar.addMenu('Flow')
+        viewMenu = menuBar.addMenu('View')
         addAction = QAction('Add frame', fileMenu)
         addAction.setStatusTip('Create an empty dataframe in the workbench')
         loadCsvAction = OperationAction(CsvLoader, fileMenu, 'Load csv',
                                         self.rect().center(), central_w.workbench_model)
+        compareAction = QAction('Compare dataframes', viewMenu)
+        diffAction = QAction('Diff dataframes', viewMenu)
         fileMenu.addAction(addAction)
         fileMenu.addAction(loadCsvAction)
         fileMenu.show()
@@ -105,6 +109,8 @@ class MainWindow(QMainWindow):
         reset_flow = QAction('Reset', flowMenu)
         flowMenu.addAction(exec_flow)
         flowMenu.addAction(reset_flow)
+        viewMenu.addAction(compareAction)
+        viewMenu.addAction(diffAction)
         flowMenu.show()
 
         self.setMenuBar(menuBar)
@@ -113,8 +119,29 @@ class MainWindow(QMainWindow):
         addAction.triggered.connect(central_w.workbench_model.appendEmptyRow)
         exec_flow.triggered.connect(self.centralWidget().controller.executeFlow)
         reset_flow.triggered.connect(self.centralWidget().controller.resetFlowStatus)
+        compareAction.triggered.connect(self.openComparePanel)
+        diffAction.triggered.connect(self.openDiffPanel)
         loadCsvAction.stateChanged.connect(self.operationStateChanged)
         self.centralWidget().frameInfoPanel.operationRequest.connect(self.executeOperation)
+
+    @Slot()
+    def openComparePanel(self) -> None:
+        dv = DataframeSideBySideView(self)
+        dv.setWindowFlags(Qt.Window)
+        dv.setAttribute(Qt.WA_DeleteOnClose)
+        dv.setWindowTitle('Side by side view')
+        dv.dataWidgetL.setWorkbench(self.centralWidget().workbench_model)
+        dv.dataWidgetR.setWorkbench(self.centralWidget().workbench_model)
+        dv.show()
+
+    @Slot()
+    def openDiffPanel(self) -> None:
+        dv = DiffDataframeWidget(self)
+        dv.setWindowFlags(Qt.Window)
+        dv.setAttribute(Qt.WA_DeleteOnClose)
+        dv.setWindowTitle('Diff view')
+        dv.setWorkbench(self.centralWidget().workbench_model)
+        dv.show()
 
     @Slot(int, str)
     def operationStateChanged(self, uid: int, state: str) -> None:

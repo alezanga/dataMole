@@ -1,10 +1,10 @@
-import sys
+from PySide2.QtCore import Slot
+from PySide2.QtWidgets import QWidget, QTableView, QSplitter, QHBoxLayout, QComboBox, QVBoxLayout, \
+    QPushButton
 
-from PySide2.QtCore import Slot, Qt
-from PySide2.QtWidgets import QWidget, QTableView, QSplitter, QHBoxLayout, QComboBox, QVBoxLayout
-
-from data_preprocessor.gui.indexheaderview import IndexHeaderView
-from data_preprocessor.gui.mainmodels import IncrementalRenderFrameModel
+from data_preprocessor.data import Frame
+from data_preprocessor.gui.mainmodels import IncrementalRenderFrameModel, SearchableAttributeTableWidget, \
+    FrameModel
 from data_preprocessor.gui.workbench import WorkbenchModel
 
 
@@ -17,13 +17,14 @@ class DataframeView(QWidget):
         layout.addWidget(self.inputCB)
         layout.addWidget(self.dataView)
         self._workbench: WorkbenchModel = None
-        vh = IndexHeaderView(Qt.Vertical, self.dataView)
-        self.dataView.setVerticalHeader(vh)
 
     def setWorkbench(self, w: WorkbenchModel) -> None:
         self.inputCB.setModel(w)
         self._workbench = w
         self.inputCB.currentTextChanged.connect(self.setDataframe)
+        if w.rowCount():
+            self.inputCB.setCurrentIndex(0)
+            self.setDataframe(self.inputCB.currentText())
 
     @Slot(str)
     def setDataframe(self, name: str) -> None:
@@ -43,7 +44,7 @@ class DataframeView(QWidget):
         self.dataView.model().setScrollMode('column')
 
 
-class DataframeDiffView(QWidget):
+class DataframeSideBySideView(QWidget):
     def __init__(self, parent: QWidget = None):
         super().__init__(parent)
         self.dataWidgetL = DataframeView(self)
@@ -54,7 +55,7 @@ class DataframeDiffView(QWidget):
         splitter.addWidget(self.dataWidgetR)
         layout = QHBoxLayout(self)
         layout.addWidget(splitter)
-        splitter.setSizes([sys.maxsize, sys.maxsize])
+        splitter.setSizes([10, 10])
 
         self.dataWidgetL.dataView.verticalScrollBar().valueChanged.connect(
             self.dataWidgetR.dataView.verticalScrollBar().setValue)
