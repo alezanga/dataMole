@@ -417,7 +417,7 @@ class AttributeTableModel(AbstractAttributeModel, QAbstractTableModel,
                                   self.index(sec2, self.nameColumn))
 
     def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:
-        if parent.isValid():
+        if parent.isValid() or not self._frameModel:
             return 0
         return self._frameModel.columnCount()
 
@@ -575,10 +575,16 @@ class AttributeProxyModel(AbstractAttributeModel, QSortFilterProxyModel,
                           metaclass=AttributeProxyModelMeta):
     """ Proxy model to filter attributes to show """
 
-    def __init__(self, filterTypes: List[Type], parent: QWidget = None):
+    def __init__(self, filterTypes: List[Type] = None, parent: QWidget = None):
         super().__init__(parent)
-        self._filterTypes: Optional[List[Type]] = filterTypes if (filterTypes and filterTypes !=
-                                                                  ALL_TYPES) else None
+        self._filterTypes: Optional[List[Type]] = None
+        self.setFilters(filterTypes)
+
+    def filters(self) -> Optional[List[Type]]:
+        return self._filterTypes
+
+    def setFilters(self, filterTypes: List[Type]) -> None:
+        self._filterTypes = filterTypes if (filterTypes and filterTypes != ALL_TYPES) else None
 
     def __isAcceptedByType(self, source_row: int, _: QModelIndex) -> bool:
         """ Returns True iff source_row has an accepted type """
@@ -654,7 +660,9 @@ class SearchableAttributeTableWidget(QWidget):
         model = AttributeTableModel(parent=self, checkable=checkable,
                                     editable=editable,
                                     showTypes=showTypes)
-        self.__model: AttributeProxyModel = self.__setUpProxies(model, filterTypes)
+        self.__model: Optional[AttributeProxyModel] = None
+        # Creates and set up a proxy model with 'model' as its source
+        self.__setUpProxies(model, filterTypes)
 
         self.tableView = SignalTableView(parent=self)
 
@@ -670,19 +678,25 @@ class SearchableAttributeTableWidget(QWidget):
         searchLayout.addSpacing(30)
         searchLayout.addWidget(self.__searchBar, 0, alignment=Qt.AlignRight)
 
+        # Connect search and checkbox click
+        self.__searchBar.textChanged.connect(self.setFilterRegularExpression)
+        self.__searchBar.textChanged.connect(self.refreshHeaderCheckbox)
+
         layout = QVBoxLayout()
         layout.addLayout(searchLayout)
         layout.addWidget(self.tableView)
         self.setLayout(layout)
 
-    @staticmethod
-    def __setUpProxies(model: AttributeTableModel, filterTypes: List[Type]) -> AttributeTableModel:
+    def __setUpProxies(self, model: AttributeTableModel, filterTypes: List[Type]) -> None:
+        """ Creates and sets up a proxyModel with 'model' as its source. The proxy will be searchable
+        and will filter types """
+        # First create a new proxy if None is set
+        if not self.__model:
+            self.__model: AttributeProxyModel = AttributeProxyModel(parent=self)
         # Add type filter and search
-        model1 = AttributeProxyModel(filterTypes=filterTypes,
-                                     parent=model)
-        model1.setSourceModel(model)
-        model1.setFilterKeyColumn(model.nameColumn)
-        return model1
+        self.__model.setSourceModel(model)
+        self.__model.setFilterKeyColumn(model.nameColumn)
+        self.__model.setFilters(filterTypes)
 
     def model(self) -> AttributeProxyModel:
         return self.__model
@@ -692,9 +706,8 @@ class SearchableAttributeTableWidget(QWidget):
         Sets a custom AttributeTableModel. If the source frame is present it also updates view.
         This method is provided as an alternative to building everything in the constructor.
         """
-        if self.__model:
-            self.__model.deleteLater()  # Delete old model and its proxy
-        self.__model: AttributeProxyModel = self.__setUpProxies(model, filterTypes)
+        # Set up a proxy for search and type-filtering
+        self.__setUpProxies(model, filterTypes)
         if self.__model.frameModel():
             # The model already have the frameModel set
             self.setSourceFrameModel(self.__model.frameModel())
@@ -702,8 +715,9 @@ class SearchableAttributeTableWidget(QWidget):
     def setSourceFrameModel(self, source: FrameModel) -> None:
         """ Adds the frame mode in the current AttributeModel and updates the view  """
         self.__model.setFrameModel(source)
-        oldViewModel = self.tableView.model()
-        if oldViewModel is not self.__model:
+        viewModel = self.tableView.model()
+        if viewModel is None:
+            # When no model is set in view
             # Set model in the view
             self.tableView.setModel(self.__model)
             # Set sections stretch and alignment
@@ -722,22 +736,21 @@ class SearchableAttributeTableWidget(QWidget):
             if self.__model.checkboxColumn is not None:
                 self.tableView.setItemDelegateForColumn(self.__model.checkboxColumn,
                                                         BooleanBoxDelegate(self))
-            # Connect search and checkbox click
-            self.__searchBar.textChanged.connect(self.setFilterRegularExpression)
-            self.__searchBar.textChanged.connect(self.refreshHeaderCheckbox)
             hh.sectionClicked.connect(self.__model.onHeaderClicked)
-            if oldViewModel:
-                oldViewModel.deleteLater()
 
     @Slot(str)
     def setFilterRegularExpression(self, pattern: str) -> None:
         """ Custom slot to set case insensitivity """
+        if not self.__model:
+            return
         exp = QRegularExpression(pattern, options=QRegularExpression.CaseInsensitiveOption)
         self.__model.setFilterRegularExpression(exp)
 
     @Slot()
     def refreshHeaderCheckbox(self) -> None:
         """ Emits headerDataChanged on the checkbox column if present """
+        if not self.__model:
+            return
         section = self.__model.checkboxColumn
         if section is not None:
             self.__model.headerDataChanged.emit(Qt.Horizontal, section, section)

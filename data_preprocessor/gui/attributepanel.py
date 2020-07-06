@@ -31,7 +31,8 @@ class AttributePanel(QWidget):
         layout.addWidget(self._statPanel, 1)
         layout.addWidget(self._histPanel, 3)
         self.setLayout(layout)
-        self._attributeTable.tableView.selectedRowChanged.connect(self.onAttributeSelectionChanged)
+        self._attributeTable.tableView.selectedRowChanged[int, int].connect(
+            self.onAttributeSelectionChanged)
         self._histPanel.slider.valueChanged.connect(self.onHistSliderChange)
         self._histPanel.slider.setEnabled(False)
         self._histPanel.label.setEnabled(False)
@@ -42,15 +43,14 @@ class AttributePanel(QWidget):
         self._attributeTable.layout().itemAt(0).layout().insertWidget(0, viewButton, 1, Qt.AlignLeft)
         viewButton.clicked.connect(self.viewFrame)
 
-    @Slot(int)
-    def onFrameSelectionChanged(self, frameIndex: int) -> None:
-        if frameIndex == -1:
+    @Slot(str, str)
+    def onFrameSelectionChanged(self, frameName: str, *_) -> None:
+        if not frameName:
             return
         if self._frameModel:
             # Disconnect everything from old model
             self._frameModel.disconnect(self)
-        assert 0 <= frameIndex < self._workbench.rowCount()
-        self._frameModel = self._workbench.getDataframeModelByIndex(frameIndex)
+        self._frameModel = self._workbench.getDataframeModelByName(frameName)
         self._attributeTable.setSourceFrameModel(self._frameModel)
         # Reconnect new model
         self._frameModel.statisticsComputed.connect(self.onComputationFinished)
@@ -58,8 +58,8 @@ class AttributePanel(QWidget):
         # Reset attribute panel
         self.onAttributeSelectionChanged(-1)
 
-    @Slot(int)
-    def onAttributeSelectionChanged(self, attributeIndex: int) -> None:
+    @Slot(int, int)
+    def onAttributeSelectionChanged(self, attributeIndex: int, *_) -> None:
         if self.__currentAttributeIndex == attributeIndex:
             return
         # Set working attribute and its type

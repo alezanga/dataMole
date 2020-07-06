@@ -44,17 +44,22 @@ class AbsOperationEditor(QWidget):
         self.butLayout.addWidget(butCancel, alignment=Qt.AlignLeft)
         self.butLayout.addWidget(self.__butOk, alignment=Qt.AlignRight)
 
+        self.__helpVerticalLayout = QVBoxLayout()
         self.__helpLayout = QHBoxLayout()
         self.__descLabel = QLabel()
         self.__helpLayout.addWidget(self.__descLabel, 7)
         self.__descLabel.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.Maximum)
+        self.__helpVerticalLayout.addLayout(self.__helpLayout)
+        ll = QLabel('<hr>')
+        ll.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
+        self.__helpVerticalLayout.addWidget(ll)
 
         self.errorLabel = QLabel(self)
         self.errorLabel.setWordWrap(True)
         self.errorLabel.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Maximum)
 
         self._layout = QVBoxLayout()
-        self._layout.addLayout(self.__helpLayout, 1)
+        self._layout.addLayout(self.__helpVerticalLayout, 1)
         self._layout.addWidget(self.errorLabel, 1)
         ll = QLabel('<hr>')
         ll.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)

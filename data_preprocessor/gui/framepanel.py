@@ -20,7 +20,6 @@ class FramePanel(QWidget):
         self.rows = QLabel(self)
         self.columns = QLabel(self)
         self.index = QLabel(self)
-        self.__currentFrameIndex: int = -1
         self.__currentFrameModel: FrameModel = None
         fLayout = QFormLayout()
         fLayout.addRow(labeln, self.name)
@@ -51,24 +50,28 @@ class FramePanel(QWidget):
 
     @Slot()
     def updateData(self) -> None:
-        name = self.__currentFrameModel.name
-        self.name.setText(name)
-        self.columns.setText(str(self.__currentFrameModel.columnCount()))
-        self.rows.setText(str(self.__currentFrameModel.rowCount()))
-        shape = self.__currentFrameModel.frame.shape
-        self.index.setText(shape.index[0] if len(shape.index) == 1 else
-                           '[{}]'.format(','.join(shape.index)))
-
-    @Slot(int)
-    def onFrameSelectionChanged(self, selected: int) -> None:
-        if selected == self.__currentFrameIndex:
-            return
         if self.__currentFrameModel:
-            # Disconnect all signal in model from this widget
-            self.__currentFrameModel.disconnect(self)
-        if selected >= 0:
+            name = self.__currentFrameModel.name
+            self.name.setText(name)
+            self.columns.setText(str(self.__currentFrameModel.columnCount()))
+            self.rows.setText(str(self.__currentFrameModel.rowCount()))
+            shape = self.__currentFrameModel.frame.shape
+            self.index.setText(shape.index[0] if len(shape.index) == 1 else
+                               '[{}]'.format(','.join(shape.index)))
+        else:
+            self.name.setText('')
+            self.columns.setText('')
+            self.rows.setText('')
+            self.index.setText('')
+
+    @Slot(str, str)
+    def onFrameSelectionChanged(self, selected: str, *_) -> None:
+        if selected:
+            if self.__currentFrameModel:
+                # Disconnect all signal in model from this widget
+                self.__currentFrameModel.disconnect(self)
             # Set new model
-            self.__currentFrameModel = self.__workbench.getDataframeModelByIndex(selected)
+            self.__currentFrameModel = self.__workbench.getDataframeModelByName(selected)
             # Connect
             self.__currentFrameModel.rowsRemoved.connect(self.updateData)
             self.__currentFrameModel.rowsInserted.connect(self.updateData)
@@ -76,5 +79,7 @@ class FramePanel(QWidget):
             self.__currentFrameModel.columnsInserted.connect(self.updateData)
             self.__currentFrameModel.modelReset.connect(self.updateData)
             self.__workbench.dataChanged.connect(self.updateData)
-            # Update current info
-            self.updateData()
+        else:
+            self.__currentFrameModel = None
+        # Update current info
+        self.updateData()

@@ -61,9 +61,9 @@ class MainWidget(QWidget):
         layout.addWidget(splitter)
 
         tabs.currentChanged.connect(self.switch_view)
-        workbenchView.selectedRowChanged.connect(attributeTab.onFrameSelectionChanged)
-        workbenchView.selectedRowChanged.connect(chartsTab.onFrameSelectionChanged)
-        workbenchView.selectedRowChanged.connect(self.frameInfoPanel.onFrameSelectionChanged)
+        workbenchView.selectedRowChanged[str, str].connect(attributeTab.onFrameSelectionChanged)
+        workbenchView.selectedRowChanged[str, str].connect(chartsTab.onFrameSelectionChanged)
+        workbenchView.selectedRowChanged[str, str].connect(self.frameInfoPanel.onFrameSelectionChanged)
 
     @Slot(int)
     def switch_view(self, tab_index: int) -> None:

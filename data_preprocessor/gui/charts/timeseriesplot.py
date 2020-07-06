@@ -422,12 +422,14 @@ class TimeSeriesPlot(QWidget):
         self.chartView.setBestTickCount(chart.size())
         safeDelete(oldChart)
 
-    @Slot(int)
-    def onFrameSelectionChanged(self, index: int) -> None:
+    @Slot(str, str)
+    def onFrameSelectionChanged(self, name: str, *_) -> None:
         # Reset the ChartView
         self.clearChart()
+        if not name:
+            return
         # Set attribute table
-        frameModel = self.workbench.getDataframeModelByIndex(index)
+        frameModel = self.workbench.getDataframeModelByName(name)
         self.settingsPanel.valuesTable.setSourceFrameModel(frameModel)
         # Set up combo box for time axis
         timeAxisModel = AttributeTableModel(None, False, False, False)

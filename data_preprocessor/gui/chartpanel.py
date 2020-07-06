@@ -8,7 +8,7 @@ from data_preprocessor.gui.charts.timeseriesplot import TimeSeriesPlot
 class ChartPanel(QWidget):
     def __init__(self, workbench, parent: QWidget = None):
         super().__init__(parent)
-        self.__currentIndex: int = -1
+        self.__currentFrameName: str = None
         self.workbench_model = workbench
         self.__chartTypeCB = QComboBox(self)
         self.fLayout = QFormLayout(self)
@@ -27,9 +27,9 @@ class ChartPanel(QWidget):
             self.fLayout.addRow(ScatterPlotMatrix(self.workbench_model, self))
         elif text == 'Time series':
             self.fLayout.addRow(TimeSeriesPlot(self.workbench_model, self))
-        self.onFrameSelectionChanged(self.__currentIndex)
+        self.onFrameSelectionChanged(self.__currentFrameName)
 
-    @Slot(int)
-    def onFrameSelectionChanged(self, index: int) -> None:
-        self.__currentIndex = index
-        self.fLayout.itemAt(1, QFormLayout.SpanningRole).widget().onFrameSelectionChanged(index)
+    @Slot(str, str)
+    def onFrameSelectionChanged(self, name: str, *_) -> None:
+        self.__currentFrameName = name
+        self.fLayout.itemAt(1, QFormLayout.SpanningRole).widget().onFrameSelectionChanged(name)

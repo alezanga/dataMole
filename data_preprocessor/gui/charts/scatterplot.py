@@ -206,11 +206,11 @@ class ScatterPlotMatrix(QWidget):
         self.__matrixLayout = QGridLayout()
         self.__layout.insertLayout(0, self.__matrixLayout, 2)
 
-    @Slot(int)
-    def onFrameSelectionChanged(self, frameIndex: int) -> None:
-        if frameIndex == -1:
+    @Slot(str, str)
+    def onFrameSelectionChanged(self, frameName: str, *_) -> None:
+        if not frameName:
             return
-        self.__frameModel = self.__workbench.getDataframeModelByIndex(frameIndex)
+        self.__frameModel = self.__workbench.getDataframeModelByName(frameName)
         self.__matrixAttributes.setSourceFrameModel(self.__frameModel)
         # Combo box
         attributes = AttributeTableModel(self, False, False, False)

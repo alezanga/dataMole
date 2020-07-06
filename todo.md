@@ -3,6 +3,7 @@
 - [ ] CHECK: why sometimes flow does not add edgeAdjustment to time series plot (fixed segfault)
 - [ ] FIX !!: SEGFAULT in tablemodel/headerview in extracttimeseries.
 - [ ] FIX !!: SEGFAULT in series plot (to test with opengl)
+- [ ] FIX validation in extractseries
 - [x] FIX: gridLayout in graph
 - [x] FIX: toCategory asked options even if it shouldn't (validation problem)
 - [x] FIX !!: Frame.integerToFloat does not work with big data (it hangs)

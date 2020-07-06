@@ -21,6 +21,10 @@ class WorkbenchModel(QAbstractListModel):
         return self.__workbench
 
     @property
+    def modelDict(self) -> Dict[str, FrameModel]:
+        return {n: self.__workbench[i] for n, i in self.__nameToIndex.items()}
+
+    @property
     def names(self) -> List[str]:
         return list(self.__nameToIndex.keys())
 
@@ -132,7 +136,7 @@ class WorkbenchModel(QAbstractListModel):
 
 
 class WorkbenchView(QTableView):
-    selectedRowChanged = Signal([int], [str])
+    selectedRowChanged = Signal((int, int), (str, str))
 
     def __init__(self, parent=None, editable: bool = True):
         super().__init__(parent)
@@ -162,21 +166,31 @@ class WorkbenchView(QTableView):
         """ Emit signal when current selection changes """
         super().selectionChanged(selected, deselected)
         current: QModelIndex = selected.indexes()[0] if selected.indexes() else QModelIndex()
+        previous: QModelIndex = deselected.indexes()[0] if deselected.indexes() else QModelIndex()
+        currRow: int = -1
+        prevRow: int = -1
+        currName: str = ''
+        prevName: str = ''
         if current.isValid():
-            self.selectedRowChanged[int].emit(current.row())
-            self.selectedRowChanged[str].emit(current.data(Qt.DisplayRole))
-        else:
-            self.selectedRowChanged[int].emit(-1)
-            self.selectedRowChanged[str].emit('')
+            currRow = current.row()
+            currName = current.data(Qt.DisplayRole)
+        if previous.isValid():
+            prevRow = previous.row()
+            prevName = previous.data(Qt.DisplayRole)
+        self.selectedRowChanged[int, int].emit(currRow, prevRow)
+        self.selectedRowChanged[str, str].emit(currName, prevName)
 
     def mousePressEvent(self, event: QtGui.QMouseEvent):
         super().mousePressEvent(event)
-        self.verticalHeader().mousePressEvent(event)
+        if self._editable:
+            self.verticalHeader().mousePressEvent(event)
 
     def mouseMoveEvent(self, event: QtGui.QMouseEvent):
         super().mouseMoveEvent(event)
-        self.verticalHeader().mouseMoveEvent(event)
+        if self._editable:
+            self.verticalHeader().mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event: QtGui.QMouseEvent):
         super().mouseReleaseEvent(event)
-        self.verticalHeader().mouseReleaseEvent(event)
+        if self._editable:
+            self.verticalHeader().mouseReleaseEvent(event)

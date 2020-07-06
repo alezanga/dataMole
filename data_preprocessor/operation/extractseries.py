@@ -1,17 +1,18 @@
-from typing import Any, Dict, List, Tuple, Iterable
+from typing import Any, Dict, List, Tuple, Iterable, Optional
 
 import pandas as pd
 from PySide2.QtCore import Slot, QModelIndex, Qt, \
     QSortFilterProxyModel, QConcatenateTablesProxyModel, QStringListModel, QAbstractItemModel, QLocale, \
-    QPersistentModelIndex
+    QPersistentModelIndex, Signal, QMimeData
+from PySide2.QtGui import QDragEnterEvent
 from PySide2.QtWidgets import QWidget, QTableView, QHBoxLayout, QVBoxLayout, \
-    QLineEdit, QFormLayout, QHeaderView, QPushButton, QStyledItemDelegate, QComboBox
+    QLineEdit, QFormLayout, QHeaderView, QPushButton, QStyledItemDelegate, QComboBox, QGroupBox
 
 from data_preprocessor import data
 from data_preprocessor.data.types import Types
 from data_preprocessor.gui import AbsOperationEditor
 from data_preprocessor.gui.mainmodels import SearchableAttributeTableWidget, AttributeTableModel, \
-    SignalTableView
+    SignalTableView, FrameModel
 from data_preprocessor.gui.workbench import WorkbenchModel, WorkbenchView
 from data_preprocessor.operation.interface.exceptions import OptionValidationError
 from data_preprocessor.operation.interface.operation import Operation
@@ -28,6 +29,13 @@ class ExtractTimeSeries(Operation):
     @staticmethod
     def name() -> str:
         return 'Extract time series'
+
+    def shortDescription(self) -> str:
+        return 'Allows to extract a temporal information from dataset in non standard format. A ' \
+               'standard dataset should have the temporal labels in a single column. If the dataset ' \
+               'contains multiple measurements for every time point, these should be uniquely ' \
+               'identified using a the time point and an ID, which should be set. This operation ' \
+               'assumes that the temporal information is codified over different columns.'
 
     def execute(self) -> None:
         def manipulateDf(s: pd.Series, lab: str, sName: str) -> pd.DataFrame:
@@ -129,8 +137,7 @@ class _ExtractSeriesEditor(AbsOperationEditor):
         self.body.seriesView.clearSelection()
 
         seriesOptions: Dict[str, List[Tuple[str, int, int]]] = dict()
-        for seriesIndex, valueDict in self.body.seriesOptions.items():
-            seriesName: str = self.body.seriesModel.index(seriesIndex).data(Qt.DisplayRole)
+        for seriesName, valueDict in self.body.seriesOptions.items():
             seriesOptions[seriesName] = \
                 [(frameName, row[0], row[1].row())
                  for frameName, valueList in valueDict.items() for row in valueList]
@@ -146,60 +153,72 @@ class _ExtractSeriesEditor(AbsOperationEditor):
 class _ExtractSeriesWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
-        # {series index: {frame name: [ (Attribute, QPersistentModelIndex) ]
-        self.seriesOptions: Dict[int, Dict[str, List[Tuple[int, QPersistentModelIndex]]]] = dict()
-        self.models: Dict[int, CustomProxyAttributeModel] = dict()
-        self.seriesView = SignalTableView(parent=self)
+        # {series name: {frame name: [ (Attribute, QPersistentModelIndex) ]
+        self.seriesOptions: Dict[str, Dict[str, List[Tuple[int, QPersistentModelIndex]]]] = dict()
+        # {frame name: attribute model}
+        self.models: Dict[str, CustomProxyAttributeModel] = dict()
+        self.seriesView = CustomSignalView(parent=self)
         self.seriesModel = CustomStringListModel(self)
         self.seriesModel.setHeaderLabel('Series name')
         self.addSeriesButton = QPushButton('Add', self)
         self.removeSeriesButton = QPushButton('Remove', self)
         self.addSeriesButton.clicked.connect(self.addSeries)
         self.removeSeriesButton.clicked.connect(self.removeSeries)
+        self.seriesView.setModel(self.seriesModel)
         self.seriesView.setDragDropMode(QTableView.InternalMove)
         self.seriesView.setDragDropOverwriteMode(False)
-        self.seriesView.setModel(self.seriesModel)
         self.seriesView.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.seriesView.verticalHeader().hide()
 
         # Connect selection to change
-        self.seriesView.selectedRowChanged.connect(self.onSeriesSelectionChanged)
+        self.seriesView.selectedRowChanged[str, str].connect(self.onSeriesSelectionChanged)
         # When a series is added it should be immediately edited
-        self.seriesModel.rowsInserted.connect(self.editSeriesName)
+        self.seriesModel.rowAppended.connect(self.editSeriesName)
+        self.seriesModel.rowsInserted.connect(self.checkNoSeries)
+        self.seriesModel.rowsRemoved.connect(self.checkNoSeries)
 
-        self.workbenchView = WorkbenchView(self)
+        self.workbenchView = WorkbenchView(self, editable=False)
         self.workbench: WorkbenchModel = None
-        self.attributesView = SearchableAttributeTableWidget(parent, True, False, False,
+        self.workbenchView.selectedRowChanged[str, str].connect(self.onFrameSelectionChanged)
+
+        self.attributesView = SearchableAttributeTableWidget(self, True, False, False,
                                                              [Types.Numeric, Types.Ordinal])
-        self.workbenchView.selectedRowChanged.connect(self.onFrameSelectionChanged)
 
         firstRowLayout = QHBoxLayout()
+        firstRowLayout.setSpacing(5)
+
+        selectionGroup = QGroupBox(
+            title='Select a time series. Then select the columns to add from the current '
+                  'datasets', parent=self)
         firstRowLayout.addWidget(self.seriesView)
         buttonLayout = QVBoxLayout()
         buttonLayout.addWidget(self.addSeriesButton)
         buttonLayout.addWidget(self.removeSeriesButton)
         firstRowLayout.addLayout(buttonLayout)
+        firstRowLayout.addSpacing(30)
         firstRowLayout.addWidget(self.workbenchView)
+        firstRowLayout.addSpacing(30)
         firstRowLayout.addWidget(self.attributesView)
+        selectionGroup.setLayout(firstRowLayout)
 
         # Time axis labels model with add/remove buttons
         self.timeAxisModel = CustomStringListModel(self)
         self.timeAxisModel.setHeaderLabel('Time labels')
-        self.timeAxisView = SignalTableView(self)
+        self.timeAxisView = CustomSignalView(self)
+        self.timeAxisView.setModel(self.timeAxisModel)
         self.addTimeButton = QPushButton('Add', self)
         self.removeTimeButton = QPushButton('Remove', self)
         self.addTimeButton.clicked.connect(self.addTimeLabel)
         self.removeTimeButton.clicked.connect(self.removeTimeLabel)
         self.timeAxisView.setDragDropMode(QTableView.InternalMove)
         self.timeAxisView.setDragDropOverwriteMode(False)
-        self.timeAxisView.setModel(self.timeAxisModel)
         self.timeAxisView.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.timeAxisView.verticalHeader().hide()
-        self.timeAxisModel.rowsInserted.connect(self.editTimeLabelName)
+        self.timeAxisModel.rowAppended.connect(self.editTimeLabelName)
 
         # Concatenation model
         self.timeSeriesDataModel = ConcatenatedModel(self)
-        self.timeSeriesDataView = SignalTableView(self)
+        self.timeSeriesDataView = QTableView(self)
         self.timeSeriesDataView.setSelectionMode(QTableView.NoSelection)
         self.timeSeriesDataView.setItemDelegateForColumn(1, ComboBoxDelegate(self.timeAxisModel,
                                                                              self.timeSeriesDataView))
@@ -207,31 +226,86 @@ class _ExtractSeriesWidget(QWidget):
         # Update the label column when some label changes in the label table
         self.timeAxisModel.dataChanged.connect(self.timeSeriesDataModel.timeAxisLabelChanged)
 
+        groupTime = QGroupBox(
+            title='Add the time points (ordered) and set the correspondence to every selected column',
+            parent=self)
         secondRowLayout = QHBoxLayout()
         secondRowLayout.setSpacing(5)
+        # labelLayout = QVBoxLayout()
+        # lab = QLabel('Here you should define every time point, in the correct order. After adding '
+        #              'double-click a row to edit the point name and drag rows to reorder them', self)
+        # lab.setWordWrap(True)
+        # labelLayout.addWidget(lab)
+        # labelLayout.addWidget(self.timeAxisView)
         secondRowLayout.addWidget(self.timeAxisView)
         timeButtonLayout = QVBoxLayout()
         timeButtonLayout.addWidget(self.addTimeButton)
         timeButtonLayout.addWidget(self.removeTimeButton)
         secondRowLayout.addLayout(timeButtonLayout)
-        secondRowLayout.addSpacing(35)
+        secondRowLayout.addSpacing(30)
+        # labelLayout = QVBoxLayout()
+        # lab = QLabel('Every selected column for the current series will be listed here. Click the right '
+        #              'column of the table to set the time label associated with every original column',
+        #              self)
+        # lab.setWordWrap(True)
+        # labelLayout.addWidget(lab)
         secondRowLayout.addWidget(self.timeSeriesDataView)
+        # secondRowLayout.addLayout(labelLayout)
+        groupTime.setLayout(secondRowLayout)
 
         self.outputName = QLineEdit(self)
         lastRowLayout = QFormLayout()
         lastRowLayout.addRow('Output variable name:', self.outputName)
 
         layout = QVBoxLayout(self)
-        layout.addLayout(firstRowLayout)
-        layout.addLayout(secondRowLayout)
+        layout.addWidget(selectionGroup)
+        layout.addWidget(groupTime)
         layout.addLayout(lastRowLayout)
+        self.checkNoSeries()
 
     def setWorkbench(self, w: WorkbenchModel) -> None:
+        """ Sets the workbench and initialises every attribute model (one for each frame) """
         self.workbench = w
         self.workbenchView.setModel(w)
 
-    def persistOptionsSetForSeries(self, seriesIndex: int) -> None:
-        if seriesIndex is not None and seriesIndex >= 0:
+        workbench: Dict[str, FrameModel] = self.workbench.modelDict
+        for n, m in workbench.items():
+            # Create an attribute model with checkboxes
+            standardModel = AttributeTableModel(self, checkable=True, editable=False, showTypes=True)
+            standardModel.setFrameModel(m)
+            # Create a proxy to filter data in the concatenation
+            customProxy = CustomProxyAttributeModel(self)
+            customProxy.setSourceModel(standardModel)
+            # Add proxy to the list of models
+            self.models[n] = customProxy
+            # Add proxy as source model
+            self.timeSeriesDataModel.addSourceModel(customProxy)
+        # Set concatenation model in view
+        if workbench:
+            self.timeSeriesDataView.setModel(self.timeSeriesDataModel)
+            self.timeSeriesDataView.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
+            self.timeSeriesDataView.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
+        # TODO: this update should be done every time the workbench change (or just in time as before)
+
+    @Slot()
+    def checkNoSeries(self) -> None:
+        if not self.seriesModel.rowCount():
+            self.workbenchView.setEnabled(False)
+            self.attributesView.setEnabled(False)
+            self.timeAxisView.setEnabled(False)
+            self.addTimeButton.setEnabled(False)
+            self.removeTimeButton.setEnabled(False)
+            self.timeSeriesDataView.setEnabled(False)
+        else:
+            self.workbenchView.setEnabled(True)
+            self.attributesView.setEnabled(True)
+            self.timeAxisView.setEnabled(True)
+            self.addTimeButton.setEnabled(True)
+            self.removeTimeButton.setEnabled(True)
+            self.timeSeriesDataView.setEnabled(True)
+
+    def persistOptionsSetForSeries(self, seriesName: str) -> None:
+        if seriesName:
             seriesValues: Dict[str, List[Tuple[int, QPersistentModelIndex]]] = dict()
             for r in range(self.timeSeriesDataModel.rowCount()):
                 column0Index: QModelIndex = self.timeSeriesDataModel.index(r, 0, QModelIndex())
@@ -245,117 +319,116 @@ class _ExtractSeriesWidget(QWidget):
                     seriesValues[frameName].append((attrIndexInFrame, timeLabelIndex))
                 else:
                     seriesValues[frameName] = [(attrIndexInFrame, timeLabelIndex)]
-            self.seriesOptions[seriesIndex] = seriesValues
+            self.seriesOptions[seriesName] = seriesValues
 
-    @Slot(QModelIndex, int, int)
-    def editSeriesName(self, parent: QModelIndex, first: int, _: int) -> None:
-        index = self.seriesModel.index(first, 0, parent)
-        self.seriesView.setCurrentIndex(index)
-        self.seriesView.edit(index)
-
-    @Slot(QModelIndex, int, int)
-    def editTimeLabelName(self, parent: QModelIndex, first: int, _: int) -> None:
-        index = self.timeAxisModel.index(first, 0, parent)
-        self.timeAxisView.setCurrentIndex(index)
-        self.timeAxisView.edit(index)
-
-    @Slot(int, int)
-    def onSeriesSelectionChanged(self, new: int, old: int) -> None:
-        clearViews: bool = False
+    @Slot(str, str)
+    def onSeriesSelectionChanged(self, new: str, old: str) -> None:
         # Save current set options
         self.persistOptionsSetForSeries(old)
-        if new >= 0:
+        if new:
             # Get options of new selection
             newOptions: Dict[str, List[Tuple[int, QPersistentModelIndex]]] = \
-                self.seriesOptions.get(new, None)
-            if newOptions:
-                for frameIndex, proxyModel in self.models.items():
-                    frameName: str = self.workbench.getDataframeModelByIndex(frameIndex).name
-                    attributeModel: AttributeTableModel = proxyModel.sourceModel()
-                    frameOptions = newOptions.get(frameName, None)
-                    # Reset checked attributes
-                    if frameOptions:
-                        attributeModel.setAllChecked(False)
-                        proxySelection: Dict[int, QPersistentModelIndex] = {i: pmi for i, pmi in
-                                                                            frameOptions}
-                        proxyModel.attributes = proxySelection
-                        attributeModel.setChecked(list(proxySelection.keys()), value=True)
-                    else:
-                        clearViews = True
-            else:
-                clearViews = True
-        if clearViews:
-            for proxyModel in self.models.values():
-                attributeModel: AttributeTableModel = proxyModel.sourceModel()
-                attributeModel.setAllChecked(False)
-                proxyModel.attributes = dict()
-                # Update proxy view
+                self.seriesOptions.get(new, dict())
+            for frameName, proxyModel in self.models.items():
+                frameOptions = newOptions.get(frameName, None)
+                self.setOptionsForFrame(frameName, frameOptions)
+                # Update proxy view on the time label columns
                 proxyModel.dataChanged.emit(
                     proxyModel.index(0, 1, QModelIndex()),
                     proxyModel.index(proxyModel.rowCount() - 1, 1, QModelIndex()),
                     [Qt.DisplayRole, Qt.EditRole])
+        # Every time series change clear frame selection in workbench
+        self.workbenchView.clearSelection()
 
-    @Slot(int)
-    def onFrameSelectionChanged(self, frameIndex: int) -> None:
-        if frameIndex == -1:
-            return
-        customModel = self.models.get(frameIndex, None)
-        # Get the frame model
-        frameModel = self.workbench.getDataframeModelByIndex(frameIndex)
-        if customModel:
-            self.attributesView.setAttributeModel(customModel.sourceModel())
+    @Slot(str, str)
+    def onFrameSelectionChanged(self, newFrame: str, _: str) -> None:
+        if not newFrame:
+            # Nothing is selected
+            return self.attributesView.setAttributeModel(AttributeTableModel(self))
+        self.attributesView.setAttributeModel(self.models[newFrame].sourceModel())
+        # todo: deal with case when workbench changed
+
+    def setOptionsForFrame(self, frameName: str,
+                           options: Optional[List[Tuple[int, QPersistentModelIndex]]]) -> None:
+        customProxyModel = self.models[frameName]
+        attributeTableModel = customProxyModel.sourceModel()
+        attributeTableModel.setAllChecked(False)
+        if options:
+            proxySelection: Dict[int, QPersistentModelIndex] = {i: pmi for i, pmi in options}
+            customProxyModel.attributes = proxySelection
+            attributeTableModel.setChecked(list(proxySelection.keys()), value=True)
         else:
-            # Create an attribute model with checkboxes
-            standardModel = AttributeTableModel(None, checkable=True, editable=False, showTypes=True)
-            standardModel.setFrameModel(frameModel)
-            # Create a custom proxy model which hides checkboxes, filters and shows custom info
-            customModel = CustomProxyAttributeModel(self)
-            customModel.setSourceModel(standardModel)
-            standardModel.setParent(customModel)
-            # Save custom model for reuse and set it in the table
-            self.models[frameIndex] = customModel
-            self.attributesView.setAttributeModel(standardModel)
-            # Add to concatenation in big proxy model
-            self.timeSeriesDataModel.addSourceModel(customModel)
-            if not self.timeSeriesDataView.model():
-                self.timeSeriesDataView.setModel(self.timeSeriesDataModel)
-            self.timeSeriesDataView.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
-            self.timeSeriesDataView.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
+            customProxyModel.attributes = dict()
 
     @Slot()
     def addSeries(self) -> None:
-        self.seriesModel.insertRow(self.seriesModel.rowCount())
+        # Append new row
+        self.seriesModel.appendEmptyRow()
+        # In oder to avoid copying previous options
+        for frameName, proxyModel in self.models.items():
+            self.setOptionsForFrame(frameName, None)
 
     @Slot()
     def removeSeries(self) -> None:
-        self.seriesModel.removeRow(self.seriesView.selectedIndexes()[0].row())
+        selected: List[QModelIndex] = self.seriesView.selectedIndexes()
+        if selected:
+            # Remove options for series if they exists
+            self.seriesOptions.pop(selected[0].data(Qt.DisplayRole), None)
+            # Remove row
+            self.seriesModel.removeRow(selected[0].row())
 
     @Slot()
     def addTimeLabel(self) -> None:
-        self.timeAxisModel.insertRow(self.timeAxisModel.rowCount())
+        self.timeAxisModel.appendEmptyRow()
 
     @Slot()
     def removeTimeLabel(self) -> None:
-        self.timeAxisModel.removeRow(self.timeAxisModel.selectedIndexes()[0].row())
+        selected: List[QModelIndex] = self.timeAxisView.selectedIndexes()
+        if selected:
+            self.timeAxisModel.removeRow(selected[0].row())
+            # TODO: update model
+
+    @Slot()
+    def editSeriesName(self) -> None:
+        index = self.seriesModel.index(self.seriesModel.rowCount() - 1, 0, QModelIndex())
+        self.seriesView.setCurrentIndex(index)
+        self.seriesView.edit(index)
+
+    @Slot()
+    def editTimeLabelName(self) -> None:
+        index = self.timeAxisModel.index(self.timeAxisModel.rowCount() - 1, 0, QModelIndex())
+        self.timeAxisView.setCurrentIndex(index)
+        self.timeAxisView.edit(index)
 
 
 class CustomStringListModel(QStringListModel):
+    rowAppended = Signal()
+
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.__label = None
+        self.__headerLabel: str = None
+        self.__dragStart: QModelIndex = None
 
     def flags(self, index: QModelIndex) -> Qt.ItemFlags:
-        base = Qt.ItemIsEnabled | Qt.ItemIsEditable | Qt.ItemIsSelectable | Qt.ItemIsDragEnabled
-        if not index.isValid():
+        base = Qt.ItemIsEnabled | Qt.ItemIsEditable | Qt.ItemIsSelectable
+        if index.isValid():
             # Allow to move elements, but not overwrite them
+            base |= Qt.ItemIsDragEnabled
+        else:
             base |= Qt.ItemIsDropEnabled
         return base
+
+    def appendEmptyRow(self) -> bool:
+        done = self.insertRow(self.rowCount())
+        if done:
+            self.rowAppended.emit()
+        return done
 
     def setData(self, index: QModelIndex, value: str, role: int = Qt.EditRole) -> bool:
         if index.isValid() and role == Qt.EditRole:
             # If the new value is invalid, then remove the row and quit
             value = value.strip()
-            if not value:
+            if not value or value in self.stringList():
                 self.removeRow(index.row(), index.parent())
                 return False
         # In every other case call superclass
@@ -363,11 +436,36 @@ class CustomStringListModel(QStringListModel):
 
     def headerData(self, section: int, orientation: Qt.Orientation, role: int = Qt.DisplayRole) -> Any:
         if orientation == Qt.Horizontal and role == Qt.DisplayRole:
-            return self.__label
+            return self.__headerLabel
         return None
 
     def setHeaderLabel(self, lab: str) -> None:
-        self.__label = lab
+        self.__headerLabel = lab
+
+    def setDragStart(self, index: QModelIndex) -> None:
+        # Used by the view to tell where the drag event started
+        self.__dragStart = index
+
+    def dropMimeData(self, mData: QMimeData, action: Qt.DropAction, row: int, column: int,
+                     parent: QModelIndex) -> bool:
+        """ Reimplemented to use moveRow instead of default insertion and removal """
+        if action == Qt.MoveAction:
+            if row == -1:
+                # Then append at the end
+                row = self.rowCount() - 1
+            self.moveRow(QModelIndex(), self.__dragStart.row(), parent, row)
+            self.__dragStart = None
+            return False
+        return super().dropMimeData(mData, action, row, column, parent)
+
+
+class CustomSignalView(SignalTableView):
+    def dragEnterEvent(self, event: QDragEnterEvent) -> None:
+        """ Reimplmented to tell the model the item which is dragged """
+        if self.model():
+            index = self.indexAt(event.pos())
+            self.model().setDragStart(index)
+        super().dragEnterEvent(event)
 
 
 class CustomProxyAttributeModel(QSortFilterProxyModel):
@@ -377,6 +475,8 @@ class CustomProxyAttributeModel(QSortFilterProxyModel):
         self.attributes: Dict[int, QPersistentModelIndex] = dict()
 
     def columnCount(self, parent: QModelIndex = QModelIndex()) -> int:
+        if parent.isValid():
+            return 0
         return 2
 
     def data(self, index: QModelIndex, role: int = Qt.DisplayRole) -> Any:
@@ -390,17 +490,24 @@ class CustomProxyAttributeModel(QSortFilterProxyModel):
                 frameName: str = self.sourceModel().frameModel().name
                 return frameName + '.' + attributeName
             elif index.column() == 1 and (role == Qt.EditRole or role == Qt.DisplayRole):
-                return self.attributes.get(index.row(), QPersistentModelIndex())
+                return self.attributes.get(sourceIndex.row(), QPersistentModelIndex())
         return super().data(index, role)
 
     def setData(self, index: QModelIndex, value: QPersistentModelIndex, role: int = Qt.EditRole) -> bool:
         if index.isValid() and role == Qt.EditRole and index.column() == 1:
-            currValue: QPersistentModelIndex = self.attributes.get(index.row(), None)
+            sourceIndex = self.mapToSource(index)
+            currValue: QPersistentModelIndex = self.attributes.get(sourceIndex.row(), None)
             if value.isValid() and value != currValue:
-                self.attributes[index.row()] = value
+                self.attributes[sourceIndex.row()] = value
                 self.dataChanged.emit(index, index, [Qt.DisplayRole, Qt.EditRole])
                 return True
         return False
+
+    def flags(self, index: QModelIndex) -> Qt.ItemFlags:
+        base = Qt.ItemIsEnabled | Qt.ItemNeverHasChildren
+        if index.isValid() and index.column() == 1:
+            base |= Qt.ItemIsEditable
+        return base
 
     def filterAcceptsRow(self, source_row: int, source_parent: QModelIndex) -> bool:
         # Show only checked attributes
@@ -409,12 +516,6 @@ class CustomProxyAttributeModel(QSortFilterProxyModel):
 
 
 class ConcatenatedModel(QConcatenateTablesProxyModel):
-    def flags(self, index: QModelIndex) -> Qt.ItemFlags:
-        f = Qt.ItemNeverHasChildren | super().flags(index)
-        if index.column() == 1:
-            f |= Qt.ItemIsEditable
-        return f
-
     def headerData(self, section: int, orientation: Qt.Orientation, role: int = Qt.DisplayRole) -> Any:
         if role == Qt.DisplayRole and orientation == Qt.Horizontal:
             if section == 0:
