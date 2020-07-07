@@ -6,13 +6,14 @@ from PySide2.QtCharts import QtCharts
 from PySide2.QtCore import Slot, QPointF, Qt, QModelIndex, QMargins
 from PySide2.QtGui import QFont
 from PySide2.QtWidgets import QWidget, QVBoxLayout, QLabel, QGridLayout, QHBoxLayout, QPushButton, \
-    QComboBox
+    QComboBox, QSplitter, QSizePolicy
 
 from data_preprocessor.data.types import Types
 from data_preprocessor.gui.charts.views import SimpleChartView
 from data_preprocessor.gui.mainmodels import SearchableAttributeTableWidget, FrameModel, \
     AttributeTableModel, AttributeProxyModel
 from data_preprocessor.gui.workbench import WorkbenchModel
+from data_preprocessor.utils import safeDelete
 
 
 class ScatterPlotMatrix(QWidget):
@@ -27,24 +28,16 @@ class ScatterPlotMatrix(QWidget):
         self.__matrixAttributes = SearchableAttributeTableWidget(self, True, False, False,
                                                                  [Types.Numeric, Types.Ordinal])
         matrixLabel = QLabel('Select at least two numeric attributes and press \'Create chart\' to plot')
+        matrixLabel.setWordWrap(True)
         createButton = QPushButton('Create chart', self)
         self.__colorByBox = QComboBox(self)
 
         sideLayout.addWidget(matrixLabel)
         sideLayout.addWidget(self.__matrixAttributes)
-        sideLayout.addWidget(self.__colorByBox, 1)
-        sideLayout.addWidget(createButton, 1)
+        sideLayout.addWidget(self.__colorByBox, 0, Qt.AlignBottom)
+        sideLayout.addWidget(createButton, 0, Qt.AlignBottom)
         self.__matrixLayout: QGridLayout = None
         self.__layout = QHBoxLayout(self)
-        self.__layout.addLayout(sideLayout, 1)
-        # self.__splitter = QSplitter(self)
-        # chartW = QWidget(self)
-        # chartW.setLayout(self.__matrixLayout)
-        # self.__splitter.addWidget(chartW)
-        # sideW = QWidget(self)
-        # sideW.setLayout(sideLayout)
-        # self.__splitter.addWidget(sideW)
-        # self.__layout.addWidget(self.__splitter)
         self.__comboModel = AttributeProxyModel([Types.String, Types.Ordinal, Types.Nominal], self)
 
         # Error label to signal errors
@@ -53,6 +46,16 @@ class ScatterPlotMatrix(QWidget):
         sideLayout.addWidget(self.errorLabel)
         self.errorLabel.hide()
 
+        self.__splitter = QSplitter(self)
+        chartWidget = QWidget(self)
+        sideWidget = QWidget(self)
+        sideWidget.setLayout(sideLayout)
+        chartWidget.setMinimumWidth(300)
+        self.__splitter.addWidget(chartWidget)
+        self.__splitter.addWidget(sideWidget)
+        self.__splitter.setSizes([600, 300])
+        self.__layout.addWidget(self.__splitter)
+        self.__splitter.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.MinimumExpanding)
         # Connect
         createButton.clicked.connect(self.showScatterPlots)
 
@@ -202,9 +205,16 @@ class ScatterPlotMatrix(QWidget):
                     self.__matrixLayout.removeWidget(child)
                     child.deleteLater()
             self.__matrixLayout.deleteLater()
-        # Create a new grid and add it to main layout
-        self.__matrixLayout = QGridLayout()
-        self.__layout.insertLayout(0, self.__matrixLayout, 2)
+        # Create a new widget for grid layout and add it to the splitter
+        chartWidget: QWidget = QWidget(self)
+        self.__matrixLayout = QGridLayout(chartWidget)
+        # Replace layout and delete the previous one
+        oldWidget = self.__splitter.replaceWidget(0, chartWidget)
+        chartWidget.setMinimumWidth(oldWidget.minimumWidth())
+        # Sometimes it's hidden by default
+        chartWidget.show()
+        self.__splitter.setSizes([600, 300])
+        safeDelete(oldWidget)
 
     @Slot(str, str)
     def onFrameSelectionChanged(self, frameName: str, *_) -> None:

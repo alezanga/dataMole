@@ -1,8 +1,8 @@
 # TODO
 - [ ] CHECK: race condition when connecting QRunnable to same slot? (onWorkerSuccess)
 - [ ] CHECK: why sometimes flow does not add edgeAdjustment to time series plot (fixed segfault)
-- [ ] FIX !!: SEGFAULT in tablemodel/headerview in extracttimeseries.
-- [ ] FIX !!: SEGFAULT in series plot (to test with opengl)
+- [x] FIX !!: SEGFAULT in tablemodel/headerview in extracttimeseries.
+- [ ] FIX !!: SEGFAULT in series plot (it seems relative to zoom)
 - [ ] FIX validation in extractseries
 - [x] FIX: gridLayout in graph
 - [x] FIX: toCategory asked options even if it shouldn't (validation problem)

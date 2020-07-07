@@ -168,8 +168,7 @@ class InteractiveChartView(QtCharts.QChartView):
         self.__keySeqEnabled = value
 
     def setChart(self, chart: QtCharts.QChart) -> None:
-        # Save old chart to delete it at the end
-        oldChart = self.chart()
+        """ Sets a new chart in the view. Doesn't delete the previous chart """
         # New chart
         self.__callouts = list()
         self.__tooltip = Callout(chart)
@@ -191,8 +190,6 @@ class InteractiveChartView(QtCharts.QChartView):
         self.__coordY.setText("Y: ")
 
         super().setChart(chart)
-        if oldChart:
-            oldChart.deleteLater()
         self.__chartIsSet = True
 
     @staticmethod
