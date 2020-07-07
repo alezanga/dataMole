@@ -1,7 +1,7 @@
 import abc
 from typing import Iterable, List, Optional, Dict, Callable, Tuple
 
-from PySide2.QtCore import Signal
+from PySide2.QtCore import Signal, Slot
 from PySide2.QtGui import QCloseEvent, Qt, QCursor
 from PySide2.QtWidgets import QWidget, QPushButton, QHBoxLayout, QVBoxLayout, QLabel, QWhatsThis, \
     QSizePolicy
@@ -15,12 +15,12 @@ class AbsOperationEditor(QWidget):
     one to accept and one to close and reject changes. Pressing of one of these two buttons
     emits one of two signals:
 
-        - acceptAndClose
-        - rejectAndClose
+        - accept
+        - reject
     """
     # Signal to emit when editing is finished (must be class object)
-    acceptAndClose = Signal()
-    rejectAndClose = Signal()
+    accept = Signal()
+    reject = Signal()
 
     # ----------------------------------------------------------------------------
     # ---------------------- FINAL METHODS (PLS NO OVERRIDE) ---------------------
@@ -28,8 +28,6 @@ class AbsOperationEditor(QWidget):
 
     def __init__(self, parent: QWidget = None):
         super().__init__(parent)
-        # Call hook method
-        # self._custom_widget = self.editorBody()
 
         # Standard options
         self.errorHandlers: Dict[str, Callable] = dict()
@@ -38,11 +36,11 @@ class AbsOperationEditor(QWidget):
         self.workbench: 'WorkbenchModel' = None
 
         # Set up buttons
-        self.__butOk = QPushButton('Ok')
+        self._butOk = QPushButton('Ok')
         butCancel = QPushButton('Cancel')
         self.butLayout = QHBoxLayout()
         self.butLayout.addWidget(butCancel, alignment=Qt.AlignLeft)
-        self.butLayout.addWidget(self.__butOk, alignment=Qt.AlignRight)
+        self.butLayout.addWidget(self._butOk, alignment=Qt.AlignRight)
 
         self.__helpVerticalLayout = QVBoxLayout()
         self.__helpLayout = QHBoxLayout()
@@ -69,8 +67,8 @@ class AbsOperationEditor(QWidget):
         self.setFocusPolicy(Qt.StrongFocus)
         self.errorLabel.hide()
 
-        self.__butOk.pressed.connect(self.acceptAndClose)
-        butCancel.pressed.connect(self.rejectAndClose)
+        self._butOk.pressed.connect(self.onAcceptSlot)
+        butCancel.pressed.connect(self.reject)
 
     def setDescription(self, short: str, long: str) -> None:
         self.__descLabel.setText(short)
@@ -86,7 +84,7 @@ class AbsOperationEditor(QWidget):
     def closeEvent(self, event: QCloseEvent) -> None:
         """"""
         # Reject changes and close editor if the close button is pressed
-        self.rejectAndClose.emit()
+        self.reject.emit()
 
     def setUpEditor(self):
         """ Calls editorBody and add the returned widget """
@@ -119,14 +117,19 @@ class AbsOperationEditor(QWidget):
     def disableOkButton(self) -> None:
         """ Makes the accept button unclickable.
             Useful to prevent user from saving invalid changes """
-        self.__butOk.setDisabled(True)
+        self._butOk.setDisabled(True)
 
     def enableOkButton(self) -> None:
         """ Enable the accept button """
-        self.__butOk.setEnabled(True)
+        self._butOk.setEnabled(True)
+
+    @Slot()
+    def onAcceptSlot(self) -> None:
+        self.onAccept()
+        self.accept.emit()
 
     # ----------------------------------------------------------------------------
-    # --------------------------- PURE VIRTUAL METHODS ---------------------------
+    # ------------------------------ VIRTUAL METHODS -----------------------------
     # ----------------------------------------------------------------------------
 
     @abc.abstractmethod
@@ -149,12 +152,19 @@ class AbsOperationEditor(QWidget):
         """
         pass
 
-    @abc.abstractmethod
     def setOptions(self, *args, **kwargs) -> None:
         """
         Set the data to be visualized in the editor.
-        Useful to show an existing configuration.
+        Useful to show an existing configuration. Does nothing by default
 
-        :param args: any positional argument
+        :param args: any positional argument.
+        """
+        pass
+
+    def onAccept(self) -> None:
+        """
+        Method called when the user accepts current options (e.g. clicks the Ok button),
+        immediately before emitting the 'accept' signal. Useful to do additional actions over
+        options before setting them in the operation. Does nothing by default
         """
         pass

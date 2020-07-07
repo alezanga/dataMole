@@ -225,6 +225,14 @@ class TimeSeriesPlot(QWidget):
         self.splitter = QSplitter(Qt.Horizontal, self)
         self.splitter.addWidget(self.chartView)
         self.splitter.addWidget(self.settingsPanel)
+        # Adjust size policies
+        policy = self.chartView.sizePolicy()
+        policy.setHorizontalStretch(20)
+        self.chartView.setSizePolicy(policy)
+        policy = self.settingsPanel.sizePolicy()
+        policy.setHorizontalStretch(2)
+        self.settingsPanel.setSizePolicy(policy)
+        # Add splitter to main layout
         layout = QHBoxLayout(self)
         layout.addWidget(self.splitter)
 

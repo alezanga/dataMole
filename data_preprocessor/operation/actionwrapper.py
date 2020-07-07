@@ -119,8 +119,8 @@ class OperationWrapper(QObject):
         # Configure title, description and connect
         self.editor.setWindowTitle(self.operation.name())
         self.editor.setDescription(self.operation.shortDescription(), self.operation.longDescription())
-        self.editor.acceptAndClose.connect(self.onAcceptEditor)
-        self.editor.rejectAndClose.connect(self.editor.close)
+        self.editor.accept.connect(self.onAcceptEditor)
+        self.editor.reject.connect(self.editor.close)
         # If it is a GraphOperation we should add input and output LineEdit
         if isinstance(self.operation, GraphOperation) or not self.operation.needsOptions():
             self._hasInputOutputOptions = True

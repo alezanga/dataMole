@@ -6,13 +6,15 @@ from PySide2.QtCore import Slot, QModelIndex, Qt, \
     QPersistentModelIndex, Signal, QMimeData
 from PySide2.QtGui import QDragEnterEvent
 from PySide2.QtWidgets import QWidget, QTableView, QHBoxLayout, QVBoxLayout, \
-    QLineEdit, QFormLayout, QHeaderView, QPushButton, QStyledItemDelegate, QComboBox, QGroupBox
+    QLineEdit, QFormLayout, QHeaderView, QPushButton, QStyledItemDelegate, QComboBox, QGroupBox, \
+    QMessageBox
 
 from data_preprocessor import data
 from data_preprocessor.data.types import Types
 from data_preprocessor.gui import AbsOperationEditor
+from data_preprocessor.gui.genericwidgets import MessageLabel
 from data_preprocessor.gui.mainmodels import SearchableAttributeTableWidget, AttributeTableModel, \
-    SignalTableView, FrameModel
+    SignalTableView
 from data_preprocessor.gui.workbench import WorkbenchModel, WorkbenchView
 from data_preprocessor.operation.interface.exceptions import OptionValidationError
 from data_preprocessor.operation.interface.operation import Operation
@@ -66,12 +68,14 @@ class ExtractTimeSeries(Operation):
             seriesColumn = seriesColumn.set_index(['time'], drop=True, append=True)
             # Reindex to provide vales for every possible combination of [time, values]
             multiIndex: pd.MultiIndex = pd.MultiIndex.from_product([ids, waves])
-            seriesColumn = seriesColumn.reindex(multiIndex)
+            # Additionally sort indexes, otherwise concatenation drops index type
+            seriesColumn = seriesColumn.reindex(multiIndex).sort_index(axis=0, ignore_index=False)
             allSeriesColumn.append(seriesColumn)
 
         # Concat all series in the same dataframe. Remove the 'time' column from index,
         # leaving only the original index (subject id)
-        result = pd.concat(allSeriesColumn, axis=1, join='outer').reset_index(level='time', drop=False)
+        result = pd.concat(allSeriesColumn, axis=1, join='outer', ignore_index=False).reset_index(
+            level='time', drop=False)
 
         # Result:
         # Index is set on the subject identifier
@@ -89,13 +93,12 @@ class ExtractTimeSeries(Operation):
         # outName = new workbench entry name
         # time = [ 'wave1', 'wave2', ... ]
         errors = list()
-        if outName in self.workbench.names:
-            errors.append(('duplicatename', 'Error: name {} is already present in workbench'.format(
-                outName)))
+        if not outName:
+            errors.append(('noname', 'Error: an output name must be set'))
         if not time:
-            errors.append(('notimelabels', 'Error: the time labels are not set'.format(outName)))
+            errors.append(('notimelabels', 'Error: the time labels are not set'))
         if not series:
-            errors.append(('nooptions', 'Error: series is empty'))
+            errors.append(('noseries', 'Error: no series are defined'))
         else:
             lengthOk = all(map(lambda s: s and len(s) == len(time), series.values()))
             noDuplicates = all(map(lambda s: s and len(set(map(lambda t: t[2], s))) == len(s),
@@ -110,9 +113,6 @@ class ExtractTimeSeries(Operation):
         self.__series = series
         self.__outputName = outName
         self.__timeLabels = time
-
-    def getOptions(self) -> Iterable:
-        return tuple()  # Does not matter for this operation
 
     def getEditor(self) -> AbsOperationEditor:
         return _ExtractSeriesEditor()
@@ -134,8 +134,6 @@ class _ExtractSeriesEditor(AbsOperationEditor):
         self.body.setWorkbench(self.workbench)
 
     def getOptions(self) -> Iterable:
-        self.body.seriesView.clearSelection()
-
         seriesOptions: Dict[str, List[Tuple[str, int, int]]] = dict()
         for seriesName, valueDict in self.body.seriesOptions.items():
             seriesOptions[seriesName] = \
@@ -146,8 +144,12 @@ class _ExtractSeriesEditor(AbsOperationEditor):
         timeLabels: List[str] = self.body.timeAxisModel.stringList()
         return seriesOptions, timeLabels, outName
 
-    def setOptions(*args, **kwargs) -> None:
-        pass
+    def onAccept(self) -> None:
+        # Save selected series option
+        selected: List[QModelIndex] = self.body.seriesView.selectedIndexes()
+        if selected:
+            selectedSeries: str = selected[0].data(Qt.DisplayRole)
+            self.body.persistOptionsSetForSeries(selectedSeries)
 
 
 class _ExtractSeriesWidget(QWidget):
@@ -254,8 +256,15 @@ class _ExtractSeriesWidget(QWidget):
         groupTime.setLayout(secondRowLayout)
 
         self.outputName = QLineEdit(self)
+        self.warningLabel = MessageLabel(text='', color='orange', icon=QMessageBox.Warning, parent=self)
         lastRowLayout = QFormLayout()
         lastRowLayout.addRow('Output variable name:', self.outputName)
+        self.outputName.setPlaceholderText('Output name')
+        lastRowLayout.setVerticalSpacing(0)
+        lastRowLayout.addRow('', self.warningLabel)
+        lastRowLayout.setFieldGrowthPolicy(QFormLayout.AllNonFixedFieldsGrow)
+        self.warningLabel.hide()
+        self.outputName.textChanged.connect(self.checkOutputName)
 
         layout = QVBoxLayout(self)
         layout.addWidget(selectionGroup)
@@ -267,25 +276,29 @@ class _ExtractSeriesWidget(QWidget):
         """ Sets the workbench and initialises every attribute model (one for each frame) """
         self.workbench = w
         self.workbenchView.setModel(w)
+        # Set a default name for output
+        if self.workbench:
+            name = 'time_series_{:d}'
+            n = 1
+            name_n = name.format(n)
+            while name_n in self.workbench.names:
+                n += 1
+                name_n = name.format(n)
+            self.outputName.setText(name_n)
 
-        workbench: Dict[str, FrameModel] = self.workbench.modelDict
-        for n, m in workbench.items():
+    def addSourceFrameModel(self, frameName: str) -> None:
+        if self.workbench:
+            dfModel = self.workbench.getDataframeModelByName(frameName)
             # Create an attribute model with checkboxes
             standardModel = AttributeTableModel(self, checkable=True, editable=False, showTypes=True)
-            standardModel.setFrameModel(m)
+            standardModel.setFrameModel(dfModel)
             # Create a proxy to filter data in the concatenation
             customProxy = CustomProxyAttributeModel(self)
             customProxy.setSourceModel(standardModel)
             # Add proxy to the list of models
-            self.models[n] = customProxy
+            self.models[frameName] = customProxy
             # Add proxy as source model
             self.timeSeriesDataModel.addSourceModel(customProxy)
-        # Set concatenation model in view
-        if workbench:
-            self.timeSeriesDataView.setModel(self.timeSeriesDataModel)
-            self.timeSeriesDataView.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
-            self.timeSeriesDataView.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
-        # TODO: this update should be done every time the workbench change (or just in time as before)
 
     @Slot()
     def checkNoSeries(self) -> None:
@@ -345,8 +358,17 @@ class _ExtractSeriesWidget(QWidget):
         if not newFrame:
             # Nothing is selected
             return self.attributesView.setAttributeModel(AttributeTableModel(self))
+        # Check if frame is already in the source models
+        if newFrame not in self.models.keys():
+            # Create a new proxy and add it to source models
+            self.addSourceFrameModel(newFrame)
+            if len(self.models) == 1:
+                # If it is the first model added then set up the view
+                self.timeSeriesDataView.setModel(self.timeSeriesDataModel)
+                self.timeSeriesDataView.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
+                self.timeSeriesDataView.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
+        # Update the attribute table
         self.attributesView.setAttributeModel(self.models[newFrame].sourceModel())
-        # todo: deal with case when workbench changed
 
     def setOptionsForFrame(self, frameName: str,
                            options: Optional[List[Tuple[int, QPersistentModelIndex]]]) -> None:
@@ -372,10 +394,11 @@ class _ExtractSeriesWidget(QWidget):
     def removeSeries(self) -> None:
         selected: List[QModelIndex] = self.seriesView.selectedIndexes()
         if selected:
-            # Remove options for series if they exists
-            self.seriesOptions.pop(selected[0].data(Qt.DisplayRole), None)
+            seriesName: str = selected[0].data(Qt.DisplayRole)
             # Remove row
             self.seriesModel.removeRow(selected[0].row())
+            # Remove options for series if they exists
+            self.seriesOptions.pop(seriesName, None)
 
     @Slot()
     def addTimeLabel(self) -> None:
@@ -386,7 +409,12 @@ class _ExtractSeriesWidget(QWidget):
         selected: List[QModelIndex] = self.timeAxisView.selectedIndexes()
         if selected:
             self.timeAxisModel.removeRow(selected[0].row())
-            # TODO: update model
+            # Update model
+            self.timeSeriesDataModel.dataChanged.emit(
+                self.timeSeriesDataModel.index(0, 1, QModelIndex()),
+                self.timeSeriesDataModel.index(self.timeSeriesDataModel.rowCount() - 1, 1,
+                                               QModelIndex()),
+                [Qt.DisplayRole, Qt.EditRole])
 
     @Slot()
     def editSeriesName(self) -> None:
@@ -399,6 +427,14 @@ class _ExtractSeriesWidget(QWidget):
         index = self.timeAxisModel.index(self.timeAxisModel.rowCount() - 1, 0, QModelIndex())
         self.timeAxisView.setCurrentIndex(index)
         self.timeAxisView.edit(index)
+
+    @Slot(str)
+    def checkOutputName(self, text: str) -> None:
+        if self.workbench and text in self.workbench.names:
+            self.warningLabel.setText('Variable {:s} will be overwritten'.format(text))
+            self.warningLabel.show()
+        else:
+            self.warningLabel.hide()
 
 
 class CustomStringListModel(QStringListModel):

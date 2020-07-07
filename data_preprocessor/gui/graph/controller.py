@@ -105,8 +105,8 @@ class GraphController(QWidget):
             else:
                 self.__editor_widget.setOptions(*options)
             # Connect editor signals to slots which handle accept/reject
-            self.__editor_widget.acceptAndClose.connect(self.onEditAccept)
-            self.__editor_widget.rejectAndClose.connect(self.cleanupEditor)
+            self.__editor_widget.accept.connect(self.onEditAccept)
+            self.__editor_widget.reject.connect(self.cleanupEditor)
             # Show the editor in new window
             self.__editor_widget.setParent(None)
             self.__editor_widget.setWindowTitle(node.operation.name())
