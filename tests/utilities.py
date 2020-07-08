@@ -1,5 +1,5 @@
 import collections
-from typing import Any
+from typing import Any, Dict, List
 
 import numpy
 import pandas as pd
@@ -7,6 +7,11 @@ import pandas as pd
 
 def numpy_equal(a: numpy.array, b: numpy.array) -> bool:
     return ((a == b) | ((a != a) & (b != b))).all()
+
+
+def roundValues(val: Dict[Any, List], decimals: int) -> Dict[Any, List]:
+    """ Round every float in 'val' to a number with specified number of decimal digits """
+    return {k: [round(e, decimals) if isinstance(e, float) else e for e in v] for k, v in val.items()}
 
 
 def nan_to_None(val: Any) -> Any:

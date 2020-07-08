@@ -69,7 +69,7 @@ class IndexType(Type):
 
     @property
     def name(self) -> str:
-        return self.__type.name + ' (index)'
+        return self.__type.name
 
     @property
     def type(self) -> Type:

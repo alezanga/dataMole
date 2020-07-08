@@ -8,7 +8,7 @@ from PySide2.QtCore import QThreadPool, Slot, QObject, Signal, Qt
 from data_preprocessor import data, logger
 from data_preprocessor.flow.OperationDag import OperationDag, OperationNode
 from data_preprocessor.logger import dataframeDiffLog
-from data_preprocessor.operation.interface.executionlog import ExecutionLog
+from data_preprocessor.operation.interface.executionlog import OperationLog
 from data_preprocessor.status import NodeStatus
 from data_preprocessor.threads import Worker
 
@@ -109,7 +109,7 @@ class _HandlerSlots(QObject):
         # Log name id
         logEntry += '####### {:s} (ID {:d})\nTimestamp: {}\n'.format(node.operation.name(),
                                                                      node.uid, str(datetime.now()))
-        if isinstance(node.operation, ExecutionLog):
+        if isinstance(node.operation, OperationLog):
             # The operation has something to log
             logEntry += node.operation.logMessage().rstrip('\n')
         if node.nInputs == 1 and result is not None:

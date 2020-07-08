@@ -11,7 +11,7 @@ from data_preprocessor.gui.editor.OptionsEditorFactory import OptionsEditorFacto
 from data_preprocessor.gui.mainmodels import FrameModel
 from data_preprocessor.operation.interface.exceptions import OptionValidationError
 from data_preprocessor.operation.interface.graph import GraphOperation
-from data_preprocessor.operation.utils import ManyMixedListsValidator, MixedListValidator, splitList, \
+from data_preprocessor.operation.utils import ManyMixedListsValidator, MixedListValidator, splitString, \
     parseNan, joinList
 
 
@@ -104,8 +104,8 @@ class MergeValuesOp(GraphOperation):
             if not values or not replace:
                 raise OptionValidationError(
                     [('incompleteoptions', 'Error: options are not set at row {:d}'.format(c))])
-            lists: List[str] = splitList(values, ';')
-            replace: List[str] = splitList(replace, ';')
+            lists: List[str] = splitString(values, ';')
+            replace: List[str] = splitString(replace, ';')
             if not lists or not replace:
                 raise OptionValidationError([('incompleteoptions', 'Error: options are not set at row '
                                                                    '{:d}'.format(c))])
@@ -113,7 +113,7 @@ class MergeValuesOp(GraphOperation):
                 raise OptionValidationError([('wrongnum', 'Error: number of intervals is not equal to '
                                                           'the number of values to replace at row {:d}'
                                               .format(c))])
-            parsedValues: List[List[str]] = [splitList(s, ' ') for s in lists]
+            parsedValues: List[List[str]] = [splitString(s, ' ') for s in lists]
             if type_c == Types.Numeric:
                 if not all(map(isValidFloat, replace)):
                     err = ('numericinvalid', 'Error: list of values to replace contains non '

@@ -9,7 +9,7 @@ from PySide2.QtGui import QValidator, QIntValidator, QDoubleValidator
 # doubleListValidator = QRegExpValidator(QRegExp('(\\d+(\\.\\d)?\\d*)(\\,\\s?(\\d+(\\.\\d)?\\d*))*'))
 
 
-def splitList(string: str, sep: str) -> List[str]:
+def splitString(string: str, sep: str) -> List[str]:
     """
     Split a string on a separator, trimming spaces. Parts within double quotes are not parsed
 
@@ -64,6 +64,15 @@ def parseNan(values: List):
     return newValues
 
 
+def isFloat(text: str) -> bool:
+    try:
+        float(text)
+    except ValueError:
+        return False
+    else:
+        return True
+
+
 class NumericListValidator(QValidator):
     """ QValidator for space-separated list of numbers. Works with float or ints """
 
@@ -114,7 +123,7 @@ class ManyMixedListsValidator(QValidator):
 
     def validate(self, inputString: str, pos: int) -> QValidator.State:
         inputString = inputString.strip(' ')
-        lists = splitList(inputString, sep=';')
+        lists = splitString(inputString, sep=';')
         val = MixedListValidator()
         for s in lists:
             if val.validate(s, 0) == QValidator.Invalid:

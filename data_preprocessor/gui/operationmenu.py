@@ -61,7 +61,7 @@ class OperationMenu(QTreeWidget):
             if not hasattr(module, var_export):
                 continue
             op_class = getattr(module, var_export)
-            if isinstance(op_class, list):
+            if isinstance(op_class, list) or isinstance(op_class, tuple):
                 for c in op_class:
                     _addChildren(top_items, c)
             else:

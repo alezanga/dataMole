@@ -12,7 +12,7 @@ from data_preprocessor.data.types import Types, Type
 from data_preprocessor.gui.editor.interface import AbsOperationEditor
 from .interface.exceptions import OptionValidationError
 from .interface.graph import GraphOperation
-from .utils import MixedListValidator, splitList, joinList, SingleStringValidator
+from .utils import MixedListValidator, splitString, joinList, SingleStringValidator
 from ..gui.editor.OptionsEditorFactory import OptionsEditorFactory, OptionValidatorDelegate
 from ..gui.mainmodels import FrameModel
 
@@ -158,7 +158,7 @@ class ToCategoricalOp(GraphOperation):
             categories: Optional[List[str]] = None
             orderCategories: Optional[bool] = opt.get('ordered', None)
             if catString:
-                categories = splitList(catString, sep=' ')
+                categories = splitString(catString, sep=' ')
                 if not categories:
                     categories = None
             options[c] = (categories, orderCategories)

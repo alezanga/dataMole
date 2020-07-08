@@ -8,6 +8,7 @@ import pandas as pd
 import sklearn.preprocessing as skp
 from PySide2.QtGui import QIntValidator
 from PySide2.QtWidgets import QHeaderView
+from prettytable import PrettyTable, ALL
 
 from data_preprocessor import data
 from data_preprocessor.data.types import Types, Type
@@ -16,9 +17,9 @@ from data_preprocessor.gui.editor.OptionsEditorFactory import OptionsEditorFacto
     OptionValidatorDelegate
 from data_preprocessor.gui.mainmodels import FrameModel
 from data_preprocessor.operation.interface.exceptions import OptionValidationError
-from data_preprocessor.operation.interface.executionlog import ExecutionLog
+from data_preprocessor.operation.interface.executionlog import OperationLog
 from data_preprocessor.operation.interface.graph import GraphOperation
-from data_preprocessor.operation.utils import NumericListValidator, MixedListValidator, splitList, \
+from data_preprocessor.operation.utils import NumericListValidator, MixedListValidator, splitString, \
     joinList
 
 
@@ -28,30 +29,40 @@ class BinStrategy(Enum):
     Kmeans = 'kmeans'
 
 
-class BinsDiscretizer(GraphOperation, ExecutionLog):
+class BinsDiscretizer(GraphOperation, OperationLog):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.__strategy: BinStrategy = BinStrategy.Uniform
         self.__attributes: Dict[int, int] = dict()
         self.__dropTransformed: bool = True
-        self.__logMessage: str = None
+
+    def __logExecution(self, columns: List[str], binEdges: Dict[int, List[float]]) -> None:
+        optPt = PrettyTable(field_names=['Option', 'Value'])
+        optPt.add_row(['Strategy', self.__strategy.value])
+        optPt.add_row(['Drop transformed', self.__dropTransformed])
+
+        binsPt = PrettyTable(field_names=['Column', 'K', 'Computed bins', 'Actual K'])
+        for i, k in self.__attributes.items():
+            iEdges = binEdges[i]
+            binsPt.add_row([columns[i], k, ', '.join(['{:G}'.format(e) for e in iEdges]), len(iEdges)])
+
+        self._logString = optPt.get_string(border=True, vrules=ALL) + '\n' + \
+                          binsPt.get_string(border=True, vrules=ALL)
 
     def execute(self, df: data.Frame) -> data.Frame:
         frame = copy.deepcopy(df)
         sortedAttr = OrderedDict(sorted(self.__attributes.items(), key=lambda t: t[0]))
         columnList = list(sortedAttr.keys())
         binsList = list(sortedAttr.values())
-        options = 'OPTIONS:\nDrop old columns: {}\nColumns: {}\nNBins: {}'.format(
-            self.__dropTransformed, columnList, binsList)
         f = frame.getRawFrame()
         # Operation ignores nan values
         nanRows = f.iloc[:, columnList].isnull()
         # For every column, transform every non-nan row
-        edges = '\nCOMPUTED BINS:\n'
         columns = f.columns
-        for col, bins in zip(columnList, binsList):
+        edges: Dict[int, List[float]] = dict()
+        for col, k in zip(columnList, binsList):
             nr = nanRows.loc[:, columns[col]]
-            discretizer = skp.KBinsDiscretizer(n_bins=bins, encode='ordinal',
+            discretizer = skp.KBinsDiscretizer(n_bins=k, encode='ordinal',
                                                strategy=self.__strategy.value)
             result = discretizer.fit_transform(f.iloc[(~nr).to_list(), [col]]).astype(str)
             if self.__dropTransformed:
@@ -62,16 +73,10 @@ class BinsDiscretizer(GraphOperation, ExecutionLog):
                 f.loc[:, colName] = np.nan
                 f.loc[(~nr).to_list(), [colName]] = result
                 f.loc[:, colName] = f.loc[:, colName].astype('category')
-            edges += 'Bin edges for col {:d}: [{}]\n'.format(col, ', '.join(
-                [str(x) for x in discretizer.bin_edges_[0].tolist()]))
-        edges = edges.strip('\n')
-        sample = '\nSAMPLE:\nOriginal columns:\n' + df.getRawFrame().iloc[:5, columnList].to_string() + \
-                 '\nTransformed columns\n: ' + f.iloc[:5, columnList].to_string()
-        self.__logMessage = options + edges + sample
+            edges[col] = discretizer.bin_edges_[0].tolist()
+        # Log what has been done
+        self.__logExecution(columns, edges)
         return data.Frame(f)
-
-    def logMessage(self) -> str:
-        return self.__logMessage
 
     def acceptedTypes(self) -> List[Type]:
         return [Types.Numeric]
@@ -189,22 +194,31 @@ class BinsDiscretizer(GraphOperation, ExecutionLog):
         return -1
 
 
-class RangeDiscretizer(GraphOperation, ExecutionLog):
+class RangeDiscretizer(GraphOperation, OperationLog):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # { col: (edges, labels) }
         self.__attributes: Dict[int, Tuple[List[float], List[str]]] = dict()
         self.__dropTransformed: bool = True
-        self.__logMessage = ''
+
+    def __logOptions(self, columns: List[str]) -> None:
+        pt = PrettyTable(field_names=['Column', 'Ranges', 'Labels'])
+        for i, opts in self.__attributes.items():
+            pt.add_row([columns[i],
+                        ', '.join(
+                            ['({:G}, {:G}]'.format(a, b) for a, b in zip(opts[0], opts[0][1:])]),
+                        ', '.join(opts[1])])
+        drop: str = '\nDrop transformed: {}'.format(self.__dropTransformed)
+        self._logString = pt.get_string(border=True, vrules=ALL) + drop
 
     def execute(self, df: data.Frame) -> data.Frame:
         f = df.getRawFrame().copy(True)
-        self.__logMessage = 'OPTIONS:\nDrop old columns: {}\nAttributes:'.format(self.__dropTransformed)
+        columns = f.columns.to_list()
+        self.__logOptions(columns)
         for c, o in self.__attributes.items():
             result = pd.cut(f.iloc[:, c], bins=o[0], labels=o[1], duplicates='drop')
-            colName: str = self.shapes[0].colNames[c]
+            colName: str = columns[c]
             newColName: str = colName if self.__dropTransformed else colName + '_bins'
-            self.__logMessage += '\n\'{}\' => bins: {}, labels: {}'.format(colName, o[0], o[1])
             f.loc[:, newColName] = result
         return data.Frame(f)
 
@@ -326,13 +340,13 @@ class RangeDiscretizer(GraphOperation, ExecutionLog):
                 errors.append(('notSet', 'Error: options at row {:d} are not set'.format(row)))
                 raise OptionValidationError(errors)
             stringList: str = opts['bins']
-            stringEdges: List[str] = splitList(stringList, sep=' ')
+            stringEdges: List[str] = splitString(stringList, sep=' ')
             if not all([isValidEdge(v) for v in stringEdges]):
                 errors.append(('invalidFloat',
                                'Error: Bin edges are not valid numbers at row {:d}'.format(row)))
             else:
                 edges: List[float] = [float(x) for x in stringEdges]
-            bins: List[str] = splitList(opts['labels'], sep=' ')
+            bins: List[str] = splitString(opts['labels'], sep=' ')
             labNum = len(stringEdges) - 1
             if len(bins) != labNum:
                 errors.append(('invalidLabels',
@@ -345,9 +359,6 @@ class RangeDiscretizer(GraphOperation, ExecutionLog):
         # If everything went well set options
         self.__attributes = options
         self.__dropTransformed = drop
-
-    def logMessage(self) -> str:
-        return self.__logMessage
 
 
 export = [BinsDiscretizer, RangeDiscretizer]

@@ -1,10 +1,10 @@
-from typing import List, Tuple, Dict
+from typing import List, Tuple
 
 import numpy as np
 import pytest
 
 from data_preprocessor import data
-from data_preprocessor.data.types import Types, Type, IndexType
+from data_preprocessor.data.types import Types
 from data_preprocessor.operation.discretize import BinsDiscretizer, BinStrategy, RangeDiscretizer
 from data_preprocessor.operation.interface.exceptions import OptionValidationError
 from tests.utilities import nan_to_None

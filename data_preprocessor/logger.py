@@ -2,8 +2,8 @@ import datetime
 import logging
 import os
 
-import pandas as pd
 from PySide2.QtCore import QtMsgType, QMessageLogContext
+from prettytable import PrettyTable, ALL
 
 LEVEL = logging.DEBUG
 LOG_FOLDER = 'logs'
@@ -76,16 +76,20 @@ def dataframeDiffLog(df1, df2) -> str:
     newCols = cols2 - cols1
     dropCols = cols1 - (cols1 & cols2)
     # Now pretty print them
-    newSeries = pd.Series({n: t for (n, t) in newCols})
-    newSeries.index.name = 'Column'
-    dropSeries = pd.Series({n: t for (n, t) in dropCols})
-    dropSeries.index.name = 'Column'
-    msg = '\nCHANGES:\nNew columns added: {}\nColumns dropped: {}\n'.format('\n' + str(newSeries) if
-                                                                            not newSeries.empty else None,
-                                                                            '\n' + str(dropSeries) if
-                                                                            not dropSeries.empty else None)
-    msg += 'Original number of columns: {:d}\nNew number of columns: {:d}\n'.format(shape1.nColumns,
-                                                                                    shape2.nColumns)
+    diffTable = PrettyTable(field_names=['Columns added', 'Columns removed'], print_empty=False)
+    while newCols or dropCols:
+        removed: tuple = dropCols.pop() if dropCols else None
+        added: tuple = newCols.pop() if newCols else None
+        strAdded: str = '{} ({})'.format(added[0], added[1].name) if added else ''
+        strRemoved: str = '{} ({})'.format(removed[0], removed[1].name) if removed else ''
+        diffTable.add_row([strAdded, strRemoved])
+
+    cc = diffTable.get_string(border=True, vrules=ALL).strip()
+    msg = '\nCOLUMN CHANGES:' + (('\n' + cc) if cc else 'None')
+    msg += '\nINDEX NAMES: {}'.format(
+        ', '.join('{} ({})'.format(k, t.name) for k, t in shape2.indexDict.items()))
+    msg += '\nOriginal number of columns: {:d}\nNew number of columns: {:d}\n'.format(shape1.nColumns,
+                                                                                      shape2.nColumns)
     msg += 'Original number of rows: {:d}\nNew number of rows: {:d}'.format(df1.nRows, df2.nRows)
     return msg
 
