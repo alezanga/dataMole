@@ -6,7 +6,8 @@ from PySide2.QtWidgets import QHeaderView
 from data_preprocessor import data
 from data_preprocessor.data.types import Types, Type
 from data_preprocessor.gui import AbsOperationEditor
-from data_preprocessor.gui.editor.OptionsEditorFactory import OptionsEditorFactory
+from data_preprocessor.gui.editor.OptionsEditorFactory import OptionsEditorFactory, \
+    OptionValidatorDelegate
 from data_preprocessor.gui.mainmodels import FrameModel
 from data_preprocessor.operation.interface.exceptions import OptionValidationError
 from data_preprocessor.operation.interface.graph import GraphOperation
@@ -152,8 +153,8 @@ class MergeValuesOp(GraphOperation):
     def getEditor(self) -> AbsOperationEditor:
         factory = OptionsEditorFactory()
         options = {
-            'values': ('Values', ManyMixedListsValidator()),
-            'replace': ('Replace with', MixedListValidator())
+            'values': ('Values', OptionValidatorDelegate(ManyMixedListsValidator()), None),
+            'replace': ('Replace with', OptionValidatorDelegate(MixedListValidator()), None)
         }
         factory.initEditor()
         factory.withAttributeTable('table', True, False, True, options, self.acceptedTypes())

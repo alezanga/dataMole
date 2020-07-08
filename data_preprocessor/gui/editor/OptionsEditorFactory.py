@@ -4,7 +4,7 @@ from typing import Dict, List, Callable, Tuple, Any, Iterable, Optional
 from PySide2.QtCore import Qt, QModelIndex
 from PySide2.QtGui import QValidator
 from PySide2.QtWidgets import QLineEdit, QCheckBox, \
-    QWidget, QFormLayout, QStyledItemDelegate
+    QWidget, QFormLayout, QStyledItemDelegate, QAbstractItemDelegate
 
 from data_preprocessor.decorators.generic import singleton
 from data_preprocessor.gui.editor.interface import AbsOperationEditor
@@ -15,10 +15,12 @@ from data_preprocessor.gui.mainmodels import SearchableAttributeTableWidget, Att
 class AttributeTableWithOptions(AttributeTableModel):
     def __init__(self, parent: QWidget = None, checkable: bool = False,
                  editable: bool = False, showTypes: bool = True,
-                 options: Optional[Dict[str, Tuple[str, Optional[QValidator]]]] = None):
+                 options: Optional[
+                     Dict[str, Tuple[str, Optional[QAbstractItemDelegate], Optional[Any]]]] = None):
         super().__init__(parent, checkable, editable, showTypes)
-        # options description { key, (label, qvalidator) }
-        self._optionsDesc: Dict[str, Tuple[str, QValidator]] = options if options else dict()
+        # options description { key, (label, delegate, default_value) }
+        self._optionsDesc: Dict[str, Tuple[
+            str, Optional[QAbstractItemDelegate], Optional[Any]]] = options if options else dict()
         # Column position for each option column
         self._optionsPos: Dict[int, str] = dict()
         self._inverseOptionsPos: Dict[str, int] = dict()
@@ -29,11 +31,20 @@ class AttributeTableWithOptions(AttributeTableModel):
         # Format { row: { columnKey: value } }
         self._options: Dict[int, Dict[str, Any]] = dict()
 
-    def validatorColumn(self, column: int) -> Optional[QValidator]:
-        # If column is not an option then no validator
+    def delegateForColumn(self, column: int) -> Optional[QAbstractItemDelegate]:
+        # If column is not an option then no delegate
         if column not in self._optionsPos.keys():
             return None
-        return self._optionsDesc[self._optionsPos[column]][1]
+        delegate: Optional[QAbstractItemDelegate] = self._optionsDesc[self._optionsPos[column]][1]
+        if delegate:
+            return delegate
+        return None
+
+    def defaultValueForColumn(self, column: int) -> Optional[Any]:
+        # If column is not an option then no default value
+        if column not in self._optionsPos.keys():
+            return None
+        return self._optionsDesc[self._optionsPos[column]][2]
 
     def options(self) -> Dict[int, Dict[str, Any]]:
         selectedRows = self.checked
@@ -56,11 +67,17 @@ class AttributeTableWithOptions(AttributeTableModel):
             return None
         # Handle option columns
         if (role == Qt.DisplayRole or role == Qt.EditRole) and index.column() in self._optionsPos.keys():
-            rowOptions = self._options.get(index.row(), None)
-            if rowOptions and index.row() in self.checked:
-                option = rowOptions.get(self._optionsPos[index.column()], None)
-                if option is not None:
-                    return option
+            if index.row() in self.checked:
+                rowOptions = self._options.get(index.row(), None)
+                if rowOptions:
+                    # For selected column show the values set or a default value (if set)
+                    option = rowOptions.get(self._optionsPos[index.column()], None)
+                    if option is not None:
+                        return option
+                # No options are set for current checked row
+                if role == Qt.DisplayRole:
+                    # Only for DisplayRole, since in EditRole the correct value must be None
+                    return self.defaultValueForColumn(index.column())
             return None
         # Everything else is handled by superclass
         return super().data(index, role)
@@ -72,7 +89,7 @@ class AttributeTableWithOptions(AttributeTableModel):
         # Change option name
         if role == Qt.EditRole:
             if index.column() in self._optionsPos.keys():
-                if self.data(index, Qt.DisplayRole) != value:
+                if self.data(index, Qt.EditRole) != value:
                     optionsForRow = self._options.get(index.row(), dict())
                     entry = {self._optionsPos[index.column()]: value}
                     optionsForRow.update(entry)
@@ -127,18 +144,21 @@ class OptionsEditorFactory:
         self.__editorWidgets: List[Tuple[str, QWidget]] = list()
 
     def withAttributeTable(self, key: str, checkbox: bool, nameEditable: bool, showTypes: bool,
-                           options: Optional[Dict[str, Tuple[str, Optional[QValidator]]]],
+                           options: Optional[Dict[str, Tuple[str, Optional[QAbstractItemDelegate],
+                                                             Optional[Any]]]],
                            types: Optional[List]):
         """
         Adds a table widget to the editor
 
         :param key: parameter name of the options for the table
         :param checkbox: whether to show a checkbox column in the table
-        :param nameEditable: whether attribute name should be editable with double ckick
+        :param nameEditable: whether attribute name should be editable with double click
         :param showTypes: whether to show a column with the type of each attribute
         :param options: option specifier. Any entry in this dictionary will result in a new column in
-            the table with header name specified as first argument in the tuple and an optional QValidator
-            which will be set in the editor widget after a double click on the option cell
+            the table with header name specified as first argument in the tuple and an optional delegate
+            object which will be used in the editor widget after a double click on the option cell.
+            The third argument is an optional default value to show on selected rows where no options
+            has been set
         :param types: the list of accepted types to show. If None no filter will be applied
         """
         tableWidget = SearchableAttributeTableWidget(self.__body)
@@ -146,10 +166,10 @@ class OptionsEditorFactory:
         tableWidget.setAttributeModel(tableModel, filterTypes=types)
         # Set up validator for every option columns
         for col in range(tableModel.columnCount()):
-            validator = tableModel.validatorColumn(col)
-            if validator:
-                tableWidget.tableView.setItemDelegateForColumn(col, OptionValidatorDelegate(validator,
-                                                                                            tableWidget.tableView))
+            delegate = tableModel.delegateForColumn(col)
+            if delegate:
+                delegate.setParent(tableWidget.tableView)
+                tableWidget.tableView.setItemDelegateForColumn(col, delegate)
         self.__layout.addRow(tableWidget)
         self.__optionsGetter[key] = tableModel.options
         self.__optionsSetter[key] = tableModel.setOptions

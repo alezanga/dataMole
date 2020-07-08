@@ -12,7 +12,8 @@ from PySide2.QtWidgets import QHeaderView
 from data_preprocessor import data
 from data_preprocessor.data.types import Types, Type
 from data_preprocessor.gui import AbsOperationEditor
-from data_preprocessor.gui.editor.OptionsEditorFactory import OptionsEditorFactory
+from data_preprocessor.gui.editor.OptionsEditorFactory import OptionsEditorFactory, \
+    OptionValidatorDelegate
 from data_preprocessor.gui.mainmodels import FrameModel
 from data_preprocessor.operation.interface.exceptions import OptionValidationError
 from data_preprocessor.operation.interface.executionlog import ExecutionLog
@@ -139,8 +140,10 @@ class BinsDiscretizer(GraphOperation, ExecutionLog):
         factory = OptionsEditorFactory()
         factory.initEditor()
         factory.withAttributeTable('attributes', True, False, True,
-                                   {'bins': ('K', QIntValidator(1, 10000000))},
-                                   types=self.acceptedTypes())
+                                   {
+                                       'bins': (
+                                           'K', OptionValidatorDelegate(QIntValidator(1, 10000000)), None
+                                       )}, types=self.acceptedTypes())
         values = [(s.name, s) for s in BinStrategy]
         factory.withRadioGroup('Select strategy:', 'strategy', values)
         factory.withCheckBox('Drop original attributes', 'drop')
@@ -272,8 +275,8 @@ class RangeDiscretizer(GraphOperation, ExecutionLog):
         factory = OptionsEditorFactory()
         factory.initEditor()
         options = {
-            'bins': ('Bin edges', NumericListValidator(float_int=float)),
-            'labels': ('Labels', MixedListValidator())
+            'bins': ('Bin edges', OptionValidatorDelegate(NumericListValidator(float_int=float)), None),
+            'labels': ('Labels', OptionValidatorDelegate(MixedListValidator()), None)
         }
         factory.withAttributeTable('table', True, False, True, options, self.acceptedTypes())
         factory.withCheckBox('Drop original columns', 'drop')

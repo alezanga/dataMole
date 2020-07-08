@@ -13,7 +13,7 @@ from data_preprocessor.gui.editor.interface import AbsOperationEditor
 from .interface.exceptions import OptionValidationError
 from .interface.graph import GraphOperation
 from .utils import MixedListValidator, splitList, joinList, SingleStringValidator
-from ..gui.editor.OptionsEditorFactory import OptionsEditorFactory
+from ..gui.editor.OptionsEditorFactory import OptionsEditorFactory, OptionValidatorDelegate
 from ..gui.mainmodels import FrameModel
 
 
@@ -182,8 +182,8 @@ class ToCategoricalOp(GraphOperation):
         factory = OptionsEditorFactory()
         factory.initEditor()
         factory.withAttributeTable('attributes', True, False, True, {
-            'cat': ('Categories', MixedListValidator()),
-            'ordered': ('Ordered', None)}, types=self.acceptedTypes())
+            'cat': ('Categories', OptionValidatorDelegate(MixedListValidator()), None),
+            'ordered': ('Ordered', BoolDelegate(), False)}, types=self.acceptedTypes())
         return factory.getEditor()
 
     def injectEditor(self, editor: 'AbsOperationEditor') -> None:
@@ -196,12 +196,6 @@ class ToCategoricalOp(GraphOperation):
         editor.attributes.tableView.horizontalHeader().setSectionResizeMode(4, QHeaderView.Fixed)
         # Stretch new section
         editor.attributes.tableView.horizontalHeader().setSectionResizeMode(3, QHeaderView.Stretch)
-
-        class BoolDelegate(QStyledItemDelegate):
-            def createEditor(self, parent: QWidget, option, index) -> QWidget:
-                return QItemEditorFactory.defaultFactory().createEditor(1, parent)
-
-        editor.attributes.tableView.setItemDelegateForColumn(4, BoolDelegate())
 
     def getOutputShape(self) -> Union[data.Shape, None]:
         if not self.hasOptions() or not self._shapes[0]:
@@ -230,6 +224,14 @@ class ToCategoricalOp(GraphOperation):
     @staticmethod
     def maxOutputNumber() -> int:
         return -1
+
+
+class BoolDelegate(QStyledItemDelegate):
+    def createEditor(self, parent: QWidget, option, index) -> QWidget:
+        return QItemEditorFactory.defaultFactory().createEditor(1, parent)
+
+    def displayText(self, value: bool, locale) -> str:
+        return 'True' if value else 'False'
 
 
 class ToTimestamp(GraphOperation):
@@ -293,7 +295,7 @@ class ToTimestamp(GraphOperation):
     def getEditor(self) -> AbsOperationEditor:
         factory = OptionsEditorFactory()
         factory.initEditor()
-        tableOptions = {'format': ('Format', SingleStringValidator())}
+        tableOptions = {'format': ('Format', OptionValidatorDelegate(SingleStringValidator()), 'auto')}
         factory.withAttributeTable('attributes', True, False, False, tableOptions, self.acceptedTypes())
         factory.withRadioGroup('How to treat errors?', 'errors',
                                [('Raise', 'raise'), ('Coerce', 'coerce')])
