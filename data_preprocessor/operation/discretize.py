@@ -5,19 +5,19 @@ from typing import Iterable, List, Dict, Optional, Tuple
 
 import numpy as np
 import pandas as pd
+import prettytable as pt
 import sklearn.preprocessing as skp
 from PySide2.QtGui import QIntValidator
 from PySide2.QtWidgets import QHeaderView
-from prettytable import PrettyTable, ALL
 
 from data_preprocessor import data
+from data_preprocessor import flogging
 from data_preprocessor.data.types import Types, Type
 from data_preprocessor.gui import AbsOperationEditor
 from data_preprocessor.gui.editor.OptionsEditorFactory import OptionsEditorFactory, \
     OptionValidatorDelegate
 from data_preprocessor.gui.mainmodels import FrameModel
 from data_preprocessor.operation.interface.exceptions import OptionValidationError
-from data_preprocessor.operation.interface.executionlog import OperationLog
 from data_preprocessor.operation.interface.graph import GraphOperation
 from data_preprocessor.operation.utils import NumericListValidator, MixedListValidator, splitString, \
     joinList
@@ -29,7 +29,7 @@ class BinStrategy(Enum):
     Kmeans = 'kmeans'
 
 
-class BinsDiscretizer(GraphOperation, OperationLog):
+class BinsDiscretizer(GraphOperation, flogging.Loggable):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.__strategy: BinStrategy = BinStrategy.Uniform
@@ -37,17 +37,17 @@ class BinsDiscretizer(GraphOperation, OperationLog):
         self.__dropTransformed: bool = True
 
     def __logExecution(self, columns: List[str], binEdges: Dict[int, List[float]]) -> None:
-        optPt = PrettyTable(field_names=['Option', 'Value'])
+        optPt = pt.PrettyTable(field_names=['Option', 'Value'])
         optPt.add_row(['Strategy', self.__strategy.value])
         optPt.add_row(['Drop transformed', self.__dropTransformed])
 
-        binsPt = PrettyTable(field_names=['Column', 'K', 'Computed bins', 'Actual K'])
+        binsPt = pt.PrettyTable(field_names=['Column', 'K', 'Computed bins', 'Actual K'])
         for i, k in self.__attributes.items():
             iEdges = binEdges[i]
             binsPt.add_row([columns[i], k, ', '.join(['{:G}'.format(e) for e in iEdges]), len(iEdges)])
 
-        self._logString = optPt.get_string(border=True, vrules=ALL) + '\n' + \
-                          binsPt.get_string(border=True, vrules=ALL)
+        self._logOptionsString = optPt.get_string(border=True, vrules=pt.ALL)
+        self._logExecutionString = binsPt.get_string(border=True, vrules=pt.ALL)
 
     def execute(self, df: data.Frame) -> data.Frame:
         frame = copy.deepcopy(df)
@@ -194,27 +194,28 @@ class BinsDiscretizer(GraphOperation, OperationLog):
         return -1
 
 
-class RangeDiscretizer(GraphOperation, OperationLog):
+class RangeDiscretizer(GraphOperation, flogging.Loggable):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # { col: (edges, labels) }
         self.__attributes: Dict[int, Tuple[List[float], List[str]]] = dict()
         self.__dropTransformed: bool = True
 
-    def __logOptions(self, columns: List[str]) -> None:
-        pt = PrettyTable(field_names=['Column', 'Ranges', 'Labels'])
+    def logOptions(self) -> None:
+        columns = self.shapes[0].colNames
+        tt = pt.PrettyTable(field_names=['Column', 'Ranges', 'Labels'])
         for i, opts in self.__attributes.items():
-            pt.add_row([columns[i],
+            tt.add_row([columns[i],
                         ', '.join(
                             ['({:G}, {:G}]'.format(a, b) for a, b in zip(opts[0], opts[0][1:])]),
                         ', '.join(opts[1])])
         drop: str = '\nDrop transformed: {}'.format(self.__dropTransformed)
-        self._logString = pt.get_string(border=True, vrules=ALL) + drop
+
+        return tt.get_string(border=True, vrules=pt.ALL) + drop
 
     def execute(self, df: data.Frame) -> data.Frame:
         f = df.getRawFrame().copy(True)
         columns = f.columns.to_list()
-        self.__logOptions(columns)
         for c, o in self.__attributes.items():
             result = pd.cut(f.iloc[:, c], bins=o[0], labels=o[1], duplicates='drop')
             colName: str = columns[c]

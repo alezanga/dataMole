@@ -1,38 +1,37 @@
 from typing import Iterable, Tuple, List, Dict, Optional
 
 import pandas as pd
+import prettytable as pt
 from PySide2.QtCore import QModelIndex, Qt, QAbstractItemModel
 from PySide2.QtWidgets import QStyledItemDelegate, QLineEdit, QHeaderView, QWidget
-from prettytable import PrettyTable, ALL
 from sklearn.preprocessing import minmax_scale, scale
 
 from data_preprocessor import data
+from data_preprocessor import flogging
 from data_preprocessor.data.types import Type, Types
 from data_preprocessor.gui import AbsOperationEditor, OptionsEditorFactory
 from data_preprocessor.gui.mainmodels import FrameModel
 from data_preprocessor.operation.interface.exceptions import OptionValidationError
-from data_preprocessor.operation.interface.executionlog import OperationLog
 from data_preprocessor.operation.interface.graph import GraphOperation
 from data_preprocessor.operation.utils import isFloat, splitString, NumericListValidator
 
 
-class MinMaxScaler(GraphOperation, OperationLog):
+class MinMaxScaler(GraphOperation, flogging.Loggable):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # { attr_index: (min, max) }
         self.__attributes: Dict[int, Tuple[float, float]] = dict()
 
-    def __logOptions(self, dfColumns: List[str]) -> None:
+    def logOptions(self) -> str:
+        dfColumns = self.shapes[0].colNames
         # Logs options set in this operation
-        pt = PrettyTable(field_names=['Column', 'Range'])
+        tt = pt.PrettyTable(field_names=['Column', 'Range'])
         for k, v in self.__attributes.items():
-            pt.add_row([dfColumns[k], '[{:G}, {:G}]'.format(*v)])
-        self._logString = pt.get_string(border=True, vrules=ALL)
+            tt.add_row([dfColumns[k], '[{:G}, {:G}]'.format(*v)])
+        return tt.get_string(border=True, vrules=pt.ALL)
 
     def execute(self, df: data.Frame) -> data.Frame:
         columns = df.getRawFrame().columns.to_list()
-        # Log options
-        self.__logOptions(columns)
         # Execute
         pdf = df.getRawFrame().copy(True)
         fr = set(self.__attributes.values())
@@ -136,23 +135,22 @@ class MinMaxScaler(GraphOperation, OperationLog):
         return -1
 
 
-class StandardScaler(GraphOperation):
+class StandardScaler(GraphOperation, flogging.Loggable):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # List of attr_indexes
         self.__attributes: List[int] = list()
 
-    def __logOptions(self, dfColumns: List[str]) -> None:
+    def logOptions(self) -> None:
+        dfColumns = self.shapes[0].colNames
         # Logs options set in this operation
-        pt = PrettyTable(field_names=['Column'])
+        tt = pt.PrettyTable(field_names=['Column'])
         for attr in self.__attributes:
-            pt.add_row([dfColumns[attr]])
-        self._logString = pt.get_string(border=True, vrules=ALL)
+            tt.add_row([dfColumns[attr]])
+        return tt.get_string(border=True, vrules=pt.ALL)
 
     def execute(self, df: data.Frame) -> data.Frame:
         columns = df.getRawFrame().columns.to_list()
-        # Log options
-        self.__logOptions(columns)
         # Execute
         pdf = df.getRawFrame().copy(True)
         processedColNames = pdf.iloc[:, self.__attributes].columns

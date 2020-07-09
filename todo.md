@@ -3,7 +3,9 @@
 - [ ] CHECK: why sometimes flow does not add edgeAdjustment to time series plot (fixed segfault)
 - [x] FIX !!: SEGFAULT in tablemodel/headerview in extracttimeseries.
 - [ ] FIX !!: SEGFAULT in series plot (it seems relative to zoom)
-- [ ] FIX validation in extractseries
+- [x] FIX validation in extractseries
+- [ ] FIX: outputShape is shared in graph !
+- [ ] TEST: log in graph and getOutputSHape for some operations does not conform to standard
 - [x] FIX: gridLayout in graph
 - [x] FIX: toCategory asked options even if it shouldn't (validation problem)
 - [x] FIX !!: Frame.integerToFloat does not work with big data (it hangs)

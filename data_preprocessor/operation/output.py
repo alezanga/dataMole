@@ -3,13 +3,13 @@ from typing import Optional, Iterable
 from PySide2.QtCore import Slot
 from PySide2.QtWidgets import QWidget
 
-from data_preprocessor import data
+from data_preprocessor import data, flogging
 from data_preprocessor.gui.editor.interface import AbsOperationEditor
 from .interface.graph import OutputGraphOperation
 from ..gui.editor import optionwidget as opw
 
 
-class ToVariableOp(OutputGraphOperation):
+class ToVariableOp(OutputGraphOperation, flogging.Loggable):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.__var_name: Optional[str] = None

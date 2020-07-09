@@ -1,10 +1,11 @@
 from enum import Enum, unique
 from typing import List, Tuple, Iterable, Optional
 
+import prettytable as pt
 from PySide2.QtCore import Qt, Slot
 from PySide2.QtWidgets import QWidget, QCheckBox, QVBoxLayout, QGroupBox, QGridLayout, QLabel
 
-from data_preprocessor import data
+from data_preprocessor import data, flogging
 from data_preprocessor.data.types import Types, Type
 from data_preprocessor.gui.editor.interface import AbsOperationEditor
 from .interface.exceptions import OptionValidationError
@@ -23,15 +24,26 @@ class JoinType(Enum):
 jt = JoinType
 
 
-class JoinOp(GraphOperation):
+class JoinOp(GraphOperation, flogging.Loggable):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.__lsuffix: str = '_l'
         self.__rsuffix: str = '_r'
-        self.__on_index: bool = False
+        self.__on_index: bool = True
         self.__left_on: int = None
         self.__right_on: int = None
         self.__type: JoinType = jt.Left
+
+    def logOptions(self) -> str:
+        tt = pt.PrettyTable(field_names=['Option', 'Value'], print_empty=False)
+        tt.align = 'l'
+        tt.add_row(['Join type', self.__type.value])
+        tt.add_row(['By index', self.__on_index])
+        tt.add_row(['Left column', self.__left_on if not self.__on_index else '-'])
+        tt.add_row(['Right column', self.__right_on if not self.__on_index else '-'])
+        tt.add_row(['Suffix left', self.__lsuffix])
+        tt.add_row(['Suffix right', self.__rsuffix])
+        return tt.get_string(vrules=pt.ALL, border=True)
 
     def execute(self, dfl: data.Frame, dfr: data.Frame) -> data.Frame:
         # sr = dfr.shape

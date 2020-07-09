@@ -1,10 +1,10 @@
-import logging
 from typing import Optional, Tuple, Dict, Any
 
 from PySide2.QtCore import Slot, QObject, Signal, QPoint, QThreadPool, Qt
 from PySide2.QtWidgets import QMessageBox, QAction, QComboBox, QFormLayout, QLabel, QCompleter
 
 from data_preprocessor import data
+from data_preprocessor import flogging
 from data_preprocessor import threads
 from data_preprocessor.gui.editor.interface import AbsOperationEditor
 from data_preprocessor.gui.editor.optionwidget import TextOptionWidget
@@ -22,6 +22,7 @@ class OperationAction(QAction):
     """
 
     stateChanged = Signal(int, str)
+    operationLogger = flogging.OperationLogger(flogging.opsLogger)
 
     def __init__(self, op: type, parent: QObject, actionName: str = '',
                  editorPosition: QPoint = QPoint(), *args, **kwargs):
@@ -65,6 +66,13 @@ class OperationAction(QAction):
         elif state == 'finish':
             sender.editor.deleteLater()  # delete editor
             # sender.deleteLater()  # delete wrapper object
+        # Log
+        if state == 'success' or state == 'error':
+            outName = sender.operation.outName if hasattr(sender.operation, 'outName') else None
+            inpName = sender.operation.inputName if hasattr(sender.operation, 'inputName') else None
+            OperationAction.operationLogger.log(sender.operation, self.__results.get(uid, None),
+                                                output=outName,
+                                                input=inpName)
         self.stateChanged.emit(uid, state)
 
 
@@ -121,7 +129,7 @@ class OperationWrapper(QObject):
         self.editor.setDescription(self.operation.shortDescription(), self.operation.longDescription())
         self.editor.accept.connect(self.onAcceptEditor)
         self.editor.reject.connect(self.editor.close)
-        # If it is a GraphOperation we should add input and output LineEdit
+        # If it is a GraphOperation or it has no default editor we should add input and output LineEdit
         if isinstance(self.operation, GraphOperation) or not self.operation.needsOptions():
             self._hasInputOutputOptions = True
             ioLayout = self.__setUpInputOutputLayout()
@@ -151,12 +159,12 @@ class OperationWrapper(QObject):
                 name: str = self._outputNameBox.getData()
                 if name is not None:
                     name = name.strip()
-                selected: int = self._inputComboBox.currentIndex()
-                if not name or selected < 0:
+                selected: str = self._inputComboBox.currentText()
+                if not name or not selected or self._inputComboBox.currentIndex() < 0:
                     raise OptionValidationError([('wrapper', 'Error: output name or input data has not '
                                                              'been selected')])
                 self.operation.outName = name
-                self.operation.inputIndex = selected
+                self.operation.inputName = selected
         except OptionValidationError as e:
             self.editor.handleErrors(e.invalid)
         else:
@@ -181,14 +189,14 @@ class OperationWrapper(QObject):
             self.result = f
         # Signal success
         self.wrapperStateChanged.emit(self.uid, 'success')
-        logging.info('Operation {} succeeded'.format(self.operation.name()))
+        flogging.appLogger.info('Operation {} succeeded'.format(self.operation.name()))
 
     @Slot(object)
     def _onFinish(self) -> None:
         self.__worker = None
         self.editor.close()
         self.wrapperStateChanged.emit(self.uid, 'finish')
-        logging.info('Operation {} finished'.format(self.operation.name()))
+        flogging.appLogger.info('Operation {} finished'.format(self.operation.name()))
 
     @Slot(object, tuple)
     def _onError(self, _, error: Tuple[type, Exception, str]) -> None:
@@ -199,7 +207,7 @@ class OperationWrapper(QObject):
         msgbox = QMessageBox(QMessageBox.Icon.Critical, 'Critical error', msg_short, QMessageBox.Ok,
                              self.editor)
         self.wrapperStateChanged.emit(self.uid, 'error')
-        logging.error('Operation {} failed with exception {}: {} - trace: {}'.format(
+        flogging.appLogger.error('Operation {} failed with exception {}: {} - trace: {}'.format(
             self.operation.name(), str(error[0]), msg, error[2]))
         msgbox.exec_()
 

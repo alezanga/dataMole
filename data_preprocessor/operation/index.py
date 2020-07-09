@@ -1,6 +1,6 @@
 from typing import Iterable, List, Union, Dict
 
-from data_preprocessor import data
+from data_preprocessor import data, flogging
 from data_preprocessor.data.types import ALL_TYPES, Type, IndexType
 from data_preprocessor.gui import AbsOperationEditor, OptionsEditorFactory
 from data_preprocessor.gui.mainmodels import FrameModel
@@ -8,7 +8,7 @@ from data_preprocessor.operation.interface.exceptions import OptionValidationErr
 from data_preprocessor.operation.interface.graph import GraphOperation
 
 
-class SetIndex(GraphOperation):
+class SetIndex(GraphOperation, flogging.Loggable):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.__columns: List[int] = list()
@@ -92,7 +92,7 @@ class SetIndex(GraphOperation):
         return -1
 
 
-class ResetIndex(GraphOperation):
+class ResetIndex(GraphOperation, flogging.Loggable):
     def execute(self, df: data.Frame) -> data.Frame:
         f = df.getRawFrame()
         columns = set(f.columns.to_list())

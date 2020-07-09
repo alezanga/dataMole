@@ -1,29 +1,35 @@
 import copy
 from typing import Union, Dict, List, Any
 
+import prettytable as pt
 from PySide2.QtCore import Qt, QModelIndex
 from PySide2.QtWidgets import QWidget
 
-from data_preprocessor import data
+from data_preprocessor import data, flogging
 from data_preprocessor.data.types import ALL_TYPES, Type
 from data_preprocessor.gui.editor.interface import AbsOperationEditor
+from .interface.exceptions import OptionValidationError
 from .interface.graph import GraphOperation
 from ..gui.mainmodels import AttributeTableModel, FrameModel, SearchableAttributeTableWidget
 
 
-class RenameOp(GraphOperation):
+class RenameOp(GraphOperation, flogging.Loggable):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Dict with format {pos: new_name}
         self.__names: Dict[int, str] = dict()
 
+    def logOptions(self) -> str:
+        colnames = self.shapes[0].colNames
+        tt = pt.PrettyTable(field_names=['Column', 'Renamed column'])
+        tt.align = 'l'
+        for a, name in self.__names.items():
+            tt.add_row([colnames[a], name])
+        return tt.get_string(vrules=pt.ALL, border=True)
+
     def execute(self, df: data.Frame) -> data.Frame:
         """ Set new names for columns """
-
-        if not self.__names:
-            return df
-
         names: List[str] = df.colnames
         for k, v in self.__names.items():
             names[k] = v
@@ -45,6 +51,9 @@ class RenameOp(GraphOperation):
         return [copy.deepcopy(self.__names)]
 
     def setOptions(self, names: Dict[int, str]) -> None:
+        s = self.getOutputShape()
+        if s and len(set(s.colNames)) < s.nColumns:
+            raise OptionValidationError([('dup', 'Error: new names contain duplicates')])
         self.__names = names
 
     def unsetOptions(self) -> None:
@@ -61,7 +70,7 @@ class RenameOp(GraphOperation):
         editor.refresh()
 
     def getOutputShape(self) -> Union[data.Shape, None]:
-        if not self.hasOptions():
+        if not self.hasOptions() or not self.shapes[0]:
             return None
 
         # Shape is the same as before with name changed
@@ -140,7 +149,7 @@ class _EditableAttributeTable(AttributeTableModel):
 
         value = value.strip()
         if role == Qt.EditRole and value and index.column() == self.nameColumn and value != index.data(
-                Qt.DisplayRole):
+                Qt.EditRole):
             # TODO: add regex validator
             self._edits[index.row()] = value
         else:

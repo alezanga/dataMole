@@ -1,14 +1,12 @@
-import logging
 from datetime import datetime
 from typing import Tuple, List
 
 import networkx as nx
 from PySide2.QtCore import QThreadPool, Slot, QObject, Signal, Qt
 
-from data_preprocessor import data, logger
+from data_preprocessor import data
+from data_preprocessor import flogging
 from data_preprocessor.flow.OperationDag import OperationDag, OperationNode
-from data_preprocessor.logger import dataframeDiffLog
-from data_preprocessor.operation.interface.executionlog import OperationLog
 from data_preprocessor.status import NodeStatus
 from data_preprocessor.threads import Worker
 
@@ -24,6 +22,7 @@ class OperationHandler:
         self.__qtSlots = _HandlerSlots(self)
         self.signals = HandlerSignals()
         self.toExecute = set()
+        self.graphLogger: flogging.GraphOperationLogger = None
 
         # self.__memoryContext = Memory(cachedir='/tmp', verbose=1)
 
@@ -40,10 +39,11 @@ class OperationHandler:
         self._canExecute(input_nodes)
 
         # Create a logger for the execution
-        logger.setUpGraphLogger()
-        logging.getLogger('graph').info('OPERATION LOG')
-        logging.getLogger('graph').info('Execution time: {}\n'.format(datetime.now()))
-
+        logger = flogging.setUpGraphLogger()
+        logger.info('OPERATION LOG')
+        logger.info('Execution time: {}\n'.format(datetime.now()))
+        self.graphLogger = flogging.GraphOperationLogger(logger)
+        # Start execution of all input nodes
         for node in input_nodes:
             self.startNode(node)
 
@@ -63,7 +63,7 @@ class OperationHandler:
         :raise HandlerException if the flow is not ready for execution
         """
         if not input_nodes:
-            logging.error('Flow not started: there are no input operations')
+            flogging.appLogger.error('Flow not started: there are no input operations')
             raise HandlerException('There are no input nodes')
         # Find the set of reachable nodes from the input operations
         reachable = set()
@@ -73,7 +73,7 @@ class OperationHandler:
         for node_id in reachable:
             node: OperationNode = self.graph.nodes[node_id]['op']
             if not node.operation.hasOptions():
-                logging.error('Flow not started: operation {}-{} has options to set'.format(
+                flogging.appLogger.error('Flow not started: operation {}-{} has options to set'.format(
                     node.operation.name(), node.uid))
                 raise HandlerException(
                     'GraphOperation {} has options to set'.format(node.operation.name()))
@@ -99,23 +99,13 @@ class _HandlerSlots(QObject):
 
     @Slot(object, object)
     def nodeCompleted(self, node_id: int, result: data.Frame):
-        logging.debug('nodeCompleted SUCCESS')
+        flogging.appLogger.debug('nodeCompleted SUCCESS')
         # Emit node finished
         self.handler.signals.statusChanged.emit(node_id, NodeStatus.SUCCESS)
         # Clear eventual input, since now I have result
         node = self.handler.graph.nodes[node_id]['op']
-        # LOG OPERATION
-        logEntry = ''
-        # Log name id
-        logEntry += '####### {:s} (ID {:d})\nTimestamp: {}\n'.format(node.operation.name(),
-                                                                     node.uid, str(datetime.now()))
-        if isinstance(node.operation, OperationLog):
-            # The operation has something to log
-            logEntry += node.operation.logMessage().rstrip('\n')
-        if node.nInputs == 1 and result is not None:
-            # If the operation transform a single input, then finds out which columns changed
-            logEntry += dataframeDiffLog(node.inputs[0], result)
-        logging.getLogger('graph').info(logEntry + '\n')
+        # Log operation
+        self.handler.graphLogger.log(node, result)
         # Delete inputs
         node.clearInputArgument()
         # Remove from task list
@@ -139,8 +129,10 @@ class _HandlerSlots(QObject):
         msg = str(error[1])
         node = self.handler.graph.nodes[node_id]['op']
         node.clearInputArgument()
-        logging.error('GraphOperation {} failed with exception {}: {} - trace: {}'.format(
+        flogging.appLogger.error('GraphOperation {} failed with exception {}: {} - trace: {}'.format(
             node.operation.name(), str(error[0]), msg, error[2]))
+        # Log operation
+        self.handler.graphLogger.log(node, None)
         self.handler.signals.statusChanged.emit(node_id, NodeStatus.ERROR)
 
 

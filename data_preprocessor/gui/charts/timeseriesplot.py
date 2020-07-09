@@ -274,8 +274,12 @@ class TimeSeriesPlot(QWidget):
         if timeIndexType == Types.Datetime:
             # Time axis is Datetime, so convert every date into the number of ms from 01/01/1970
             # dataframe[timeIndexName]: pd.Series[pd.Timestamp]
-            dataframe.loc[:, timeIndexName] = dataframe[timeIndexName] \
-                .map(lambda timestamp: int(timestamp.to_pydatetime().timestamp() * 1000))
+            # This may not be super accurate
+            dataframe.loc[:, timeIndexName] = pd.to_numeric(dataframe[timeIndexName],
+                                                            downcast='integer',
+                                                            errors='coerce').values / 10 ** 6
+            # dataframe[timeIndexName] \
+            #    .map(lambda timestamp: int(timestamp.to_pydatetime().timestamp() * 1000) if )
         else:
             # Types.Ordinal
             # dataframe[timeIndexName]: pd.Series[pd.Categorical]

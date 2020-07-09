@@ -1,8 +1,9 @@
 from typing import Iterable, Dict, Any, List, Optional
 
 import pandas as pd
+import prettytable as pt
 
-from data_preprocessor import data
+from data_preprocessor import data, flogging
 from data_preprocessor.gui import AbsOperationEditor, OptionsEditorFactory
 from data_preprocessor.gui.mainmodels import FrameModel
 from data_preprocessor.operation.interface.exceptions import OptionValidationError
@@ -38,10 +39,17 @@ def find_duplicates(df: pd.DataFrame) -> List[str]:
     return duplicates
 
 
-class RemoveBijections(GraphOperation):
+class RemoveBijections(GraphOperation, flogging.Loggable):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.__selected: List[int] = list()
+
+    def logOptions(self) -> str:
+        columns = self.shapes[0].colNames
+        tt = pt.PrettyTable(field_names=['Selected columns'])
+        for a in self.__selected:
+            tt.add_row([columns[a]])
+        return tt.get_string(vrules=pt.ALL, border=True)
 
     def execute(self, df: data.Frame) -> data.Frame:
         df = df.getRawFrame()

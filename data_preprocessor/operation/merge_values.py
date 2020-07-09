@@ -1,9 +1,10 @@
 from typing import Iterable, List, Any, Tuple, Dict, Optional
 
 import numpy as np
+import prettytable as pt
 from PySide2.QtWidgets import QHeaderView
 
-from data_preprocessor import data
+from data_preprocessor import data, flogging
 from data_preprocessor.data.types import Types, Type
 from data_preprocessor.gui import AbsOperationEditor
 from data_preprocessor.gui.editor.OptionsEditorFactory import OptionsEditorFactory, \
@@ -47,7 +48,7 @@ def floatList(values: List, invalid: str) -> List:
     return floatValues
 
 
-class MergeValuesOp(GraphOperation):
+class MergeValuesOp(GraphOperation, flogging.Loggable):
     """ Merge values of one attribute into a single value """
     Nan = np.nan
 
@@ -59,6 +60,18 @@ class MergeValuesOp(GraphOperation):
         # self.__attribute: int = None
         # self.__values_to_merge: List = list()
         # self.__merge_val: Any = None
+
+    def logOptions(self) -> str:
+        columns = self.shapes[0].colNames
+        tt = pt.PrettyTable(field_names=['Column', 'Replaced sets'])
+        for a, opts in self.__attributes.items():
+            values, rep = opts
+            pValues = '\n'.join(['{{{:s}}} -> {}'.format(', '.join(map(str, v)), r)
+                                 for v, r in zip(values, rep)])
+            tt.add_row([columns[a], pValues])
+        inverted: str = '\nInverted selection: {:b}'.format(self.__invertedReplace)
+        tt.align = 'l'
+        return tt.get_string(vrules=pt.ALL, border=True) + inverted
 
     def execute(self, df: data.Frame) -> data.Frame:
         pd_df = df.getRawFrame().copy(True)

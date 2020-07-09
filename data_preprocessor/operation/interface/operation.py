@@ -1,7 +1,6 @@
 from abc import abstractmethod, ABC
 from typing import Any, Iterable, List
 
-from data_preprocessor import data
 from data_preprocessor.data.types import ALL_TYPES, Type
 
 
@@ -18,10 +17,9 @@ class Operation(ABC):
         return self._workbench
 
     @abstractmethod
-    def execute(self, *df: data.Frame) -> Any:
+    def execute(self, *args, **kwargs) -> Any:
         """ Contains the logic of the operations
 
-        :param df: any number of input dataframes
         :return the result (any type)
         """
         pass

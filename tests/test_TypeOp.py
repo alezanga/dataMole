@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -5,11 +6,11 @@ from data_preprocessor.data import Frame
 from data_preprocessor.data.types import Types
 from data_preprocessor.operation.interface.exceptions import OptionValidationError
 from data_preprocessor.operation.typeconversions import ToNumericOp, ToCategoricalOp, ToTimestamp
-from tests.utilities import nan_to_None
+from tests.utilities import nan_to_None, roundValues
 
 
 def test_cat_toNumeric():
-    d = {'col1': pd.Categorical([3, 0, 5, 6, 0]),
+    d = {'col1': pd.Categorical(['3', '0', '5', '6', '0']),
          'col2': [3, 4, 5, 6, 0],
          'col3': ['123', '2', '0.43', '4', '90']}
 
@@ -19,7 +20,7 @@ def test_cat_toNumeric():
 
     op = ToNumericOp()
     op.addInputShape(f.shape, pos=0)
-    op.setOptions(attributes={0: dict()})
+    op.setOptions(attributes={0: None}, errors='coerce')
 
     # Predict output shape
     os = f.shape.columnsDict
@@ -32,13 +33,23 @@ def test_cat_toNumeric():
     op.addInputShape(f.shape, pos=0)
     op.unsetOptions()
     assert op.getOutputShape() is None
-    op.setOptions(attributes={0: dict()})
+    op.setOptions(attributes={0: dict()}, errors='raise')
     assert op.getOutputShape().columnsDict == os  # Re-adding everything
 
     g = op.execute(f)
     gd = {'col1': [3.0, 0.0, 5.0, 6.0, 0.0],
           'col2': [3, 4, 5, 6, 0],
           'col3': ['123', '2', '0.43', '4', '90']}
+    assert g.to_dict() == gd
+    assert g.shape.columnsDict == os
+    assert g.shape.indexDict == f.shape.indexDict
+
+    # Coerce is the same
+
+    op.setOptions(attributes={0: dict()}, errors='coerce')
+    assert op.getOutputShape().columnsDict == os
+
+    g = op.execute(f)
     assert g.to_dict() == gd
     assert g.shape.columnsDict == os
     assert g.shape.indexDict == f.shape.indexDict
@@ -55,7 +66,7 @@ def test_str_toNumeric():
 
     op = ToNumericOp()
     op.addInputShape(f.shape, pos=0)
-    op.setOptions(attributes={0: dict(), 2: dict()})
+    op.setOptions(attributes={0: dict(), 2: dict()}, errors='raise')
 
     # Predict output shape
     os = f.shape.columnsDict
@@ -69,14 +80,51 @@ def test_str_toNumeric():
     op.addInputShape(f.shape, pos=0)
     op.unsetOptions()
     assert op.getOutputShape() is None
-    op.setOptions(attributes={0: dict(), 2: dict()})
+    op.setOptions(attributes={0: dict(), 2: dict()}, errors='coerce')
     assert op.getOutputShape().columnsDict == os  # Re-adding everything
 
     g = op.execute(f)
-    gd = {'col1': [3, 0, 5, 6, 0],
-          'col2': [3, 4, 5, 6, 0],
+    gd = {'col1': [3.0, 0.0, 5.0, 6.00, 0.0],
+          'col2': [3., 4., 5., 6., 0.0],
           'col3': [123.0, 2.0, 0.43, 4.0, 90.0]}
-    assert g.to_dict() == gd
+    assert roundValues(g.to_dict(), 3) == gd
+    assert g.shape.columnsDict == os
+    assert g.shape.indexDict == f.shape.indexDict
+
+
+def test_str_toNumeric_coerce():
+    d = {'col1': pd.Categorical(['3', np.nan, 5, 6, 0]),
+         'col2': [3, 4, 5, 6, 0],
+         'col3': [np.nan, '2', '0.43', '4', np.nan]}
+
+    # 'cold': pd.Series(['05-09-1988', '22-12-1994', '21-11-1995', '22-06-1994', '12-12-2012'],
+    #                   dtype='datetime64[ns]')}
+    f = Frame(d)
+
+    op = ToNumericOp()
+    op.addInputShape(f.shape, pos=0)
+    op.setOptions(attributes={0: dict(), 2: dict()}, errors='coerce')
+
+    # Predict output shape
+    os = f.shape.columnsDict
+    os['col1'] = Types.Numeric
+    os['col3'] = Types.Numeric
+    assert op.getOutputShape().columnsDict == os
+
+    # Removing options/input_shape causes None to be returned
+    op.removeInputShape(0)
+    assert op.getOutputShape() is None
+    op.addInputShape(f.shape, pos=0)
+    op.unsetOptions()
+    assert op.getOutputShape() is None
+    op.setOptions(attributes={0: dict(), 2: dict()}, errors='coerce')
+    assert op.getOutputShape().columnsDict == os  # Re-adding everything
+
+    g = op.execute(f)
+    gd = {'col1': [3., None, 5., 6., 0.],
+          'col2': [3., 4., 5., 6., 0.],
+          'col3': [None, 2.0, 0.43, 4.0, None]}
+    assert roundValues(nan_to_None(g.to_dict()), 2) == gd
     assert g.shape.columnsDict == os
     assert g.shape.indexDict == f.shape.indexDict
 
@@ -88,25 +136,25 @@ def test_unsetOptions_toNumeric():
 
     op = ToNumericOp()
     op.addInputShape(f.shape, pos=0)
-    assert op.getOptions() == {'attributes': {}} and not op.hasOptions()
-    op.setOptions(attributes={0: dict()})
-    assert op.getOptions() == {'attributes': {0: None}}
+    assert op.getOptions() == {'attributes': {}, 'errors': 'raise'} and not op.hasOptions()
+    op.setOptions(attributes={0: dict()}, errors='raise')
+    assert op.getOptions() == {'attributes': {0: None}, 'errors': 'raise'}
     assert op._shapes[0] == f.shape
 
     op.unsetOptions()
-    assert op.getOptions() == {'attributes': {}}
+    assert op.getOptions() == {'attributes': {}, 'errors': 'raise'}
     assert op._shapes[0] == f.shape
 
     op.removeInputShape(0)
-    assert op.getOptions() == {'attributes': {}}
+    assert op.getOptions() == {'attributes': {}, 'errors': 'raise'}
     assert op._shapes == [None]
 
-    op.setOptions(attributes={1: dict()})
-    assert op.getOptions() == {'attributes': {1: None}}
+    op.setOptions(attributes={1: dict()}, errors='coerce')
+    assert op.getOptions() == {'attributes': {1: None}, 'errors': 'coerce'}
     assert op._shapes == [None]
 
     op.addInputShape(f.shape, pos=0)
-    assert op.getOptions() == {'attributes': {1: None}}
+    assert op.getOptions() == {'attributes': {1: None}, 'errors': 'coerce'}
     assert op._shapes[0] == f.shape
 
 

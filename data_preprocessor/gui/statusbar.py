@@ -38,5 +38,5 @@ class StatusBar(QStatusBar):
 
     @Slot()
     def _openLog(self) -> None:
-        from ..logger import LOG_PATH
+        from data_preprocessor.flogging.utils import LOG_PATH
         QDesktopServices.openUrl(QUrl(LOG_PATH))

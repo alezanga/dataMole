@@ -1,22 +1,30 @@
-from typing import Iterable, Union
+from typing import Iterable, Union, Optional
 
+import prettytable as pt
 from PySide2.QtCore import Qt, Slot
 from PySide2.QtWidgets import QWidget, QButtonGroup, QLabel, QRadioButton, QSlider, QVBoxLayout, \
     QHBoxLayout, QSpinBox
 
-from data_preprocessor import data
+from data_preprocessor import data, flogging
 from data_preprocessor.gui import AbsOperationEditor
 from data_preprocessor.operation.interface.exceptions import InvalidOptions
 from data_preprocessor.operation.interface.graph import GraphOperation
 
 
-class RemoveNanRows(GraphOperation):
+class RemoveNanRows(GraphOperation, flogging.Loggable):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # range [0.0, 1.0]
         self.__thresholdPercentage: float = None
         # range [0, attribute number]
         self.__thresholdNumber: int = None
+
+    def logOptions(self) -> Optional[str]:
+        tt = pt.PrettyTable(field_names=['Option', 'Value'])
+        tt.add_row(['Threshold %', self.__thresholdPercentage if self.__thresholdPercentage else ''])
+        tt.add_row(['Threshold abs', self.__thresholdNumber if self.__thresholdNumber else ''])
+        tt.align = 'l'
+        return tt.get_string(vrules=pt.ALL, border=True)
 
     def execute(self, df: data.Frame) -> data.Frame:
         # Assume everything to go is set
@@ -97,13 +105,20 @@ class RemoveNanRows(GraphOperation):
         return -1
 
 
-class RemoveNanColumns(GraphOperation):
+class RemoveNanColumns(GraphOperation, flogging.Loggable):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # range [0.0, 1.0]
         self.__thresholdPercentage: float = None
         # range [0, attribute number]
         self.__thresholdNumber: int = None
+
+    def logOptions(self) -> Optional[str]:
+        tt = pt.PrettyTable(field_names=['Option', 'Value'])
+        tt.add_row(['Threshold %', self.__thresholdPercentage if self.__thresholdPercentage else ''])
+        tt.add_row(['Threshold abs', self.__thresholdNumber if self.__thresholdNumber else ''])
+        tt.align = 'l'
+        return tt.get_string(vrules=pt.ALL, border=True)
 
     def execute(self, df: data.Frame) -> data.Frame:
         # Assume everything to go is set

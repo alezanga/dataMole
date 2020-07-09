@@ -1,13 +1,12 @@
-import logging
-from operator import itemgetter
 from typing import List, Union, Iterable, Dict, Optional, Tuple, Any
 
 import numpy as np
 import pandas as pd
+import prettytable as pt
 from PySide2.QtWidgets import QHeaderView, QItemEditorFactory, QStyledItemDelegate, QWidget
 from pandas.api.types import CategoricalDtype
 
-from data_preprocessor import data
+from data_preprocessor import data, flogging
 from data_preprocessor.data.types import Types, Type
 from data_preprocessor.gui.editor.interface import AbsOperationEditor
 from .interface.exceptions import OptionValidationError
@@ -17,28 +16,43 @@ from ..gui.editor.OptionsEditorFactory import OptionsEditorFactory, OptionValida
 from ..gui.mainmodels import FrameModel
 
 
-class ToNumericOp(GraphOperation):
+class ToNumericOp(GraphOperation, flogging.Loggable):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.__attributes: List[int] = list()
+        self.__errorMode: str = 'raise'  # {'raise', 'coerce'}
 
     def hasOptions(self) -> bool:
         if self.__attributes:
             return True
         return False
 
+    def logOptions(self) -> str:
+        sc = self.shapes[0].colNames
+        columns = [sc[i] for i in self.__attributes]
+        tt = pt.PrettyTable(field_names=['Selected columns'])
+        for col in columns:
+            tt.add_row([col])
+        tt.align = 'l'
+        return tt.get_string(border=True, vrules=pt.ALL) + '\nError mode: {}'.format(
+            self.__errorMode)
+
     def execute(self, df: data.Frame) -> data.Frame:
-        # If type of attribute is not accepted
-        columns = df.shape.colTypes
-        items = itemgetter(*self.__attributes)(columns)
-        if not all(map(lambda x: x in self.acceptedTypes(),
-                       items if isinstance(items, tuple) else (items,))):
-            logging.debug('Type not supported for operation {}'.format(self.name()))
-            return df
         # Deep copy
         raw_df = df.getRawFrame().copy(deep=True)
-        raw_df.iloc[:, self.__attributes] = raw_df.iloc[:, self.__attributes] \
-            .apply(lambda c: c.astype(dtype=float, errors='raise'))
+        allCols: List[str] = raw_df.columns.to_list()
+
+        converted: Dict[str, np.ndarray] = dict()
+        processedCols = list()
+        for a in self.__attributes:
+            view = raw_df.iloc[:, a]
+            colName = allCols[a]
+            converted[colName] = pd.to_numeric(view.values, errors=self.__errorMode, downcast='float')
+            processedCols.append(colName)
+        raw_df = raw_df.drop(columns=processedCols)
+        # Get processed frame and set back its index
+        processed = pd.DataFrame(converted).set_index(raw_df.index)
+        raw_df = pd.concat([processed, raw_df], ignore_index=False, axis=1)[allCols]
         return data.Frame(raw_df)
 
     @staticmethod
@@ -51,10 +65,17 @@ class ToNumericOp(GraphOperation):
     def acceptedTypes(self) -> List[Type]:
         return [Types.String, Types.Ordinal, Types.Nominal]
 
-    def setOptions(self, attributes: Dict[int, Dict[str, str]]) -> None:
+    def setOptions(self, attributes: Dict[int, Dict[str, str]], errors: str) -> None:
+        err = list()
         if not attributes:
-            raise OptionValidationError([('nooptions', 'Error: select at least one attribute')])
+            err.append(('nooptions', 'Error: select at least one attribute'))
+        if not errors:
+            err.append(('Noerror', 'Error: error mode must be specified'))
+        if err:
+            raise OptionValidationError(err)
+
         self.__attributes = list(attributes.keys())
+        self.__errorMode = errors
 
     def unsetOptions(self) -> None:
         self.__attributes = list()
@@ -63,13 +84,15 @@ class ToNumericOp(GraphOperation):
         return True
 
     def getOptions(self) -> Iterable:
-        return {'attributes': {k: None for k in self.__attributes}}
+        return {'attributes': {k: None for k in self.__attributes}, 'errors': self.__errorMode}
 
     def getEditor(self) -> AbsOperationEditor:
         factory = OptionsEditorFactory()
         factory.initEditor()
         factory.withAttributeTable('attributes', True, False, True, options=None,
                                    types=self.acceptedTypes())
+        factory.withRadioGroup(key='errors', label='Error mode',
+                               values=[('Raise', 'raise'), ('Coerce', 'coerce')])
         return factory.getEditor()
 
     def injectEditor(self, editor: 'AbsOperationEditor') -> None:
@@ -107,7 +130,7 @@ class ToNumericOp(GraphOperation):
         return -1
 
 
-class ToCategoricalOp(GraphOperation):
+class ToCategoricalOp(GraphOperation, flogging.Loggable):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.__attributes: Dict[int, Tuple[Optional[List[str]], bool]] = dict()
@@ -116,6 +139,15 @@ class ToCategoricalOp(GraphOperation):
         if self.__attributes:
             return True
         return False
+
+    def logOptions(self) -> str:
+        columns = self.shapes[0].colNames
+        tt = pt.PrettyTable(field_names=['Column', 'Categories', 'Ordered'])
+        tt.align = 'l'
+        for a, opts in self.__attributes.items():
+            cats = ', '.join(opts[0]) if opts[0] else 'All'
+            tt.add_row([columns[a], cats, opts[1] if opts[1] is not None else False])
+        return tt.get_string(border=True, vrules=pt.ALL)
 
     def execute(self, df: data.Frame) -> data.Frame:
         # Deep copy
@@ -234,11 +266,20 @@ class BoolDelegate(QStyledItemDelegate):
         return 'True' if value else 'False'
 
 
-class ToTimestamp(GraphOperation):
+class ToTimestamp(GraphOperation, flogging.Loggable):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.__attributes: Dict[int, Optional[str]] = dict()
-        self.__errorMode: str = None  # {'ignore', 'coerce'}
+        self.__errorMode: str = None  # {'raise', 'coerce'}
+
+    def logOptions(self) -> str:
+        columns = self.shapes[0].colNames
+        tt = pt.PrettyTable(field_names=['Column', 'Parse format'])
+        for a, f in self.__attributes.items():
+            tt.add_row([columns[a], f if f else 'Infer'])
+        tt.align = 'l'
+        return tt.get_string(border=True, vrules=pt.ALL) + '\nError mode: {}'.format(
+            self.__errorMode)
 
     def execute(self, df: data.Frame) -> data.Frame:
         pdf = df.getRawFrame().copy(True)
@@ -297,7 +338,7 @@ class ToTimestamp(GraphOperation):
         factory.initEditor()
         tableOptions = {'format': ('Format', OptionValidatorDelegate(SingleStringValidator()), 'auto')}
         factory.withAttributeTable('attributes', True, False, False, tableOptions, self.acceptedTypes())
-        factory.withRadioGroup('How to treat errors?', 'errors',
+        factory.withRadioGroup('Error mode:', 'errors',
                                [('Raise', 'raise'), ('Coerce', 'coerce')])
         return factory.getEditor()
 

@@ -3,12 +3,12 @@ from typing import Optional, List, Union
 from PySide2.QtCore import Qt
 from PySide2.QtWidgets import QComboBox, QWidget
 
-from data_preprocessor import data
+from data_preprocessor import data, flogging
 from data_preprocessor.gui.editor.interface import AbsOperationEditor
 from .interface.graph import InputGraphOperation
 
 
-class CopyOp(InputGraphOperation):
+class CopyOp(InputGraphOperation, flogging.Loggable):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._frame_name: Optional[str] = None
