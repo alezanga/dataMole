@@ -4,7 +4,7 @@ import pytest
 
 from data_preprocessor.data import Frame
 from data_preprocessor.data.types import Types
-from data_preprocessor.operation.interface.exceptions import OptionValidationError
+from data_preprocessor import exceptions as exp
 from data_preprocessor.operation.typeconversions import ToNumericOp, ToCategoricalOp, ToTimestamp
 from tests.utilities import nan_to_None, roundValues
 
@@ -463,11 +463,11 @@ def test_str_to_Timestamp_validation():
     op.addInputShape(f.shape, 0)
     assert op.getOutputShape() is None
 
-    with pytest.raises(OptionValidationError):
+    with pytest.raises(exp.OptionValidationError):
         op.setOptions(attributes={}, errors='raise')
     assert not op.hasOptions() and op.getOutputShape() is None
 
-    with pytest.raises(OptionValidationError):
+    with pytest.raises(exp.OptionValidationError):
         op.setOptions(attributes={0: {'format': '%s'}}, errors='')
     assert not op.hasOptions() and op.getOutputShape() is None
 

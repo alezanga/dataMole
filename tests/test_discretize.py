@@ -6,7 +6,7 @@ import pytest
 from data_preprocessor import data
 from data_preprocessor.data.types import Types
 from data_preprocessor.operation.discretize import BinsDiscretizer, BinStrategy, RangeDiscretizer
-from data_preprocessor.operation.interface.exceptions import OptionValidationError
+from data_preprocessor import exceptions as exp
 from tests.utilities import nan_to_None
 
 
@@ -127,30 +127,30 @@ def test_discretize_range_except():
 
     op = RangeDiscretizer()
     op.addInputShape(f.shape, 0)
-    with pytest.raises(OptionValidationError):
+    with pytest.raises(exp.OptionValidationError):
         op.setOptions(table={0: {'bins': '2'}, 1: {'bins': '3 2 1', 'labels': '2 1'}},
                       drop=True)
 
-    with pytest.raises(OptionValidationError):
+    with pytest.raises(exp.OptionValidationError):
         op.setOptions(table={0: {'bins': '2', 'labels': ''}, 1: {'bins': '3 2 1', 'labels': '2 1'}},
                       drop=True)
 
     # bins must be float, labels can be whatever
-    with pytest.raises(OptionValidationError):
+    with pytest.raises(exp.OptionValidationError):
         op.setOptions(table={0: {'bins': '2 3 A', 'labels': 'new 2'}},
                       drop=False)
 
-    with pytest.raises(OptionValidationError) as e:
+    with pytest.raises(exp.OptionValidationError) as e:
         op.setOptions(table={}, drop=False)
     a: List[Tuple[str, str]] = e.value.invalid
     assert 'noAttr' in map(lambda x: x[0], a)
 
-    with pytest.raises(OptionValidationError) as ext:
+    with pytest.raises(exp.OptionValidationError) as ext:
         op.setOptions(table={0: {}}, drop=True)
     a: List[Tuple[str, str]] = ext.value.invalid
     assert 'notSet' in map(lambda x: x[0], a)
 
-    with pytest.raises(OptionValidationError) as exc:
+    with pytest.raises(exp.OptionValidationError) as exc:
         op.setOptions(table={1: {'labels': ''}}, drop=True)
     a: List[Tuple[str, str]] = exc.value.invalid
     assert 'notSet' in map(lambda x: x[0], a)

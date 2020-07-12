@@ -1,10 +1,9 @@
 import numpy as np
 import pytest
 
-from data_preprocessor import data
+from data_preprocessor import data, exceptions as exp
 from data_preprocessor.data.types import Types
 from data_preprocessor.operation.extractseries import ExtractTimeSeries
-from data_preprocessor.operation.interface.exceptions import OptionValidationError
 from tests.mocks import WorkbenchModelMock
 from tests.utilities import nan_to_None
 
@@ -112,35 +111,35 @@ def test_validation():
     options = {
         'diab': [('frameG', 0, 3), ('frameF', 1, 1), ('frameF', 0, 0), ('frameG', 1, 0)]
     }
-    with pytest.raises(OptionValidationError) as e:
+    with pytest.raises(exp.OptionValidationError) as e:
         op.setOptions(series=options, time=timeLabels, outName='frameR')
     assert e.value.invalid[0][0] == 'duplicates'
 
     options = {
         'diab': [('frameF', 1, 1), ('frameF', 0, 0), ('frameG', 1, 2)]
     }
-    with pytest.raises(OptionValidationError) as e:
+    with pytest.raises(exp.OptionValidationError) as e:
         op.setOptions(series=options, time=timeLabels, outName='frameR')
     assert e.value.invalid[0][0] == 'length'
 
     options = {
         'diab': [('frameG', 0, 3), ('frameF', 1, 1), ('frameF', 0, 0), ('frameG', 1, 2)]
     }
-    with pytest.raises(OptionValidationError) as e:
+    with pytest.raises(exp.OptionValidationError) as e:
         op.setOptions(series=options, time=timeLabels, outName='')
     assert e.value.invalid[0][0] == 'noname'
 
     options = {
         'diab': [('frameG', 0, 3), ('frameF', 1, 1), ('frameF', 0, 0), ('frameG', 1, 2)]
     }
-    with pytest.raises(OptionValidationError) as e:
+    with pytest.raises(exp.OptionValidationError) as e:
         op.setOptions(series=options, time=[], outName='gg')
     assert e.value.invalid[0][0] == 'notimelabels'
 
-    with pytest.raises(OptionValidationError) as e:
+    with pytest.raises(exp.OptionValidationError) as e:
         op.setOptions(series=None, time=timeLabels, outName='gg')
     assert e.value.invalid[0][0] == 'noseries'
 
-    with pytest.raises(OptionValidationError) as e:
+    with pytest.raises(exp.OptionValidationError) as e:
         op.setOptions(series={}, time=timeLabels, outName='gg')
     assert e.value.invalid[0][0] == 'noseries'

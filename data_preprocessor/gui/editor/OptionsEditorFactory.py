@@ -6,10 +6,10 @@ from PySide2.QtGui import QValidator
 from PySide2.QtWidgets import QLineEdit, QCheckBox, \
     QWidget, QFormLayout, QStyledItemDelegate, QAbstractItemDelegate
 
-from data_preprocessor.decorators.generic import singleton
 from data_preprocessor.gui.editor.interface import AbsOperationEditor
 from data_preprocessor.gui.editor.optionwidget import RadioButtonGroup
 from data_preprocessor.gui.mainmodels import SearchableAttributeTableWidget, AttributeTableModel
+from data_preprocessor.utils import singleton
 
 
 class AttributeTableWithOptions(AttributeTableModel):

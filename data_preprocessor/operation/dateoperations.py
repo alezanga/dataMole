@@ -8,7 +8,7 @@ from PySide2.QtWidgets import QWidget, QDateEdit, QTimeEdit, QCheckBox, QButtonG
 from data_preprocessor import data
 from data_preprocessor.data.types import Types, Type
 from data_preprocessor.gui.editor import AbsOperationEditor
-from data_preprocessor.operation.interface.exceptions import OptionValidationError
+from data_preprocessor import exceptions as exp
 from data_preprocessor.operation.interface.graph import GraphOperation
 
 
@@ -80,7 +80,7 @@ class DateDiscretizer(GraphOperation):
         if not all(labels):
             errors.append(('labels', 'Error: name is not set in every interval'))
         if errors:
-            raise OptionValidationError(errors)
+            raise exp.OptionValidationError(errors)
 
         self.__attribute = attribute
         self.__intervals = intervalList

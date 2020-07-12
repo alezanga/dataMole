@@ -1,9 +1,8 @@
 import pandas as pd
 import pytest
 
-from data_preprocessor import data
+from data_preprocessor import data, exceptions as exp
 from data_preprocessor.data.types import Types
-from data_preprocessor.operation.interface.exceptions import *
 from data_preprocessor.operation.merge_values import MergeValuesOp
 from tests.utilities import nan_to_None
 
@@ -16,7 +15,7 @@ def test_exception():
 
     op.addInputShape(f.shape, 0)
 
-    with pytest.raises(OptionValidationError):
+    with pytest.raises(exp.OptionValidationError):
         op.setOptions(table={
             1: {
                 'replace': '7; h',
@@ -24,7 +23,7 @@ def test_exception():
             }},
             inverted=False)
 
-    with pytest.raises(OptionValidationError):
+    with pytest.raises(exp.OptionValidationError):
         op.setOptions(table={
             1: {
                 'replace': '7;    8;1',

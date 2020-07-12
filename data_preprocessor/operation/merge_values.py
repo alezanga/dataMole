@@ -5,11 +5,11 @@ import prettytable as pt
 from PySide2.QtWidgets import QHeaderView
 
 from data_preprocessor import data, flogging
+from data_preprocessor import exceptions as exp
 from data_preprocessor.data.types import Types, Type
 from data_preprocessor.gui.editor import OptionsEditorFactory, OptionValidatorDelegate, \
     AbsOperationEditor
 from data_preprocessor.gui.mainmodels import FrameModel
-from data_preprocessor.operation.interface.exceptions import OptionValidationError
 from data_preprocessor.operation.interface.graph import GraphOperation
 from data_preprocessor.operation.utils import ManyMixedListsValidator, MixedListValidator, splitString, \
     parseNan, joinList
@@ -107,31 +107,33 @@ class MergeValuesOp(GraphOperation, flogging.Loggable):
 
     def setOptions(self, table: Dict[int, Dict[str, str]], inverted: bool) -> None:
         if not table:
-            raise OptionValidationError([('nooptions', 'Error: no attributes are selected')])
+            raise exp.OptionValidationError([('nooptions', 'Error: no attributes are selected')])
         options: Dict[int, Tuple[List[List], List]] = dict()
         for c, opt in table.items():
             type_c = self.shapes[0].colTypes[c]
             values: str = opt.get('values', None)
             replace: str = opt.get('replace', None)
             if not values or not replace:
-                raise OptionValidationError(
+                raise exp.OptionValidationError(
                     [('incompleteoptions', 'Error: options are not set at row {:d}'.format(c))])
             lists: List[str] = splitString(values, ';')
             replace: List[str] = splitString(replace, ';')
             if not lists or not replace:
-                raise OptionValidationError([('incompleteoptions', 'Error: options are not set at row '
-                                                                   '{:d}'.format(c))])
+                raise exp.OptionValidationError(
+                    [('incompleteoptions', 'Error: options are not set at row '
+                                           '{:d}'.format(c))])
             if len(lists) != len(replace):
-                raise OptionValidationError([('wrongnum', 'Error: number of intervals is not equal to '
-                                                          'the number of values to replace at row {:d}'
-                                              .format(c))])
+                raise exp.OptionValidationError(
+                    [('wrongnum', 'Error: number of intervals is not equal to '
+                                  'the number of values to replace at row {:d}'
+                      .format(c))])
             parsedValues: List[List[str]] = [splitString(s, ' ') for s in lists]
             if type_c == Types.Numeric:
                 if not all(map(isValidFloat, replace)):
                     err = ('numericinvalid', 'Error: list of values to replace contains non '
                                              'numeric value at row {:d}, but selected attribute '
                                              'is numeric'.format(c))
-                    raise OptionValidationError([err])
+                    raise exp.OptionValidationError([err])
                 replace: List[float] = [float(x) for x in replace]
                 parsedValues: List[List[float]] = [floatList(l, invalid='drop') for l in parsedValues]
             else:

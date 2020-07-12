@@ -1,10 +1,10 @@
 from typing import Iterable, List, Union, Dict
 
 from data_preprocessor import data, flogging
+from data_preprocessor import exceptions as exp
 from data_preprocessor.data.types import ALL_TYPES, Type, IndexType
 from data_preprocessor.gui.editor import AbsOperationEditor, OptionsEditorFactory
 from data_preprocessor.gui.mainmodels import FrameModel
-from data_preprocessor.operation.interface.exceptions import OptionValidationError
 from data_preprocessor.operation.interface.graph import GraphOperation
 
 
@@ -37,7 +37,7 @@ class SetIndex(GraphOperation, flogging.Loggable):
 
     def setOptions(self, selected: Dict[int, None]) -> None:
         if not selected:
-            raise OptionValidationError([('empty', 'Error: at least one column must be selected')])
+            raise exp.OptionValidationError([('empty', 'Error: at least one column must be selected')])
         self.__columns = list(selected.keys())
 
     def getOptions(self) -> Iterable:

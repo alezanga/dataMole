@@ -4,7 +4,7 @@ from typing import Tuple, List
 import networkx as nx
 from PySide2.QtCore import QThreadPool, Slot, QObject, Signal, Qt
 
-from data_preprocessor import data
+from data_preprocessor import data, exceptions as exp
 from data_preprocessor import flogging
 from data_preprocessor.status import NodeStatus
 from data_preprocessor.threads import Worker
@@ -20,8 +20,6 @@ class OperationHandler:
         self.signals = HandlerSignals()
         self.toExecute = set()
         self.graphLogger: flogging.GraphOperationLogger = None
-
-        # self.__memoryContext = Memory(cachedir='/tmp', verbose=1)
 
     def execute(self):
         """
@@ -61,7 +59,7 @@ class OperationHandler:
         """
         if not input_nodes:
             flogging.appLogger.error('Flow not started: there are no input operations')
-            raise HandlerException('Flow not started', 'There are no input nodes')
+            raise exp.HandlerException('Flow not started', 'There are no input nodes')
         # Find the set of reachable nodes from the input operations
         reachable = set()
         for node in input_nodes:
@@ -72,9 +70,9 @@ class OperationHandler:
             if not node.operation.hasOptions():
                 flogging.appLogger.error('Flow not started: operation {}-{} has options to set'.format(
                     node.operation.name(), node.uid))
-                raise HandlerException('Flow not started',
-                                       'GraphOperation {} has options to set'.format(
-                                           node.operation.name()))
+                raise exp.HandlerException('Flow not started',
+                                           'GraphOperation {} has options to set'.format(
+                                               node.operation.name()))
         self.toExecute = reachable | set(map(lambda x: x.uid, input_nodes))
         return True
 
@@ -132,9 +130,3 @@ class _HandlerSlots(QObject):
         # Log operation
         self.handler.graphLogger.log(node, None)
         self.handler.signals.statusChanged.emit(node_id, NodeStatus.ERROR)
-
-
-class HandlerException(Exception):
-    def __init__(self, title: str, msg: str):
-        super().__init__(msg)
-        self.title = title

@@ -3,12 +3,9 @@ from typing import Optional, Tuple, Dict, Any
 from PySide2.QtCore import Slot, QObject, Signal, QPoint, QThreadPool, Qt
 from PySide2.QtWidgets import QMessageBox, QAction, QComboBox, QFormLayout, QLabel, QCompleter
 
-from data_preprocessor import data
-from data_preprocessor import flogging
-from data_preprocessor import threads
+from data_preprocessor import data, exceptions as exp, flogging, threads, gui
 from data_preprocessor.gui.editor.interface import AbsOperationEditor
 from data_preprocessor.gui.editor.optionwidget import TextOptionWidget
-from data_preprocessor.operation.interface.exceptions import OptionValidationError
 from data_preprocessor.operation.interface.graph import GraphOperation
 from data_preprocessor.operation.interface.operation import Operation
 from data_preprocessor.utils import UIdGenerator
@@ -161,11 +158,12 @@ class OperationWrapper(QObject):
                     name = name.strip()
                 selected: str = self._inputComboBox.currentText()
                 if not name or not selected or self._inputComboBox.currentIndex() < 0:
-                    raise OptionValidationError([('wrapper', 'Error: output name or input data has not '
-                                                             'been selected')])
+                    raise exp.OptionValidationError(
+                        [('wrapper', 'Error: output name or input data has not '
+                                     'been selected')])
                 self.operation.outName = name
                 self.operation.inputName = selected
-        except OptionValidationError as e:
+        except exp.OptionValidationError as e:
             self.editor.handleErrors(e.invalid)
         else:
             self.wrapperStateChanged.emit(self.uid, 'start')
@@ -201,15 +199,11 @@ class OperationWrapper(QObject):
     @Slot(object, tuple)
     def _onError(self, _, error: Tuple[type, Exception, str]) -> None:
         msg = str(error[1])
-        msg_short = 'Operation failed to execute with following message: <br> {}'.format(msg[:80])
-        if len(msg) > 80:
-            msg_short += '... (see all in log)'
-        msgbox = QMessageBox(QMessageBox.Icon.Critical, 'Critical error', msg_short, QMessageBox.Ok,
-                             self.editor)
         self.wrapperStateChanged.emit(self.uid, 'error')
+        opName = self.operation.name()
+        gui.notifier.addMessage('Operation {} failed'.format(opName), msg, QMessageBox.Critical)
         flogging.appLogger.error('Operation {} failed with exception {}: {} - trace: {}'.format(
-            self.operation.name(), str(error[0]), msg, error[2]))
-        msgbox.exec_()
+            opName, str(error[0]), msg, error[2]))
 
     @Slot(str)
     def _validateOutputName(self, name: str) -> None:

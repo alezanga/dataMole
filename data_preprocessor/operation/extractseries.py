@@ -10,13 +10,13 @@ from PySide2.QtWidgets import QWidget, QTableView, QHBoxLayout, QVBoxLayout, \
     QMessageBox
 
 from data_preprocessor import data
+from data_preprocessor import exceptions as exp
 from data_preprocessor.data.types import Types
 from data_preprocessor.gui.editor import AbsOperationEditor
 from data_preprocessor.gui.mainmodels import SearchableAttributeTableWidget, AttributeTableModel, \
     SignalTableView
 from data_preprocessor.gui.widgets import MessageLabel
 from data_preprocessor.gui.workbench import WorkbenchModel, WorkbenchView
-from data_preprocessor.operation.interface.exceptions import OptionValidationError
 from data_preprocessor.operation.interface.operation import Operation
 
 
@@ -109,7 +109,7 @@ class ExtractTimeSeries(Operation):
             if not noDuplicates:
                 errors.append(('duplicates', 'Error: some series contain duplicated time labels'))
         if errors:
-            raise OptionValidationError(errors)
+            raise exp.OptionValidationError(errors)
         self.__series = series
         self.__outputName = outName
         self.__timeLabels = time

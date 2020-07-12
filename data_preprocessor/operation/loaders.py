@@ -2,8 +2,7 @@ from typing import Iterable, List
 
 import pandas as pd
 
-from data_preprocessor import data
-from .interface.exceptions import InvalidOptions, OptionValidationError
+from data_preprocessor import data, exceptions as exp
 from .interface.operation import Operation
 from ..gui.editor.loaders import LoadCSVEditor
 
@@ -22,7 +21,7 @@ class CsvLoader(Operation):
 
     def execute(self) -> None:
         if not self.hasOptions():
-            raise InvalidOptions('Options are not set')
+            raise exp.InvalidOptions('Options are not set')
         pd_df = pd.read_csv(self.__file, sep=self.__separator,
                             index_col=False,
                             usecols=self.__selectedColumns,
@@ -58,7 +57,7 @@ class CsvLoader(Operation):
         if not selectedCols:
             errors.append(('noSelection', 'Error: at least 1 attribute must be selected'))
         if errors:
-            raise OptionValidationError(errors)
+            raise exp.OptionValidationError(errors)
         self.__file = file
         self.__separator = separator
         self.__wName = name

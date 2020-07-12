@@ -6,9 +6,9 @@ from PySide2.QtCore import Qt, QModelIndex
 from PySide2.QtWidgets import QWidget
 
 from data_preprocessor import data, flogging
+from data_preprocessor import exceptions as exp
 from data_preprocessor.data.types import ALL_TYPES, Type
 from data_preprocessor.gui.editor.interface import AbsOperationEditor
-from .interface.exceptions import OptionValidationError
 from .interface.graph import GraphOperation
 from ..gui.mainmodels import AttributeTableModel, FrameModel, SearchableAttributeTableWidget
 
@@ -53,7 +53,7 @@ class RenameOp(GraphOperation, flogging.Loggable):
     def setOptions(self, names: Dict[int, str]) -> None:
         s = self.getOutputShape()
         if s and len(set(s.colNames)) < s.nColumns:
-            raise OptionValidationError([('dup', 'Error: new names contain duplicates')])
+            raise exp.OptionValidationError([('dup', 'Error: new names contain duplicates')])
         self.__names = names
 
     def unsetOptions(self) -> None:

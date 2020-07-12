@@ -4,7 +4,7 @@ from typing import Union
 import numpy as np
 import pandas as pd
 
-from data_preprocessor.decorators.generic import singleton
+from data_preprocessor.utils import singleton
 
 
 class Type(abc.ABC):

@@ -6,7 +6,7 @@ import prettytable as pt
 from data_preprocessor import data, flogging
 from data_preprocessor.gui.editor import AbsOperationEditor, OptionsEditorFactory
 from data_preprocessor.gui.mainmodels import FrameModel
-from data_preprocessor.operation.interface.exceptions import OptionValidationError
+from data_preprocessor import exceptions as exp
 from data_preprocessor.operation.interface.graph import GraphOperation
 from tests.utilities import numpy_equal
 
@@ -102,7 +102,7 @@ class RemoveBijections(GraphOperation, flogging.Loggable):
     def setOptions(self, attributes: Dict[int, Dict[str, Any]]) -> None:
         selection = list(attributes.keys())
         if not selection:
-            raise OptionValidationError([('noOptions', 'Error: no attributes are selected')])
+            raise exp.OptionValidationError([('noOptions', 'Error: no attributes are selected')])
         self.__selected = selection
 
     def getEditor(self) -> AbsOperationEditor:

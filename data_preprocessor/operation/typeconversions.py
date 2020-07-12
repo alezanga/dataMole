@@ -7,9 +7,9 @@ from PySide2.QtWidgets import QHeaderView, QItemEditorFactory, QStyledItemDelega
 from pandas.api.types import CategoricalDtype
 
 from data_preprocessor import data, flogging
+from data_preprocessor import exceptions as exp
 from data_preprocessor.data.types import Types, Type
 from data_preprocessor.gui.editor.interface import AbsOperationEditor
-from .interface.exceptions import OptionValidationError
 from .interface.graph import GraphOperation
 from .utils import MixedListValidator, splitString, joinList, SingleStringValidator
 from ..gui.editor.OptionsEditorFactory import OptionsEditorFactory, OptionValidatorDelegate
@@ -72,7 +72,7 @@ class ToNumericOp(GraphOperation, flogging.Loggable):
         if not errors:
             err.append(('Noerror', 'Error: error mode must be specified'))
         if err:
-            raise OptionValidationError(err)
+            raise exp.OptionValidationError(err)
 
         self.__attributes = list(attributes.keys())
         self.__errorMode = errors
@@ -183,7 +183,7 @@ class ToCategoricalOp(GraphOperation, flogging.Loggable):
 
     def setOptions(self, attributes: Dict[int, Dict[str, Any]]) -> None:
         if not attributes:
-            raise OptionValidationError([('nooptions', 'Error: select at least one attribute')])
+            raise exp.OptionValidationError([('nooptions', 'Error: select at least one attribute')])
         options: Dict[int, Tuple[Optional[List[str]], bool]] = dict()
         for c, opt in attributes.items():
             catString: Optional[str] = opt.get('cat', None)
@@ -326,7 +326,7 @@ class ToTimestamp(GraphOperation, flogging.Loggable):
         if not errors:
             valErrors.append(('noMode', 'Error: error modality must be selected'))
         if valErrors:
-            raise OptionValidationError(valErrors)
+            raise exp.OptionValidationError(valErrors)
         # Set options
         for row, opts in attributes.items():
             f = opts.get('format', None)

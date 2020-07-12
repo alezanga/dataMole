@@ -11,12 +11,12 @@ from PySide2.QtGui import QIntValidator
 from PySide2.QtWidgets import QHeaderView
 
 from data_preprocessor import data
+from data_preprocessor import exceptions as exp
 from data_preprocessor import flogging
 from data_preprocessor.data.types import Types, Type
 from data_preprocessor.gui.editor import OptionsEditorFactory, OptionValidatorDelegate, \
     AbsOperationEditor
 from data_preprocessor.gui.mainmodels import FrameModel
-from data_preprocessor.operation.interface.exceptions import OptionValidationError
 from data_preprocessor.operation.interface.graph import GraphOperation
 from data_preprocessor.operation.utils import NumericListValidator, MixedListValidator, splitString, \
     joinList
@@ -130,7 +130,7 @@ class BinsDiscretizer(GraphOperation, flogging.Loggable):
         if strategy is None:
             errors.append(('missingStrategy', 'Error: Strategy must be set'))
         if errors:
-            raise OptionValidationError(errors)
+            raise exp.OptionValidationError(errors)
         # Clear attributes
         self.__attributes = dict()
         # Set options
@@ -332,13 +332,14 @@ class RangeDiscretizer(GraphOperation, flogging.Loggable):
                 return True
 
         if not table:
-            raise OptionValidationError([('noAttr', 'Error: at least one attribute should be chosen')])
+            raise exp.OptionValidationError(
+                [('noAttr', 'Error: at least one attribute should be chosen')])
         errors = list()
         options: Dict[int, Tuple[List[float], List[str]]] = dict()
         for row, opts in table.items():
             if not opts.get('bins', None) or not opts.get('labels', None):
                 errors.append(('notSet', 'Error: options at row {:d} are not set'.format(row)))
-                raise OptionValidationError(errors)
+                raise exp.OptionValidationError(errors)
             stringList: str = opts['bins']
             stringEdges: List[str] = splitString(stringList, sep=' ')
             if not all([isValidEdge(v) for v in stringEdges]):
@@ -353,7 +354,7 @@ class RangeDiscretizer(GraphOperation, flogging.Loggable):
                                'Error: Labels at row {:d} is not equal to the number of intervals '
                                'defined ({:d})'.format(row, labNum)))
             if errors:
-                raise OptionValidationError(errors)
+                raise exp.OptionValidationError(errors)
             else:
                 options[row] = (edges, bins)
         # If everything went well set options

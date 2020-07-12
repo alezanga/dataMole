@@ -6,3 +6,4 @@ pandas
 networkx~=2.4
 scikit-learn
 prettytable
+shiboken2

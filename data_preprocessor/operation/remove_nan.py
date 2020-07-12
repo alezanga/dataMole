@@ -5,9 +5,8 @@ from PySide2.QtCore import Qt, Slot
 from PySide2.QtWidgets import QWidget, QButtonGroup, QLabel, QRadioButton, QSlider, QVBoxLayout, \
     QHBoxLayout, QSpinBox
 
-from data_preprocessor import data, flogging
+from data_preprocessor import data, flogging, exceptions as exp
 from data_preprocessor.gui.editor import AbsOperationEditor
-from data_preprocessor.operation.interface.exceptions import InvalidOptions
 from data_preprocessor.operation.interface.graph import GraphOperation
 
 
@@ -29,7 +28,8 @@ class RemoveNanRows(GraphOperation, flogging.Loggable):
     def execute(self, df: data.Frame) -> data.Frame:
         # Assume everything to go is set
         if self.__thresholdPercentage is not None and self.__thresholdNumber is not None:
-            raise InvalidOptions('Can\'t have both threshold set')
+            raise exp.InvalidOptions(
+                'Can\'t have both threshold set')
         pf = df.getRawFrame().copy()
         if self.__thresholdPercentage:
             # By percentage
@@ -123,7 +123,7 @@ class RemoveNanColumns(GraphOperation, flogging.Loggable):
     def execute(self, df: data.Frame) -> data.Frame:
         # Assume everything to go is set
         if self.__thresholdPercentage is not None and self.__thresholdNumber is not None:
-            raise InvalidOptions('Can\'t have both threshold set')
+            raise exp.InvalidOptions('Can\'t have both threshold set')
         pf = df.getRawFrame().copy()
         if self.__thresholdPercentage:
             # By percentage

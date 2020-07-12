@@ -37,13 +37,13 @@ class _Message(QWidget):
         gLayout = QGridLayout(self)
         self.titleLabel = QLabel(title, self)
         self.titleLabel.setStyleSheet(
-            "font-family: 'Roboto', sans-serif; font-size: 14px; font-weight: bold; padding: 0;")
+            'font-family: Roboto, sans-serif; font-size: 14px; font-weight: bold; padding: 0;')
         self.messageLabel = QLabel(message, self)
         self.messageLabel.setStyleSheet(
-            "font-family: 'Roboto', sans-serif; font-size: 12px; font-weight: normal; padding: 0;")
+            'font-family: Roboto, sans-serif; font-size: 12px; font-weight: normal; padding: 0;')
         self.messageLabel.setWordWrap(True)
         self.buttonClose = QPushButton(self)
-        self.buttonClose.setIcon(QIcon('data_preprocessor/icons/close.png'))
+        self.buttonClose.setIcon(QIcon('data_preprocessor/style/icons/close.png'))
         self.buttonClose.setFixedSize(18, 18)
         nextColumn: int = 0
         if icon:

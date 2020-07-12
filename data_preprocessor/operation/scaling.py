@@ -11,7 +11,7 @@ from data_preprocessor import flogging
 from data_preprocessor.data.types import Type, Types
 from data_preprocessor.gui.editor import AbsOperationEditor, OptionsEditorFactory
 from data_preprocessor.gui.mainmodels import FrameModel
-from data_preprocessor.operation.interface.exceptions import OptionValidationError
+from data_preprocessor import exceptions as exp
 from data_preprocessor.operation.interface.graph import GraphOperation
 from data_preprocessor.operation.utils import isFloat, splitString, NumericListValidator
 
@@ -80,15 +80,15 @@ class MinMaxScaler(GraphOperation, flogging.Loggable):
         selectedAttributes: Dict[int, Tuple[float, float]] = dict()
         errors = list()
         if not attributes:
-            raise OptionValidationError([('noOptions', 'Error: no attributes are selected')])
+            raise exp.OptionValidationError([('noOptions', 'Error: no attributes are selected')])
         if not all(map(lambda v: bool(v), attributes.values())):
             errors.append(('notAllOptions', 'Error: some attributes have no options'))
         for k, opts in attributes.items():
             vRange = opts.get('range', None)
             if not vRange:
-                raise OptionValidationError([('nr', 'Error: no range is set at row {:d}'.format(k))])
+                raise exp.OptionValidationError([('nr', 'Error: no range is set at row {:d}'.format(k))])
             if not (len(vRange) == 2 and vRange[0] < vRange[1]):
-                raise OptionValidationError([('ir', 'Error: range is invalid at row {:d}'.format(k))])
+                raise exp.OptionValidationError([('ir', 'Error: range is invalid at row {:d}'.format(k))])
             selectedAttributes[k] = vRange
         # Set options
         self.__attributes = selectedAttributes
@@ -187,7 +187,7 @@ class StandardScaler(GraphOperation, flogging.Loggable):
     def setOptions(self, attributes: Dict[int, Dict]) -> None:
         # { attr_index: dict() }
         if not attributes:
-            raise OptionValidationError([('noOptions', 'Error: no attributes are selected')])
+            raise exp.OptionValidationError([('noOptions', 'Error: no attributes are selected')])
         # Set options
         self.__attributes = list(attributes.keys())
 

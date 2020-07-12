@@ -6,9 +6,9 @@ from PySide2.QtCore import Qt, Slot
 from PySide2.QtWidgets import QWidget, QCheckBox, QVBoxLayout, QGroupBox, QGridLayout, QLabel
 
 from data_preprocessor import data, flogging
+from data_preprocessor import exceptions as exp
 from data_preprocessor.data.types import Types, Type
 from data_preprocessor.gui.editor.interface import AbsOperationEditor
-from .interface.exceptions import OptionValidationError
 from .interface.graph import GraphOperation
 from ..gui.editor.optionwidget import AttributeComboBox, TextOptionWidget, RadioButtonGroup
 
@@ -92,7 +92,7 @@ class JoinOp(GraphOperation, flogging.Loggable):
                                'Error: column types must match. Instead got \'{}\' and \'{}\''
                                .format(type_l.name, type_r.name)))
         if errors:
-            raise OptionValidationError(errors)
+            raise exp.OptionValidationError(errors)
 
         self.__lsuffix = ls
         self.__rsuffix = rs

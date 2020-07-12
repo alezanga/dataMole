@@ -1,10 +1,9 @@
 import pandas as pd
 import pytest
 
-from data_preprocessor.data import Frame
+from data_preprocessor import data, exceptions as exp
 from data_preprocessor.data.types import Types
 from data_preprocessor.operation.dateoperations import DateDiscretizer
-from data_preprocessor.operation.interface.exceptions import OptionValidationError
 from tests.utilities import nan_to_None
 
 
@@ -14,7 +13,7 @@ def test_discretize_by_date():
          'cold': ['05-09-1988', '22-12-1994', '21-11-1995', '22-06-1994', '12-12-2012']
          }
 
-    f = Frame(d)
+    f = data.Frame(d)
 
     op = DateDiscretizer()
     op.addInputShape(f.shape, 0)
@@ -52,7 +51,7 @@ def test_discretize_by_date_with_None():
                   pd.Timestamp('21-11-1995'), None, pd.Timestamp('12-12-2012')]
          }
 
-    f = Frame(d)
+    f = data.Frame(d)
 
     op = DateDiscretizer()
     op.addInputShape(f.shape, 0)
@@ -91,7 +90,7 @@ def test_discretize_by_date_and_time():
                   pd.Timestamp('21-11-1995 11:50'), None, pd.Timestamp('12-12-2012 09:15')]
          }
 
-    f = Frame(d)
+    f = data.Frame(d)
 
     op = DateDiscretizer()
     op.addInputShape(f.shape, 0)
@@ -130,7 +129,7 @@ def test_discretize_set_options_exceptions():
                   pd.Timestamp('21-11-1995 11:50'), None, pd.Timestamp('12-12-2012 09:15')]
          }
 
-    f = Frame(d)
+    f = data.Frame(d)
 
     op = DateDiscretizer()
     op.addInputShape(f.shape, 0)
@@ -145,10 +144,10 @@ def test_discretize_set_options_exceptions():
         (pd.Interval(pd.Timestamp('01-01-1994 11:30'), pd.Timestamp('05-09-2000 14:20')), 'middle'),
         (pd.Interval(pd.Timestamp('01-09-2010 14:30'), pd.Timestamp('12-12-2012 09:14')), 'late')]
 
-    with pytest.raises(OptionValidationError):
+    with pytest.raises(exp.OptionValidationError):
         op.setOptions(attribute=2, intervals=intervals, byDate=True, byTime=True)
 
-    with pytest.raises(OptionValidationError):
+    with pytest.raises(exp.OptionValidationError):
         op.setOptions(attribute=None, intervals=intervals, byDate=True, byTime=False)
 
     intervals = [
@@ -156,7 +155,7 @@ def test_discretize_set_options_exceptions():
         (pd.Interval(pd.Timestamp('01-01-1994 11:30'), pd.Timestamp('05-09-2000 14:20')), 'middle'),
         (pd.Interval(pd.Timestamp('01-09-2010 14:30'), pd.Timestamp('12-12-2012 09:14')), '')]
 
-    with pytest.raises(OptionValidationError):
+    with pytest.raises(exp.OptionValidationError):
         op.setOptions(attribute=2, intervals=intervals, byDate=True, byTime=False)
 
     assert op.getOutputShape() is None

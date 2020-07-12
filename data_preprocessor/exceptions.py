@@ -1,15 +1,32 @@
 from typing import List, Tuple
 
 
-class OperationError(Exception):
+class GException(Exception):
+    """ Superclass of all exceptions """
+
+    def __init__(self, title: str = '', message: str = ''):
+        super().__init__()
+        self.title: str = title
+        self.message: str = message
+
+    def __str__(self) -> str:
+        return self.message
+
+
+# Dag handler
+
+class HandlerException(GException):
+    """ Used to signal exceptional condition in the dag handler """
+    pass
+
+
+# Operations
+
+class OperationError(GException):
     """ Base class for operation exceptions """
 
     def __init__(self, message: str):
-        super().__init__()
-        self.message = message
-
-    def __str__(self):
-        return self.message
+        super().__init__(title=self.__class__.__name__, message=message)
 
 
 class OptionValidationError(OperationError):

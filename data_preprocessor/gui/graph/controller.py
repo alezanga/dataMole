@@ -3,16 +3,13 @@ from typing import List, Callable
 from PySide2.QtCore import Slot
 from PySide2.QtWidgets import QWidget, QMessageBox
 
-import data_preprocessor.flogging as flogging
-import data_preprocessor.flow as flow
-import data_preprocessor.gui as gui
+from data_preprocessor import flow, flogging, gui, exceptions as exp
 from .node import NodeSlot, Node, NodeStatus
 from .scene import GraphScene
 from .view import GraphView
 from ..workbench import WorkbenchModel
 from ...flow.dag import OperationDag
-from ...flow.handler import OperationHandler, HandlerException
-from ...operation.interface.exceptions import OptionValidationError
+from ...flow.handler import OperationHandler
 
 
 class GraphController(QWidget):
@@ -123,7 +120,7 @@ class GraphController(QWidget):
                 graphUpdated = self._operation_dag.updateNodeOptions(self.__editor_node_id, **options)
             else:
                 graphUpdated = self._operation_dag.updateNodeOptions(self.__editor_node_id, *options)
-        except OptionValidationError as e:
+        except exp.OptionValidationError as e:
             self.__editor_widget.handleErrors(e.invalid)
         else:
             # If validation succeed
@@ -170,10 +167,10 @@ class GraphController(QWidget):
             gui.statusBar.startSpinner()
             gui.statusBar.showMessage('Started flow execution...', 20)
             self.__handler.execute()
-        except HandlerException as e:
+        except exp.HandlerException as e:
             gui.statusBar.showMessage('Execution stopped', 20)
             gui.notifier.addMessage('Flow exception' if not e.title else e.title,
-                                    str(e), QMessageBox.Information)
+                                    e.message, QMessageBox.Information)
             self.flowCompleted()
 
     @Slot()
