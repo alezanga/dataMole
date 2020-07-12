@@ -11,10 +11,10 @@ from PySide2.QtWidgets import QWidget, QTableView, QHBoxLayout, QVBoxLayout, \
 
 from data_preprocessor import data
 from data_preprocessor.data.types import Types
-from data_preprocessor.gui import AbsOperationEditor
-from data_preprocessor.gui.genericwidgets import MessageLabel
+from data_preprocessor.gui.editor import AbsOperationEditor
 from data_preprocessor.gui.mainmodels import SearchableAttributeTableWidget, AttributeTableModel, \
     SignalTableView
+from data_preprocessor.gui.widgets import MessageLabel
 from data_preprocessor.gui.workbench import WorkbenchModel, WorkbenchView
 from data_preprocessor.operation.interface.exceptions import OptionValidationError
 from data_preprocessor.operation.interface.operation import Operation

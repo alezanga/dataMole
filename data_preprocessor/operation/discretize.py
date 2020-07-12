@@ -13,9 +13,8 @@ from PySide2.QtWidgets import QHeaderView
 from data_preprocessor import data
 from data_preprocessor import flogging
 from data_preprocessor.data.types import Types, Type
-from data_preprocessor.gui import AbsOperationEditor
-from data_preprocessor.gui.editor.OptionsEditorFactory import OptionsEditorFactory, \
-    OptionValidatorDelegate
+from data_preprocessor.gui.editor import OptionsEditorFactory, OptionValidatorDelegate, \
+    AbsOperationEditor
 from data_preprocessor.gui.mainmodels import FrameModel
 from data_preprocessor.operation.interface.exceptions import OptionValidationError
 from data_preprocessor.operation.interface.graph import GraphOperation

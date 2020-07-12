@@ -7,7 +7,7 @@ from PySide2.QtWidgets import QWidget, QCheckBox, QVBoxLayout
 
 from data_preprocessor import data, flogging
 from data_preprocessor.data.types import Types, Type
-from data_preprocessor.gui import AbsOperationEditor
+from data_preprocessor.gui.editor import AbsOperationEditor
 from data_preprocessor.gui.mainmodels import SearchableAttributeTableWidget, FrameModel
 from data_preprocessor.operation.interface.graph import GraphOperation
 

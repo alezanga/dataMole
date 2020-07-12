@@ -3,7 +3,6 @@ from typing import Iterable, List
 import pandas as pd
 
 from data_preprocessor import data
-from data_preprocessor.gui import AbsOperationEditor
 from .interface.exceptions import InvalidOptions, OptionValidationError
 from .interface.operation import Operation
 from ..gui.editor.loaders import LoadCSVEditor
@@ -72,5 +71,5 @@ class CsvLoader(Operation):
     def getOptions(self) -> Iterable:
         return self.__file, self.__separator, self.__wName, self.__splitByRowN, self.__selectedColumns
 
-    def getEditor(self) -> AbsOperationEditor:
+    def getEditor(self) -> 'AbsOperationEditor':
         return LoadCSVEditor()

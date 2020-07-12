@@ -2,8 +2,7 @@ import copy
 
 import pytest
 
-from data_preprocessor.flow.OperationDag import OperationDag
-from data_preprocessor.flow.OperationNode import OperationNode
+from data_preprocessor.flow.dag import OperationDag, OperationNode
 from .DummyOp import *
 
 

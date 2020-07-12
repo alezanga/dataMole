@@ -23,7 +23,6 @@ from .constant import SCENE_WIDTH, SCENE_HEIGHT
 from .edge import Edge, InteractiveEdge
 from .node import Node, NodeSlot
 from .rubberband import RubberBand
-from ...flow.OperationDag import OperationDag
 
 
 class GraphScene(QtWidgets.QGraphicsScene):
@@ -74,7 +73,6 @@ class GraphScene(QtWidgets.QGraphicsScene):
 
         self.selectionChanged.connect(self._onSelectionChanged)
 
-        self.__operation_dag = OperationDag()
         self.__dropPosition: QPointF = None
         self.disableEdit = False
 

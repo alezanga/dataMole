@@ -1,23 +1,22 @@
-import logging
 from typing import List, Callable
 
-from PySide2.QtCore import Slot, Qt
+from PySide2.QtCore import Slot
 from PySide2.QtWidgets import QWidget, QMessageBox
 
-from data_preprocessor.gui.editor.interface import AbsOperationEditor
+import data_preprocessor.flogging as flogging
+import data_preprocessor.flow as flow
+import data_preprocessor.gui as gui
 from .node import NodeSlot, Node, NodeStatus
 from .scene import GraphScene
 from .view import GraphView
-from ..statusbar import StatusBar
 from ..workbench import WorkbenchModel
-from ...flow.OperationDag import OperationDag
-from ...flow.OperationHandler import OperationHandler, HandlerException
-from ...flow.OperationNode import OperationNode
+from ...flow.dag import OperationDag
+from ...flow.handler import OperationHandler, HandlerException
 from ...operation.interface.exceptions import OptionValidationError
 
 
 class GraphController(QWidget):
-    def __init__(self, operation_dag: OperationDag, scene: GraphScene, view: GraphView,
+    def __init__(self, operation_dag: flow.dag.OperationDag, scene: GraphScene, view: GraphView,
                  workbench_mod: WorkbenchModel, parent: QWidget = None):
         super().__init__(parent)
         self._scene: GraphScene = scene
@@ -25,7 +24,7 @@ class GraphController(QWidget):
         self._operation_dag: OperationDag = operation_dag
         self._workbench_model: WorkbenchModel = workbench_mod
         # Current active editor
-        self.__editor_widget: AbsOperationEditor = None
+        self.__editor_widget: gui.AbsOperationEditor = None
         # Current node being edited
         self.__editor_node_id: int = None
         # Flag to know when execution starts
@@ -48,7 +47,7 @@ class GraphController(QWidget):
             op = op_class(self._workbench_model)
         else:
             op = op_class()
-        node = OperationNode(op)
+        node = flow.dag.OperationNode(op)
         if self._operation_dag.addNode(node):
             inputs = ['in {}'.format(i) for i in range(op.maxInputNumber())]
             self._scene.create_node(name=op.name(), id=node.uid, inputs=inputs, output=not op_output)
@@ -79,7 +78,7 @@ class GraphController(QWidget):
     def startEditNode(self, node_id: int):
         if self.__executing:
             return
-        node: OperationNode = self._operation_dag[node_id]
+        node: flow.dag.OperationNode = self._operation_dag[node_id]
         if not self.__editor_widget:
             if not node.operation.needsOptions():
                 msg_noeditor = QMessageBox()
@@ -130,10 +129,13 @@ class GraphController(QWidget):
             # If validation succeed
             if graphUpdated:
                 # TODO: Maybe update view
-                logging.debug('Graph node {} edited'.format(self.__editor_node_id))
+                flogging.appLogger.debug('Graph node {} edited'.format(self.__editor_node_id))
             else:
                 # TODO: Maybe update view
-                logging.debug('Graph node {} was not updated'.format(self.__editor_node_id))
+                gui.notifier.addMessage('Error occurred updating node',
+                                        'Flow node {} was not updated'.format(self.__editor_node_id),
+                                        icon=QMessageBox.Critical)
+                flogging.appLogger.debug('Graph node {} was not updated'.format(self.__editor_node_id))
                 pass
             # Delete editor
             self.cleanupEditor()
@@ -149,11 +151,10 @@ class GraphController(QWidget):
     @Slot()
     def executeFlow(self) -> None:
         if self.__executing:
-            msgbox = QMessageBox(QMessageBox.Icon.Warning, 'Flow already in progress',
-                                 'An operation is still executing. Starting more than one flow is not '
-                                 'supported', QMessageBox.Ok)
-            msgbox.setAttribute(Qt.WA_DeleteOnClose)
-            msgbox.show()
+            gui.notifier.addMessage('Flow already in progress',
+                                    'An operation is still executing. '
+                                    'Starting more than one flow is not supported',
+                                    QMessageBox.Information)
             return
         # Reset status
         self.resetFlowStatus()
@@ -166,13 +167,13 @@ class GraphController(QWidget):
         self.__handler.signals.statusChanged.connect(self.onStatusChanged)
         self.__handler.signals.allFinished.connect(self.flowCompleted)
         try:
-            StatusBar().startSpinner()
-            StatusBar().showMessage('Started flow execution...', 20)
+            gui.statusBar.startSpinner()
+            gui.statusBar.showMessage('Started flow execution...', 20)
             self.__handler.execute()
         except HandlerException as e:
-            StatusBar().showMessage('Execution stopped', 20)
-            msgbox = QMessageBox(QMessageBox.Icon.Critical, 'Flow error', str(e), QMessageBox.Ok, self)
-            msgbox.exec_()
+            gui.statusBar.showMessage('Execution stopped', 20)
+            gui.notifier.addMessage('Flow exception' if not e.title else e.title,
+                                    str(e), QMessageBox.Information)
             self.flowCompleted()
 
     @Slot()
@@ -182,22 +183,22 @@ class GraphController(QWidget):
         for node in self._scene.nodes:
             node.status = NodeStatus.NONE
             node.refresh(refresh_edges=False)
-        logging.debug('Reset flow status')
+        flogging.appLogger.debug('Reset flow status')
 
     @Slot(int, NodeStatus)
     def onStatusChanged(self, uid: int, status: NodeStatus):
         node: Node = next((n for n in self._scene.nodes if n.id == uid), None)
-        logging.debug('Node status changed in {} at node {} with id {}'.format(str(status),
-                                                                               node.name,
-                                                                               node.id))
+        flogging.appLogger.debug('Node status changed in {} at node {} with id {}'.format(str(status),
+                                                                                          node.name,
+                                                                                          node.id))
         node.status = status
         node.refresh(refresh_edges=False)
 
     @Slot()
     def flowCompleted(self) -> None:
-        StatusBar().showMessage('Flow finished', 20)
-        StatusBar().stopSpinner()
+        gui.statusBar.showMessage('Flow finished', 20)
+        gui.statusBar.stopSpinner()
         self.__executing = False
         self._view.setAcceptDrops(True)
         self._scene.disableEdit = False
-        logging.debug('Flow finished controller slot called')
+        flogging.appLogger.debug('Flow finished controller slot called')

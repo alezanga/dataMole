@@ -7,7 +7,7 @@ from PySide2.QtWidgets import QWidget, QDateEdit, QTimeEdit, QCheckBox, QButtonG
 
 from data_preprocessor import data
 from data_preprocessor.data.types import Types, Type
-from data_preprocessor.gui import AbsOperationEditor
+from data_preprocessor.gui.editor import AbsOperationEditor
 from data_preprocessor.operation.interface.exceptions import OptionValidationError
 from data_preprocessor.operation.interface.graph import GraphOperation
 

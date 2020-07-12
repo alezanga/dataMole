@@ -1,20 +1,17 @@
 import logging
 
+from PySide2 import QtGui
 from PySide2.QtCore import Slot, QThreadPool, Qt
 from PySide2.QtWidgets import QTabWidget, QWidget, QMainWindow, QMenuBar, QAction, QSplitter, \
     QHBoxLayout
 
-from data_preprocessor.decorators.generic import singleton
-from data_preprocessor.flow.OperationDag import OperationDag
+from data_preprocessor import flow
 from data_preprocessor.gui.attributepanel import AttributePanel
 from data_preprocessor.gui.chartpanel import ChartPanel
 from data_preprocessor.gui.diffpanel import DataframeSideBySideView, DiffDataframeWidget
 from data_preprocessor.gui.framepanel import FramePanel
-from data_preprocessor.gui.graph.controller import GraphController
-from data_preprocessor.gui.graph.scene import GraphScene
-from data_preprocessor.gui.graph.view import GraphView
+from data_preprocessor.gui.graph import GraphController, GraphView, GraphScene
 from data_preprocessor.gui.operationmenu import OperationMenu
-from data_preprocessor.gui.statusbar import StatusBar
 from data_preprocessor.gui.workbench import WorkbenchModel, WorkbenchView
 from data_preprocessor.operation.actionwrapper import OperationAction
 from data_preprocessor.operation.loaders import CsvLoader
@@ -24,7 +21,7 @@ class MainWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.workbench_model = WorkbenchModel(self)
-        self.graph = OperationDag()
+        self.graph = flow.dag.OperationDag()
         self.operationMenu = OperationMenu()
         self.frameInfoPanel = FramePanel(parent=self,
                                          w=self.workbench_model,
@@ -79,14 +76,13 @@ class MainWidget(QWidget):
             self.__curr_tab = tab_index
 
 
-@singleton
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.__activeCount: int = 0  # number of operations in progress
         central_w = MainWidget()
         self.setCentralWidget(central_w)
-        self.setStatusBar(StatusBar(self))
+        self.notifier = None  # Set by main script
         # Initialise a thread pool
         self.threadPool = QThreadPool.globalInstance()
         logging.info('Multithreading with maximum {} threads'.format(self.threadPool.maxThreadCount()))
@@ -123,6 +119,14 @@ class MainWindow(QMainWindow):
         diffAction.triggered.connect(self.openDiffPanel)
         loadCsvAction.stateChanged.connect(self.operationStateChanged)
         self.centralWidget().frameInfoPanel.operationRequest.connect(self.executeOperation)
+
+    def moveEvent(self, event: QtGui.QMoveEvent) -> None:
+        self.notifier.mNotifier.updatePosition()
+        super().moveEvent(event)
+
+    def resizeEvent(self, event: QtGui.QResizeEvent) -> None:
+        self.notifier.mNotifier.updatePosition()
+        super().resizeEvent(event)
 
     @Slot()
     def openComparePanel(self) -> None:

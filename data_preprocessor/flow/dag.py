@@ -1,9 +1,10 @@
 import logging
-from typing import Any
+from typing import Any, Dict, List, Optional
 
 import networkx as nx
 
-from data_preprocessor.flow.OperationNode import OperationNode
+from data_preprocessor import data
+from data_preprocessor.utils import UIdGenerator
 
 
 # TODO add exception class to handle dag/flow errors
@@ -50,13 +51,13 @@ class OperationDag:
             logging.info('Cannot update a node which does not belong to the graph')
             return False
         # Set options for operation
-        node: OperationNode = self[node_id]
+        node: 'OperationNode' = self[node_id]
         node.operation.setOptions(*options, **kwoptions)
         # Update every connected node
         self.__update_descendants(node_id)
         return True
 
-    def addNode(self, node: OperationNode) -> bool:
+    def addNode(self, node: 'OperationNode') -> bool:
         """ Adds a node to the graph. Must not be already in the graph
 
         :param node: the node to add
@@ -78,8 +79,8 @@ class OperationDag:
         """
         if source_id not in self.__G or target_id not in self.__G:
             raise ValueError('New edge requires non existent node. Add the nodes first')
-        target_node: OperationNode = self[target_id]
-        source_node: OperationNode = self[source_id]
+        target_node: 'OperationNode' = self[target_id]
+        source_node: 'OperationNode' = self[source_id]
         from_max_out = source_node.operation.maxOutputNumber()
         to_max_in = target_node.operation.maxInputNumber()
         if (0 <= from_max_out <= self.__G.out_degree(source_id)) or (
@@ -160,3 +161,99 @@ class OperationDag:
     def __getitem__(self, uid: int) -> 'OperationNode':
         """ Return the operation node with specified id """
         return self.__G.nodes[uid]['op']
+
+
+class OperationNode:
+    """ Wraps an operation, providing functionality required for graph computation """
+
+    def __init__(self, operation: 'GraphOperation'):
+        self.__op_uid: int = UIdGenerator().getUniqueId()
+        self.operation = operation
+        # List of inputs, kept in order
+        self.__inputs: List = [None] * operation.maxInputNumber()
+        # Input mapper { operation_id: position }
+        self.__input_order: Dict[int, int] = dict()
+
+    @property
+    def uid(self) -> int:
+        """ Returns the integer unique identifier of one node """
+        return self.__op_uid
+
+    def inputShapeFrom(self, node_id: int) -> Optional[data.Shape]:
+        """ Get the input shape set from specified source node, if set """
+        return self.operation.shapes[self.__input_order[node_id]]
+
+    @property
+    def nInputs(self) -> int:
+        inputs = [i for i in self.__inputs if i is not None]
+        return len(inputs)
+
+    @property
+    def inputs(self) -> List[data.Frame]:
+        return self.__inputs
+
+    def setSourceOperationInputPosition(self, op_id: int, pos: int) -> None:
+        """ Call this method to ensure that the output of one parent (source) operation is always passed
+        at a specified position when the execute method is called
+
+        :param op_id: the unique id of the operation
+        :param pos: the position, which means that input is passed as the argument at position 'pos'
+        to 'execute' method. Must be non-negative
+        :raise ValueError: if 'pos' is negative
+        """
+        if pos < 0:
+            raise ValueError('Position argument \'pos\' must be non-negative')
+        self.__input_order[op_id] = pos
+
+    def unsetSourceOperationInputPosition(self, op_id: int) -> None:
+        """ Delete the entry for specified operation in the input mapper
+
+        :param op_id: the unique id of the operation
+        """
+        del self.__input_order[op_id]
+
+    def addInputArgument(self, arg: Any, op_id: int) -> None:
+        """ Add the input argument of an operation to the existing inputs
+
+        :param arg: the input to add
+        :param op_id: the unique id of the operation which generated the input. This argument is
+            always required
+        """
+        pos = self.__input_order.get(op_id, None)
+        self.__inputs[pos] = arg
+
+    def addInputShape(self, shape: data.Shape, op_id: int) -> None:
+        """ Adds the input shape coming from operation with specified id
+
+        :param shape: the shape
+        :param op_id: the id of the operation which generated the shape
+        """
+        pos = self.__input_order.get(op_id, None)
+        self.operation.addInputShape(shape, pos)
+
+    def removeInputShape(self, op_id: int) -> None:
+        """ Remove the input shape coming from specified operation
+
+        :param op_id: the unique identifier of the operation whose input shape should be removed
+        """
+        pos = self.__input_order.get(op_id)
+        self.operation.removeInputShape(pos)
+
+    def clearInputArgument(self) -> None:
+        """ Delete all input arguments cached in a node """
+        self.__inputs: List = [None] * self.operation.maxInputNumber()
+
+    def execute(self) -> data.Frame:
+        """ Execute the operation with input arguments. Additionally checks that everything is
+        correctly set """
+
+        op = self.operation
+        inputs = [i for i in self.__inputs if i is not None]
+
+        # Check if input is set
+        if op.maxInputNumber() < len(inputs) < op.minInputNumber():
+            raise ValueError(
+                '{}.execute(input=...), input argument not correctly set'.format(
+                    self.__class__.__name__))
+
+        return op.execute(*inputs)

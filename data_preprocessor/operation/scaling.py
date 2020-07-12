@@ -9,7 +9,7 @@ from sklearn.preprocessing import minmax_scale, scale
 from data_preprocessor import data
 from data_preprocessor import flogging
 from data_preprocessor.data.types import Type, Types
-from data_preprocessor.gui import AbsOperationEditor, OptionsEditorFactory
+from data_preprocessor.gui.editor import AbsOperationEditor, OptionsEditorFactory
 from data_preprocessor.gui.mainmodels import FrameModel
 from data_preprocessor.operation.interface.exceptions import OptionValidationError
 from data_preprocessor.operation.interface.graph import GraphOperation

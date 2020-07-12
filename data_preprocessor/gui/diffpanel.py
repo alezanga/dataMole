@@ -65,3 +65,65 @@ class DataframeSideBySideView(QWidget):
             self.dataWidgetR.dataView.horizontalScrollBar().setValue)
         self.dataWidgetR.dataView.horizontalScrollBar().valueChanged.connect(
             self.dataWidgetL.dataView.horizontalScrollBar().setValue)
+
+
+class DiffDataframeWidget(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._workbench: WorkbenchModel = None
+
+        sideWidget = QWidget(self)
+        sideLayout = QVBoxLayout()
+        self.CBL = QComboBox(sideWidget)
+        self.CBR = QComboBox(sideWidget)
+        self.columnsL = SearchableAttributeTableWidget(sideWidget, True, showTypes=True)
+        self.columnsR = SearchableAttributeTableWidget(sideWidget, True, showTypes=True)
+        button = QPushButton('Compute diff', self)
+        sideLayout.addWidget(self.CBL)
+        sideLayout.addWidget(self.columnsL)
+        sideLayout.addWidget(self.CBR)
+        sideLayout.addWidget(self.columnsR)
+        sideLayout.addWidget(button)
+        sideWidget.setLayout(sideLayout)
+
+        self.tableWidget = QTableView(self)
+
+        splitter = QSplitter(self)
+        splitter.addWidget(sideWidget)
+        splitter.addWidget(self.tableWidget)
+
+        layout = QHBoxLayout(self)
+        layout.addWidget(splitter)
+
+        self.CBL.currentTextChanged.connect(self.setAttributeModelL)
+        self.CBR.currentTextChanged.connect(self.setAttributeModelR)
+        button.clicked.connect(self.computeDiff)
+
+    @Slot(str)
+    def setAttributeModelL(self, name: str) -> None:
+        frameModel = self._workbench.getDataframeModelByName(name)
+        self.columnsL.setSourceFrameModel(frameModel)
+
+    @Slot(str)
+    def setAttributeModelR(self, name: str) -> None:
+        frameModel = self._workbench.getDataframeModelByName(name)
+        self.columnsR.setSourceFrameModel(frameModel)
+
+    def setWorkbench(self, w: WorkbenchModel) -> None:
+        self._workbench = w
+        self.CBL.setModel(w)
+        self.CBR.setModel(w)
+        model = IncrementalRenderFrameModel(parent=self)
+        frameModel = FrameModel(model)
+        model.setSourceModel(frameModel)
+        self.tableWidget.setModel(model)
+
+    @Slot()
+    def computeDiff(self) -> None:
+        frame1 = self.columnsL.model().frameModel().frame.getRawFrame()
+        frame2 = self.columnsR.model().frameModel().frame.getRawFrame()
+        changedMask = frame1 != frame2
+        diffRows = changedMask.any(1)
+        diffColumns = changedMask.any(0)
+        frame = frame1.loc[diffRows, diffColumns]
+        self.tableWidget.model().sourceModel().setFrame(Frame(frame))

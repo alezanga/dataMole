@@ -1,41 +1,28 @@
-# This Python file uses the following encoding: utf-8
 import sys
 
-from PySide2.QtWidgets import QApplication, QMainWindow, QWidget, QHBoxLayout, QTableView
+from PySide2 import QtCore
+from PySide2.QtWidgets import QApplication
 
-from data_preprocessor.data import Frame
-from data_preprocessor.gui.mainmodels import AttributeTableModel, FrameModel
-
-
-class MainWindow(QMainWindow):
-    def __init__(self):
-        QMainWindow.__init__(self)
-
-
-class MainWidget(QWidget):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        d = {'col1': [1, 2, 3, 4, 10], 'col2': [3, 4, 5, 6, 0], 'col3': ['q', '2', 'c', '4', 'x']}
-        f = Frame(d)
-        # pw = PipelineWidget(self, f)
-        frameModel = FrameModel(self, f)
-        frameView = QTableView(self)
-        frameView.setModel(frameModel)
-
-        attributeTable = AttributeTableModel(self, True, True)
-        attributeTable.setSourceFrameModel(frameModel)
-        attributeView = QTableView(self)
-        attributeView.setModel(attributeTable)
-
-        layout = QHBoxLayout()
-        layout.addWidget(frameView)
-        layout.addWidget(attributeView)
-        self.setLayout(layout)
-
+from data_preprocessor import flogging
 
 if __name__ == "__main__":
+    # Set up logger, QApp
+    print('Python', sys.version)
     app = QApplication([])
-    window = MainWindow()
-    window.setCentralWidget(MainWidget())
-    window.show()
+    flogging.setUpAppLogger()
+    flogging.setUpOperationLogger()
+    QtCore.qInstallMessageHandler(flogging.qtMessageHandler)
+
+    # Initialize globals and mainWindow
+    from data_preprocessor import gui
+
+    mw = gui.window.MainWindow()
+    # Create status bar
+    gui.statusBar = gui.statusbar.StatusBar(mw)
+    mw.setStatusBar(gui.statusBar)
+    gui.notifier = gui.notifications.Notifier(mw)
+    # Set notifier in main window for update
+    mw.notifier = gui.notifier
+    gui.notifier.mNotifier.updatePosition()
+    mw.show()
     sys.exit(app.exec_())

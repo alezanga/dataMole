@@ -6,18 +6,15 @@ from PySide2.QtCore import QThreadPool, Slot, QObject, Signal, Qt
 
 from data_preprocessor import data
 from data_preprocessor import flogging
-from data_preprocessor.flow.OperationDag import OperationDag, OperationNode
 from data_preprocessor.status import NodeStatus
 from data_preprocessor.threads import Worker
+from . import dag
 
-
-# NOTE: Eventualmente memorizzare con joblib
-# from joblib import Memory
 
 class OperationHandler:
     """ Executes a DAG """
 
-    def __init__(self, graph: OperationDag):
+    def __init__(self, graph: 'dag.OperationDag'):
         self.graph: nx.DiGraph = graph.getNxGraph()
         self.__qtSlots = _HandlerSlots(self)
         self.signals = HandlerSignals()
@@ -47,7 +44,7 @@ class OperationHandler:
         for node in input_nodes:
             self.startNode(node)
 
-    def startNode(self, node: OperationNode):
+    def startNode(self, node: 'OperationNode'):
         worker = Worker(node, identifier=node.uid)
         # Connect
         worker.signals.result.connect(self.__qtSlots.nodeCompleted, Qt.QueuedConnection)
@@ -55,7 +52,7 @@ class OperationHandler:
         self.signals.statusChanged.emit(node.uid, NodeStatus.PROGRESS)
         QThreadPool.globalInstance().start(worker)
 
-    def _canExecute(self, input_nodes: List[OperationNode]) -> bool:
+    def _canExecute(self, input_nodes: List['OperationNode']) -> bool:
         """
         Check if there are input nodes and if options are set. Additionally sets the set of nodes to
         be executed in field 'toExecute'
@@ -64,19 +61,20 @@ class OperationHandler:
         """
         if not input_nodes:
             flogging.appLogger.error('Flow not started: there are no input operations')
-            raise HandlerException('There are no input nodes')
+            raise HandlerException('Flow not started', 'There are no input nodes')
         # Find the set of reachable nodes from the input operations
         reachable = set()
         for node in input_nodes:
             reachable = reachable.union(nx.dag.descendants(self.graph, node.uid))
         # Check if all reachable nodes have options set
         for node_id in reachable:
-            node: OperationNode = self.graph.nodes[node_id]['op']
+            node: 'OperationNode' = self.graph.nodes[node_id]['op']
             if not node.operation.hasOptions():
                 flogging.appLogger.error('Flow not started: operation {}-{} has options to set'.format(
                     node.operation.name(), node.uid))
-                raise HandlerException(
-                    'GraphOperation {} has options to set'.format(node.operation.name()))
+                raise HandlerException('Flow not started',
+                                       'GraphOperation {} has options to set'.format(
+                                           node.operation.name()))
         self.toExecute = reachable | set(map(lambda x: x.uid, input_nodes))
         return True
 
@@ -117,7 +115,7 @@ class _HandlerSlots(QObject):
             return
         # Put result in all child nodes
         for child_id in self.handler.graph.successors(node_id):
-            child: OperationNode = self.handler.graph.nodes[child_id]['op']
+            child: 'OperationNode' = self.handler.graph.nodes[child_id]['op']
             child.addInputArgument(result, op_id=node_id)
             # Check if child has all it needs to start
             if self.handler.graph.in_degree(child_id) == child.nInputs:
@@ -137,5 +135,6 @@ class _HandlerSlots(QObject):
 
 
 class HandlerException(Exception):
-    def __init__(self, msg: str):
+    def __init__(self, title: str, msg: str):
         super().__init__(msg)
+        self.title = title
