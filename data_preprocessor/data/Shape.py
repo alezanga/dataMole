@@ -26,12 +26,8 @@ class Shape:
     def __str__(self):
         return str(self.__dict__)
 
-    def __deepcopy__(self, memodict=None) -> 'Shape':
-        # Disable deepcopy since it does not make sense to deepcopy str and Type objects
-        return self.clone()
-
     def clone(self) -> 'Shape':
-        return copy.copy(self)
+        return copy.deepcopy(self)
 
     @property
     def columnsDict(self) -> Dict[str, Type]:

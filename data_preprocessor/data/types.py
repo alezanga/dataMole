@@ -22,6 +22,10 @@ class Type(abc.ABC):
     def __hash__(self) -> int:
         return hash(self.name)
 
+    def __deepcopy__(self, memodict=None) -> 'Type':
+        # Disable deepcopy
+        return self
+
 
 class Categorical(Type):
     pass

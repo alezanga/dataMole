@@ -123,7 +123,7 @@ class AttributeTableWithOptions(AttributeTableModel):
 class OptionValidatorDelegate(QStyledItemDelegate):
     """ Delegate object used to set a QValidator for every option editor """
 
-    def __init__(self, validator, parent=None):
+    def __init__(self, validator: QValidator, parent=None):
         super().__init__(parent)
         self.__validator: QValidator = validator
 

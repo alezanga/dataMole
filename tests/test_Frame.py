@@ -137,3 +137,28 @@ def test_fromShape_categories():
     s.index = ['col3', 'col1', 'col2']
     s.indexTypes = [IndexType(Types.Ordinal), IndexType(Types.Numeric), IndexType(Types.Nominal)]
     assert g.shape == s == f.shape
+
+
+def test_cloneShape():
+    s = Shape()
+    s.colNames = ['cold']
+    s.colTypes = [Types.Datetime]
+    s.index = ['col3', 'col1', 'col2']
+    s.indexTypes = [IndexType(Types.Ordinal), IndexType(Types.Numeric), IndexType(Types.Nominal)]
+    sColDict = s.columnsDict
+    sIndexDict = s.indexDict
+
+    sc = s.clone()
+    sc.index.append('col4')
+    sc.indexTypes.append(IndexType(Types.Numeric))
+    sc.colTypes[0] = Types.Ordinal
+    sc.colNames[0] = 'col_new'
+    assert sc != s
+    assert s.columnsDict == {
+        'cold': Types.Datetime
+    }
+    assert sc.columnsDict == {
+        'col_new': Types.Ordinal
+    }
+    assert s.columnsDict == sColDict
+    assert s.indexDict == sIndexDict
