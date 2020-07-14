@@ -171,3 +171,15 @@ def logDataframeInfo(df) -> str:
                 shape.nIndexLevels,
                 '\n'.join('{} ({})'.format(k, t.name) for k, t in shape.indexDict.items())])
     return tt.get_string(border=True, vrules=pt.ALL).strip()
+
+
+def deleteOldLogs(keepLastN: int = 5) -> None:
+    """ Delete older logs keeping the last N """
+    logF = os.path.join(os.getcwd(), LOG_FOLDER)
+    subDirs = next(os.walk(logF))[1]
+    for subDir in subDirs:
+        for path, _, files in os.walk(os.path.join(logF, subDir)):
+            ascendingFiles = sorted(files)
+            tn = len(ascendingFiles) - keepLastN
+            for file in ascendingFiles[:tn]:
+                os.remove(os.path.join(path, file))

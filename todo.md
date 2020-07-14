@@ -1,11 +1,19 @@
 # TODO
+
+- [x] !!! FIX: outputShape is shared in graph !
+- [x] !!! FIX: getOutputShape for some operations does not conform to standard
+- [ ] !! IMPROVE: review operations for inefficiencies
+- [x] ! ADD: fillna operation
+    - [x] Add log
+- [ ] ! ADD: drop column operation
+- [ ] ! ADD: write to csv
+- [ ] ! ADD: Discretize dates
+- [ ] ! CHANGE: setIndex allow append
+
 - [ ] CHECK: race condition when connecting QRunnable to same slot? (onWorkerSuccess)
-- [ ] CHECK: why sometimes flow does not add edgeAdjustment to time series plot (fixed segfault)
 - [x] FIX !!: SEGFAULT in tablemodel/headerview in extracttimeseries.
 - [ ] FIX !!: SEGFAULT in series plot (it seems relative to zoom)
 - [x] FIX validation in extractseries
-- [ ] FIX: outputShape is shared in graph !
-- [ ] TEST: log in graph and getOutputSHape for some operations does not conform to standard
 - [x] FIX: gridLayout in graph
 - [x] FIX: toCategory asked options even if it shouldn't (validation problem)
 - [x] FIX !!: Frame.integerToFloat does not work with big data (it hangs)
@@ -42,21 +50,19 @@
     - [x] Set index
     - [x] Join
         - [ ] Fix merge on "datetime"
-    - [ ] Append
     - [x] Discretize numbers
-    - [ ] Discretize dates
-    - [ ] Remove attribute(s)
+    - [ ] !! Remove attribute(s)
     - [ ] Add instance numbers (1, 2, 3, 4, ...)
     - [x] One hot encoding
-    - [ ] Scaling
-    - [ ] Select rows based on condition
-    - [ ] Select attributes based on condition
+    - [x] Scaling
+    - [ ] ~~Select rows based on condition~~
+    - [ ] ~~Select attributes based on condition~~
     - [ ] ~~Remove selection (two inputs: selection and table)~~
 - [x] Add Signal object to communicate operation status to the View
 - [x] Add methods to launch specific signals in Operation
 - USABILITY
     - [ ] Notification system (time)
-        - [ ] Basic notification for every event
+        - [x] Basic notification for every event
         - [ ] Log of events
     - [ ] Write to CSV / ARFF (time)
     - [ ] Ability to stop ongoing operations

@@ -9,10 +9,9 @@
 # GNU LESSER GENERAL PUBLIC LICENSE (Version 3, 29 June 2007)
 # =============================================================================
 
-"""Node graph scene manager based on QGraphicsScene
-
 """
-import logging
+Node graph scene manager based on QGraphicsScene
+"""
 from typing import Set, List
 
 from PySide2 import QtCore, QtGui, QtWidgets
@@ -23,6 +22,7 @@ from .constant import SCENE_WIDTH, SCENE_HEIGHT
 from .edge import Edge, InteractiveEdge
 from .node import Node, NodeSlot
 from .rubberband import RubberBand
+from ... import flogging
 
 
 class GraphScene(QtWidgets.QGraphicsScene):
@@ -285,7 +285,6 @@ class GraphScene(QtWidgets.QGraphicsScene):
         :type event: :class:`QtWidgets.QMouseEvent`
 
         """
-        # print("MOUSE PRESS SCENE!")
         if not self._is_interactive_edge:
 
             if not self.items(event.scenePos()):
@@ -338,15 +337,15 @@ class GraphScene(QtWidgets.QGraphicsScene):
                 self._rubber_band.refresh(event.scenePos())
             elif self.selectedItems():
                 if not self._is_refresh_edges:
-                    logging.debug('Not refresh edges')
+                    flogging.appLogger.debug('Not refresh edges')
                     self._is_refresh_edges = True
                     self._refresh_edges = self._get_refresh_edges()
                 for ahash in self._refresh_edges["move"]:
                     self._edges_by_hash[ahash].refresh_position()
-                    logging.debug('Move edge hash: ' + ahash)
+                    flogging.appLogger.debug('Move edge hash: ' + ahash)
                 for ahash in self._refresh_edges["refresh"]:
                     self._edges_by_hash[ahash].refresh()
-                    logging.debug('Refresh edge hash: ' + ahash)
+                    flogging.appLogger.debug('Refresh edge hash: ' + ahash)
         else:
             return QtWidgets.QGraphicsScene.mouseMoveEvent(self, event)
 
@@ -395,7 +394,7 @@ class GraphScene(QtWidgets.QGraphicsScene):
 
         if len(selected) == 1 and isinstance(selected[0], Node):
             self.editModeEnabled.emit(selected[0].id)
-            print("Edit Node %s" % selected[0].id)
+            flogging.appLogger.debug("Edit Node %s" % selected[0].id)
 
     def _onSelectionChanged(self):
         """Re-inplements selection changed event
@@ -426,7 +425,6 @@ class GraphScene(QtWidgets.QGraphicsScene):
                 edges_to_refresh.append(edge)
 
         r = {"move": edges_to_move, "refresh": edges_to_refresh}
-        # print("move: %r\nrefresh: %r" % (edges_to_move, edges_to_refresh))
         return r
 
     def get_nodes_bbox(self, visible_only=True):
@@ -478,14 +476,12 @@ class GraphScene(QtWidgets.QGraphicsScene):
     def dragEnterEvent(self, event: QGraphicsSceneDragDropEvent):
         md = event.mimeData()
         if md.hasText() and md.text() == 'operation':
-            # print('YYYEES')
             event.acceptProposedAction()
 
     def dragMoveEvent(self, event: QGraphicsSceneDragDropEvent):
         self.dragEnterEvent(event)
 
     def dropEvent(self, event: QGraphicsSceneDragDropEvent):
-        # print('dropEvent')
         tree_w = event.source()
         self.__dropPosition = event.scenePos()
         self.dropNewNode.emit(tree_w.getDropData())
