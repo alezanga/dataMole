@@ -224,6 +224,7 @@ class _ExtractSeriesWidget(QWidget):
         self.timeSeriesDataView.setSelectionMode(QTableView.NoSelection)
         self.timeSeriesDataView.setItemDelegateForColumn(1, ComboBoxDelegate(self.timeAxisModel,
                                                                              self.timeSeriesDataView))
+        self.timeSeriesDataView.setEditTriggers(QTableView.CurrentChanged | QTableView.DoubleClicked)
         self.timeSeriesDataView.verticalHeader().hide()
         # Update the label column when some label changes in the label table
         self.timeAxisModel.dataChanged.connect(self.timeSeriesDataModel.timeAxisLabelChanged)
