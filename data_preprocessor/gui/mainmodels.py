@@ -10,8 +10,9 @@ from PySide2.QtCore import QAbstractTableModel, QModelIndex, Qt, Signal, Slot, Q
 from PySide2.QtGui import QPainter
 from PySide2.QtWidgets import QWidget, QTableView, QLineEdit, QVBoxLayout, QHeaderView, QLabel, \
     QHBoxLayout, QStyleOptionViewItem, QStyleOptionButton, QStyle, QApplication, \
-    QStyledItemDelegate
+    QStyledItemDelegate, QMessageBox
 
+from data_preprocessor import gui
 from data_preprocessor.data import Frame, Shape
 from data_preprocessor.data.types import Types, Type, ALL_TYPES
 from data_preprocessor.operation.computations.statistics import AttributeStatistics, Hist
@@ -460,13 +461,20 @@ class AttributeTableModel(AbstractAttributeModel, QAbstractTableModel,
         return None
 
     def setData(self, index: QModelIndex, value: Any, role: int = ...) -> bool:
-        # NOTE: does not support changing type for now
+        # NOTE: does not support changing type for now (only name)
         if not index.isValid():
             return False
 
         if role == Qt.EditRole:
             # Change attribute name
-            if index.column() == self.nameColumn and value != index.data(Qt.DisplayRole):
+            if index.column() == self.nameColumn:
+                value: str = value.strip()
+                if not value or value == index.data(Qt.DisplayRole):
+                    return False
+                if value in self._frameModel.frame.colnames:
+                    gui.notifier.addMessage('Rename error', 'New name "{}" is duplicate'.format(value),
+                                            QMessageBox.Critical)
+                    return False
                 return self._frameModel.setHeaderData(index.row(), Qt.Horizontal, value, Qt.EditRole)
             # Toggle checkbox state
             elif index.column() == self.checkboxColumn:
