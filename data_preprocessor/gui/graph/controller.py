@@ -1,6 +1,6 @@
 from typing import List, Callable
 
-from PySide2.QtCore import Slot
+from PySide2.QtCore import Slot, Qt
 from PySide2.QtWidgets import QWidget, QMessageBox
 
 from data_preprocessor import flow, flogging, gui, exceptions as exp
@@ -104,7 +104,9 @@ class GraphController(QWidget):
             self.__editor_widget.accept.connect(self.onEditAccept)
             self.__editor_widget.reject.connect(self.cleanupEditor)
             # Show the editor in new window
-            self.__editor_widget.setParent(None)
+            self.__editor_widget.setParent(self._view)
+            self.__editor_widget.setWindowFlags(Qt.Window)
+            self.__editor_widget.setWindowModality(Qt.ApplicationModal)
             self.__editor_widget.setWindowTitle(node.operation.name())
             self.__editor_widget.move(self._view.rect().center())
             self.__editor_widget.show()

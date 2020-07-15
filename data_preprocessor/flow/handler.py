@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Tuple, List
+from typing import Tuple, List, Set
 
 import networkx as nx
 from PySide2.QtCore import QThreadPool, Slot, QObject, Signal, Qt
@@ -18,7 +18,7 @@ class OperationHandler:
         self.graph: nx.DiGraph = graph.getNxGraph()
         self.__qtSlots = _HandlerSlots(self)
         self.signals = HandlerSignals()
-        self.toExecute = set()
+        self.toExecute: Set[int] = set()
         self.graphLogger: flogging.GraphOperationLogger = None
 
     def execute(self):
@@ -63,15 +63,24 @@ class OperationHandler:
         # Find the set of reachable nodes from the input operations
         reachable = set()
         for node in input_nodes:
+            # Also check that input nodes have options set, or raise error
+            if not node.operation.hasOptions():
+                flogging.appLogger.error(
+                    'Flow not started: input operation "{}-{}" is not configured'.format(
+                        node.operation.name(), node.uid))
+                raise exp.HandlerException('Flow not started',
+                                           'Input operation "{}" has options to set'.format(
+                                               node.operation.name()))
+            # All descendants of input node are reachable
             reachable = reachable.union(nx.dag.descendants(self.graph, node.uid))
         # Check if all reachable nodes have options set
         for node_id in reachable:
             node: 'OperationNode' = self.graph.nodes[node_id]['op']
             if not node.operation.hasOptions():
-                flogging.appLogger.error('Flow not started: operation {}-{} has options to set'.format(
+                flogging.appLogger.error('Flow not started: operation "{}-{}" has options to set'.format(
                     node.operation.name(), node.uid))
                 raise exp.HandlerException('Flow not started',
-                                           'GraphOperation {} has options to set'.format(
+                                           'Operation "{}" has options to set'.format(
                                                node.operation.name()))
         self.toExecute = reachable | set(map(lambda x: x.uid, input_nodes))
         return True
@@ -122,11 +131,19 @@ class _HandlerSlots(QObject):
 
     @Slot(object, tuple)
     def nodeErrored(self, node_id: int, error: Tuple[type, Exception, str]):
+        self.handler.signals.statusChanged.emit(node_id, NodeStatus.ERROR)
         msg = str(error[1])
+        self.handler.toExecute.remove(node_id)
         node = self.handler.graph.nodes[node_id]['op']
         node.clearInputArgument()
         flogging.appLogger.error('GraphOperation {} failed with exception {}: {} - trace: {}'.format(
             node.operation.name(), str(error[0]), msg, error[2]))
         # Log operation
         self.handler.graphLogger.log(node, None)
-        self.handler.signals.statusChanged.emit(node_id, NodeStatus.ERROR)
+        # Clear input set in successors and reset execution queue (set)
+        for uid in self.handler.toExecute:
+            node = self.handler.graph.nodes[uid]['op']
+            node.clearInputArgument()
+        self.handler.toExecute = set()
+        # Emit finished signal
+        self.handler.signals.allFinished.emit()
