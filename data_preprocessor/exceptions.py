@@ -20,6 +20,11 @@ class HandlerException(GException):
     pass
 
 
+class DagException(GException):
+    """ Signal error during graph update/manipulation """
+    pass
+
+
 # Operations
 
 class OperationError(GException):

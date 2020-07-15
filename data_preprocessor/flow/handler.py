@@ -34,7 +34,8 @@ class OperationHandler:
         self._canExecute(input_nodes)
 
         # Create a logger for the execution
-        logger = flogging.setUpGraphLogger()
+        logger = flogging.setUpLogger(name='graph', folder='graph', fmt='%(message)s',
+                                      level=flogging.INFO)
         logger.info('OPERATION LOG')
         logger.info('Execution time: {}\n'.format(datetime.now()))
         self.graphLogger = flogging.GraphOperationLogger(logger)
@@ -91,9 +92,11 @@ class HandlerSignals(QObject):
     Graph handler Qt signals.
 
     - statusChnaged(int, status): operation status changed with new status
+    - failedWithMessage(int, message): pass an error message
     - allFinished: flow execution finished (either because of error or completion)
     """
     statusChanged = Signal(int, NodeStatus)
+    failedWithMessage = Signal(int, str)
     allFinished = Signal()
 
 
@@ -133,11 +136,14 @@ class _HandlerSlots(QObject):
     def nodeErrored(self, node_id: int, error: Tuple[type, Exception, str]):
         self.handler.signals.statusChanged.emit(node_id, NodeStatus.ERROR)
         msg = str(error[1])
+        eName = error[0].__name__
         self.handler.toExecute.remove(node_id)
         node = self.handler.graph.nodes[node_id]['op']
         node.clearInputArgument()
         flogging.appLogger.error('GraphOperation {} failed with exception {}: {} - trace: {}'.format(
-            node.operation.name(), str(error[0]), msg, error[2]))
+            node.operation.name(), eName, msg, error[2]))
+        self.handler.signals.failedWithMessage.emit(node_id, 'Exception "{}" in "{}": {}'
+                                                    .format(eName, node.operation.name(), msg))
         # Log operation
         self.handler.graphLogger.log(node, None)
         # Clear input set in successors and reset execution queue (set)

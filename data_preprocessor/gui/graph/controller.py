@@ -55,8 +55,15 @@ class GraphController(QWidget):
             return
         u: Node = source_slot.parentNode
         v: Node = target_slot.parentNode
-        if self._operation_dag.addConnection(source_id=u.id, target_id=v.id, slot=target_slot.position):
-            self._scene.create_edge(source_slot, target_slot)
+        try:
+            done = self._operation_dag.addConnection(source_id=u.id, target_id=v.id,
+                                                     slot=target_slot.position)
+        except exp.DagException as e:
+            gui.notifier.addMessage(e.title if e.title else 'Edge not added', e.message,
+                                    QMessageBox.Critical)
+        else:
+            if done:
+                self._scene.create_edge(source_slot, target_slot)
 
     @Slot()
     def removeItems(self):
@@ -74,6 +81,7 @@ class GraphController(QWidget):
     @Slot(int)
     def startEditNode(self, node_id: int):
         if self.__executing:
+            flogging.appLogger.debug('Flow is executing, don\'t allow edit')
             return
         node: flow.dag.OperationNode = self._operation_dag[node_id]
         if not self.__editor_widget:
@@ -81,8 +89,8 @@ class GraphController(QWidget):
                 msg_noeditor = QMessageBox()
                 msg_noeditor.setWindowTitle(node.operation.name())
                 msg_noeditor.setInformativeText(
-                    'This operations require no options.<hr><b>Operation description</b><br><br>' +
-                    node.operation.shortDescription())
+                    '{:s}<hr>This operations require no options.'.format(
+                        node.operation.shortDescription()))
                 msg_noeditor.setStandardButtons(QMessageBox.Ok)
                 msg_noeditor.exec_()
                 msg_noeditor.deleteLater()
@@ -122,8 +130,12 @@ class GraphController(QWidget):
                 graphUpdated = self._operation_dag.updateNodeOptions(self.__editor_node_id, **options)
             else:
                 graphUpdated = self._operation_dag.updateNodeOptions(self.__editor_node_id, *options)
-        except exp.OptionValidationError as e:
-            self.__editor_widget.handleErrors(e.invalid)
+        except exp.OperationError as e:
+            if isinstance(e, exp.OptionValidationError):
+                self.__editor_widget.handleErrors(e.invalid)
+            else:
+                # Signal generic error
+                gui.notifier.addMessage(e.title, e.message, QMessageBox.Critical)
         else:
             # If validation succeed
             if graphUpdated:
@@ -153,7 +165,7 @@ class GraphController(QWidget):
             gui.notifier.addMessage('Flow already in progress',
                                     'An operation is still executing. '
                                     'Starting more than one flow is not supported',
-                                    QMessageBox.Information)
+                                    QMessageBox.Warning)
             return
         # Reset status
         self.resetFlowStatus()
@@ -164,15 +176,17 @@ class GraphController(QWidget):
         # Execute
         self.__handler = OperationHandler(self._operation_dag)
         self.__handler.signals.statusChanged.connect(self.onStatusChanged)
+        self.__handler.signals.failedWithMessage.connect(self.onErrorException)
         self.__handler.signals.allFinished.connect(self.flowCompleted)
         try:
             gui.statusBar.startSpinner()
             gui.statusBar.showMessage('Started flow execution...', 20)
             self.__handler.execute()
         except exp.HandlerException as e:
+            # These exceptions are thrown if the handler detects some errors before execution
             gui.statusBar.showMessage('Execution stopped', 20)
             gui.notifier.addMessage('Flow exception' if not e.title else e.title,
-                                    e.message, QMessageBox.Information)
+                                    e.message, QMessageBox.Critical)
             self.flowCompleted()
 
     @Slot()
@@ -185,13 +199,18 @@ class GraphController(QWidget):
         flogging.appLogger.debug('Reset flow status')
 
     @Slot(int, NodeStatus)
-    def onStatusChanged(self, uid: int, status: NodeStatus):
-        node: Node = next((n for n in self._scene.nodes if n.id == uid), None)
-        flogging.appLogger.debug('Node status changed in {} at node {} with id {}'.format(str(status),
-                                                                                          node.name,
-                                                                                          node.id))
+    def onStatusChanged(self, uid: int, status: NodeStatus) -> None:
+        node: Node = next((n for n in self._scene.nodes if n.id == uid))
+        flogging.appLogger.debug('Node status changed in {} at node {} with id {}'
+                                 .format(str(status), node.name, node.id))
         node.status = status
         node.refresh(refresh_edges=False)
+
+    @Slot(int, str)
+    def onErrorException(self, uid: int, msg: str) -> None:
+        node: Node = next((n for n in self._scene.nodes if n.id == uid))
+        gui.notifier.addMessage(message=msg, title='"{}" failed'.format(node.name),
+                                icon=QMessageBox.Critical)
 
     @Slot()
     def flowCompleted(self) -> None:

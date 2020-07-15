@@ -5,7 +5,7 @@
 - [ ] !! IMPROVE: review operations for inefficiencies
 - [x] ! ADD: fillna operation
     - [x] Add log
-- [ ] ! ADD: drop column operation
+- [x] ! ADD: drop column operation
 - [ ] ! ADD: write to csv
 - [ ] ! ADD: Discretize dates
 - [ ] ! CHANGE: setIndex allow append

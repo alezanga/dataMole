@@ -1,13 +1,10 @@
-import logging
 from typing import Any, Dict, List, Optional
 
 import networkx as nx
 
-from data_preprocessor import data
+from data_preprocessor import data, flogging, exceptions as exp
 from data_preprocessor.utils import UIdGenerator
 
-
-# TODO add exception class to handle dag/flow errors
 
 class OperationDag:
     """ Provides adding and removing functionality over a NetworkX directed graph intended to store
@@ -48,7 +45,7 @@ class OperationDag:
         :raise ValueError: if the node is not in the graph
         """
         if node_id not in self.__G:
-            logging.info('Cannot update a node which does not belong to the graph')
+            flogging.appLogger.error('Cannot update a node which does not belong to the graph')
             return False
         # Set options for operation
         node: 'OperationNode' = self[node_id]
@@ -64,6 +61,7 @@ class OperationDag:
         :return: True if the node was inserted, False if not (e.g. if it was already in the graph)
         """
         if node.uid in self.__G:
+            flogging.appLogger.error('Node uid={:d} is already present in the graph'.format(node.uid))
             return False
         self.__G.add_node(node.uid, op=node)
         # self.__update_descendants(node.uid)  # TOCHECK: is it needed?
@@ -76,40 +74,50 @@ class OperationDag:
         :param target_id: id of target
         :param slot: the position of the input passed by the source operation
         :return: True if the connection was added, False otherwise
+        :raise DagException: to signal specific errors
         """
         if source_id not in self.__G or target_id not in self.__G:
-            raise ValueError('New edge requires non existent node. Add the nodes first')
+            flogging.appLogger.error('New edge "{:d}->{:d}" requires non existent node. Add the nodes '
+                                     'first'.format(source_id, target_id))
+            return False
         target_node: 'OperationNode' = self[target_id]
         source_node: 'OperationNode' = self[source_id]
         from_max_out = source_node.operation.maxOutputNumber()
         to_max_in = target_node.operation.maxInputNumber()
         if (0 <= from_max_out <= self.__G.out_degree(source_id)) or (
                 0 <= to_max_in <= self.__G.in_degree(target_id)):
-            logging.debug('Edge ({}->{}) not created because of degree constraints'.format(source_id,
-                                                                                           target_id))
-            return False
+            flogging.appLogger.debug('Edge ({}->{}) not created because of degree constraints'.format(
+                source_id, target_id))
+            raise exp.DagException(message='Edge "{}->{}" not created because maximum in/out-degree is '
+                                           'violated'.format(source_node.operation.name(),
+                                                             target_node.operation.name()))
 
         if not source_node.operation.isOutputShapeKnown() and \
                 target_node.operation.needsInputShapeKnown():
-            logging.debug('Edge ({}->{}) not created because source node output shape is unknown and '
-                          'target node needs an input shape'
-                          .format(source_id, target_id))
-            return False
+            flogging.appLogger.debug('Edge ({}->{}) not created because source node output shape is '
+                                     'unknown and target node needs an input shape'
+                                     .format(source_id, target_id))
+            raise exp.DagException(message='Edge "{}->{}" not created because source operation yields ' \
+                                           'undefined output shape and target operation needs it'
+                                   .format(source_node.operation.name(), target_node.operation.name()))
 
         if self.__G.has_edge(source_id, target_id):
             # Avoid connecting the same node twice (debatable)
-            logging.debug(
+            flogging.appLogger.debug(
                 'Edge ({}->{}) not created because already exists'.format(source_id, target_id))
-            return False
+            raise exp.DagException(message='Edge {}->{} not created it already exists'
+                                   .format(source_node.operation.name(), target_node.operation.name()))
 
         # Add connection
         self.__G.add_edge(source_id, target_id)
         # If the edge forms a cycle do nothing and return False
         if not nx.is_directed_acyclic_graph(self.__G):
             self.__G.remove_edge(source_id, target_id)
-            logging.debug(
+            flogging.appLogger.debug(
                 'Edge ({}->{}) not created because it creates a cycle'.format(source_id, target_id))
-            return False
+            raise exp.DagException(
+                message='Edge "{}->{}" not created because resulting graph is not acyclic'
+                    .format(source_node.operation.name(), target_node.operation.name()))
 
         target_node.setSourceOperationInputPosition(source_id, slot)
         target_node.addInputShape(source_node.operation.getOutputShape(), source_id)
@@ -117,7 +125,7 @@ class OperationDag:
         # Update input shapes in descendants
         self.__update_descendants(target_id)
 
-        logging.debug('Edge ({}->{}) was created'.format(source_id, target_id))
+        flogging.appLogger.debug('Edge ({}->{}) was created'.format(source_id, target_id))
         return True
 
     def removeConnection(self, source_id: int, target_id: int) -> bool:
@@ -126,10 +134,10 @@ class OperationDag:
         :param source_id: id of the source node
         :param target_id: id of the target node
         :return: True if the edge was removed, False otherwise
-        :raise ValueError: if the edge is nonexistent
         """
         if not self.__G.has_edge(source_id, target_id):
-            raise ValueError('Removing non existent edge')
+            flogging.appLogger.error('Removing non existent edge ({}->{})'.format(source_id, target_id))
+            return False
         self.__G.remove_edge(source_id, target_id)
         target_node = self[target_id]
         # Removes source' input shape from target node

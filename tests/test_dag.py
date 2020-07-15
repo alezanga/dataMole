@@ -2,6 +2,7 @@ import copy
 
 import pytest
 
+import data_preprocessor.exceptions as exp
 from data_preprocessor.flow.dag import OperationDag, OperationNode
 from .DummyOp import *
 
@@ -33,11 +34,9 @@ def test_add_remove_exc():
     dag = OperationDag()
 
     dag.addNode(n2)
-    with pytest.raises(ValueError):
-        dag.addConnection(n1.uid, n2.uid, 0)
+    assert not dag.addConnection(n1.uid, n2.uid, 0)
 
-    with pytest.raises(ValueError):
-        dag.removeConnection(n1.uid, n2.uid)
+    assert not dag.removeConnection(n1.uid, n2.uid)
 
 
 def test_GraphAdd():
@@ -81,10 +80,15 @@ def test_GraphAdd():
     assert op2._shapes == [f.shape]
     assert op3._shapes == [None]
 
+    # Dummy -> OutputDummy
     assert dag.addConnection(node2.uid, node3.uid, 0) is True
     assert op3._shapes == [f.shape]
-    assert dag.addConnection(node2.uid, node1.uid, 0) is False
-    assert dag.addConnection(node1.uid, node3.uid, 1) is False
+    # Dummy -> DummyOptions : cycle
+    with pytest.raises(exp.DagException):
+        assert dag.addConnection(node2.uid, node1.uid, 0) is False
+    # DummyOptions -> OutputDummy : > 1 connection
+    with pytest.raises(exp.DagException):
+        assert dag.addConnection(node1.uid, node3.uid, 1) is False
 
     # Test if input shapes are removed
     dag.updateNodeOptions(node1.uid, False)
@@ -297,7 +301,9 @@ def test_KnownShape():
     dag.addNode(other)
     assert dag.addConnection(node1.uid, node2.uid, 0) is True
     assert dag.addConnection(node2.uid, node3.uid, 0) is True
-    assert dag.addConnection(node3.uid, other.uid, 0) is False
+    with pytest.raises(exp.DagException):
+        # Dummy needs input shape and node3 does not have it
+        dag.addConnection(node3.uid, other.uid, 0)
     assert dag.addConnection(node3.uid, node4.uid, 0) is True
     assert dag.addConnection(node4.uid, node5.uid, 0) is True
     assert dag.addConnection(node5.uid, nodeo.uid, 0) is True
@@ -334,7 +340,9 @@ def test_removeConnection():
 
     assert dag.addConnection(node0.uid, node1.uid, 0) is True
     assert dag.addConnection(node1.uid, node2.uid, 0) is True
-    assert dag.addConnection(node0.uid, node2.uid, 0) is False
+    with pytest.raises(exp.DagException):
+        # OutputDummy only wants 1 input
+        dag.addConnection(node0.uid, node2.uid, 0)
     output = [None]
     dag.updateNodeOptions(node2.uid, output)
     assert node0.operation.getOutputShape() is None

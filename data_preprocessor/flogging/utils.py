@@ -6,9 +6,11 @@ import prettytable as pt
 from PySide2.QtCore import QtMsgType, QMessageLogContext
 
 LEVEL = logging.DEBUG
+INFO = logging.INFO
 LOG_FOLDER = 'logs'
 # Contains path of current file log
 LOG_PATH = ''
+_appLogger = logging.getLogger('app')
 
 
 # def makeRecord(self, name, level, fn, lno, msg, args, exc_info, func=None, extra=None):
@@ -60,38 +62,20 @@ def qtMessageHandler(msg_type: QtMsgType, context: QMessageLogContext, msg: str)
         'funcName': context.function}
 
     if msg_type == QtMsgType.QtDebugMsg:
-        logging.debug(msg)
+        _appLogger.debug(msg)
     elif msg_type == QtMsgType.QtCriticalMsg:
-        logging.critical(msg)
+        _appLogger.critical(msg)
     elif msg_type == QtMsgType.QtInfoMsg:
-        logging.info(msg)
+        _appLogger.info(msg)
     elif msg_type == QtMsgType.QtWarningMsg:
-        logging.warning(msg)
+        _appLogger.warning(msg)
     elif msg_type == QtMsgType.QtFatalMsg:
-        logging.fatal(msg)
+        _appLogger.fatal(msg)
 
 
-def setUpGraphLogger():
-    """ Set up a new log file in folder logs/graph to log every execution of a computational graph """
-    log_path = os.path.join(os.getcwd(), LOG_FOLDER, 'graph')
-    if not os.path.exists(log_path):
-        os.mkdir(log_path)
-    timestamp = str(datetime.datetime.now()).replace(' ', '_')
-    log_path = os.path.join(log_path, timestamp + '.log')
-    handler = logging.FileHandler(log_path)
-    formatter = logging.Formatter('%(message)s')
-    handler.setFormatter(formatter)
-
-    logger = logging.getLogger('graph')
-    logger.setLevel(logging.INFO)
-    logger.addHandler(handler)
-
-    return logger
-
-
-def setUpAppLogger() -> None:
+def setUpRootLogger() -> None:
     """ Sets up a root logger with everything """
-    log_path = os.path.join(os.getcwd(), LOG_FOLDER, 'app')
+    log_path = os.path.join(os.getcwd(), LOG_FOLDER, 'root')
     if not os.path.exists(log_path):
         os.mkdir(log_path)
     timestamp = str(datetime.datetime.now()).replace(' ', '_')
@@ -104,19 +88,20 @@ def setUpAppLogger() -> None:
     logging.info('Created log file in {}'.format(LOG_PATH))
 
 
-def setUpOperationLogger() -> logging.Logger:
-    log_path = os.path.join(os.getcwd(), LOG_FOLDER, 'operations')
+def setUpLogger(name: str, folder: str, fmt: str, level: int) -> logging.Logger:
+    log_path = os.path.join(os.getcwd(), LOG_FOLDER, folder)
     if not os.path.exists(log_path):
         os.mkdir(log_path)
     timestamp = str(datetime.datetime.now()).replace(' ', '_')
     log_path = os.path.join(log_path, timestamp + '.log')
     handler = logging.FileHandler(log_path)
-    formatter = logging.Formatter('%(message)s')
+    formatter = logging.Formatter(fmt)
     handler.setFormatter(formatter)
 
-    logger = logging.getLogger('ops')
-    logger.setLevel(logging.INFO)
+    logger = logging.getLogger(name)
+    logger.setLevel(level)
     logger.addHandler(handler)
+    logger.info('Created log file "{}"'.format(name))
 
     return logger
 
