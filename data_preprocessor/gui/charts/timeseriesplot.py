@@ -430,6 +430,7 @@ class TimeSeriesPlot(QWidget):
 
     def __setChart(self, chart: QtCharts.QChart) -> None:
         oldChart = self.chartView.chart()
+        chart.legend().show()
         self.chartView.setChart(chart)
         self.chartView.setBestTickCount(chart.size())
         safeDelete(oldChart)

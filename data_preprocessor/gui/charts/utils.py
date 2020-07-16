@@ -24,6 +24,12 @@ def computeAxisValue(axis: Optional[QtCharts.QAbstractAxis], value: float) -> st
         axis: QtCharts.QDateTimeAxis
         qDate = QDateTime.fromMSecsSinceEpoch(int(value))
         text = qDate.toString(axis.format())
+    elif axis.type() == QtCharts.QAbstractAxis.AxisTypeBarCategory:
+        axis: QtCharts.QBarCategoryAxis
+        text = axis.at(round(value))
+    elif axis.type() == QtCharts.QAbstractAxis.AxisTypeCategory:
+        axis: QtCharts.QCategoryAxis
+        text = axis.categoriesLabels()[round(value)]
     else:
         text = '{0:.2f}'.format(value)
     return text
@@ -80,8 +86,9 @@ def copyChart(chart: QtCharts.QChart) -> QtCharts.QChart:
             s_copy = QtCharts.QLineSeries()
             s_copy.append(s.points())
         elif isinstance(s, QtCharts.QAbstractBarSeries):
+            # Note: this is not used
             s_copy = QtCharts.QBarSeries()
-            for bar in s.barSet():
+            for bar in s.barSets():
                 bar_copy = QtCharts.QBarSet(bar.label())
                 s_copy.append(bar_copy)
         else:

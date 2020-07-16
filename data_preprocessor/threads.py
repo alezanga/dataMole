@@ -1,9 +1,10 @@
-import logging
 import sys
 import traceback
 from typing import Tuple, Any, Union
 
 from PySide2.QtCore import QRunnable, Slot, QObject, Signal
+
+from data_preprocessor import flogging
 
 
 class Worker(QRunnable):
@@ -41,18 +42,21 @@ class Worker(QRunnable):
         self.signals = Worker.WorkerSignals()
         self.setAutoDelete(True)
 
+    # noinspection PyBroadException
     @Slot()
     def run(self) -> None:
         """ Reimplements QRunnable method to run the executable """
         try:
             result = self._executable.execute(*self._args)
-        except:
+        except Exception:
+            flogging.appLogger.debug('Worker got exception: id={}'.format(self._identifier))
             trace: str = traceback.format_exc()
-            logging.error(trace)
+            flogging.appLogger.error(trace)
             exctype, value = sys.exc_info()[:2]
             self.signals.error.emit(self._identifier, (exctype, value, trace))
         else:
-            logging.debug('Worker finished with result')
+            flogging.appLogger.debug('Worker emits result: id={}'.format(self._identifier))
             self.signals.result.emit(self._identifier, result)
         finally:
+            flogging.appLogger.debug('Worker finished: id={}'.format(self._identifier))
             self.signals.finished.emit(self._identifier)

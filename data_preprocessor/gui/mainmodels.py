@@ -1,18 +1,17 @@
 import abc
-import logging
 from enum import Enum
-from typing import Any, List, Union, Dict, Tuple, Optional
+from typing import Any, List, Union, Dict, Tuple, Optional, Set
 
 from PySide2 import QtGui
 from PySide2.QtCore import QAbstractTableModel, QModelIndex, Qt, Signal, Slot, QAbstractItemModel, \
     QSortFilterProxyModel, QItemSelection, QThreadPool, QEvent, QRect, QPoint, \
-    QRegularExpression, QIdentityProxyModel, QAbstractProxyModel
+    QRegularExpression, QIdentityProxyModel, QAbstractProxyModel, QMutex
 from PySide2.QtGui import QPainter
 from PySide2.QtWidgets import QWidget, QTableView, QLineEdit, QVBoxLayout, QHeaderView, QLabel, \
     QHBoxLayout, QStyleOptionViewItem, QStyleOptionButton, QStyle, QApplication, \
     QStyledItemDelegate, QMessageBox
 
-from data_preprocessor import gui
+from data_preprocessor import gui, flogging
 from data_preprocessor.data import Frame, Shape
 from data_preprocessor.data.types import Types, Type, ALL_TYPES
 from data_preprocessor.operation.computations.statistics import AttributeStatistics, Hist
@@ -45,7 +44,11 @@ class FrameModel(QAbstractTableModel):
         # Dictionary { attributeIndex: value }
         self._statistics: Dict[int, Dict[str, object]] = dict()
         self._histogram: Dict[int, Dict[Any, int]] = dict()
+        # Dataframe name
         self.name: str = ''
+        # Set of alive workers by identifier (attribute number, type, operation)
+        self._runningWorkers: Set[Tuple] = set()
+        self._dataAccessMutex = QMutex()
 
     @property
     def frame(self) -> Frame:
@@ -111,46 +114,98 @@ class FrameModel(QAbstractTableModel):
     def histogram(self) -> Dict[int, Dict[Any, int]]:
         return self._histogram
 
+    def existsRunningTask(self, identifier) -> bool:
+        # Check if a task is already running for this attribute
+        exists: bool = False
+        if identifier in self._runningWorkers:
+            exists = True
+        return exists
+
     def computeStatistics(self, attribute: int) -> None:
         """ Compute statistics for a given attribute """
+        flogging.appLogger.debug('computeStatistics() called, attribute {:d}'.format(attribute))
         attType = self.__shape.colTypes[attribute]
+        identifier = (attribute, attType, 'stat')
         if self.__frame.nRows == 0:
             return self.onWorkerError((attribute, attType, 'stat'), tuple())
+        # Check if a task is already running for this attribute
+        if self.existsRunningTask(identifier):
+            return
+        # Create a new task
         stats = AttributeStatistics()
         stats.setOptions(attribute=attribute)
-        statWorker = Worker(stats, args=(self.__frame,), identifier=(attribute, attType, 'stat'))
-        statWorker.signals.result.connect(self.onWorkerSuccess, Qt.DirectConnection)
-        statWorker.signals.error.connect(self.onWorkerError, Qt.DirectConnection)
+        statWorker = Worker(stats, args=(self.__frame,), identifier=identifier)
+        rc = statWorker.signals.result.connect(self.onWorkerSuccess, Qt.DirectConnection)
+        ec = statWorker.signals.error.connect(self.onWorkerError, Qt.DirectConnection)
+        fc = statWorker.signals.finished.connect(self.onWorkerFinished, Qt.DirectConnection)
+        flogging.appLogger.debug('Connected stat worker: {:b}, {:b}, {:b}'.format(rc, ec, fc))
+        # Remember which computations are already in progress
+        self._runningWorkers.add(identifier)
         QThreadPool.globalInstance().start(statWorker)
 
     def computeHistogram(self, attribute: int, histBins: int) -> None:
+        flogging.appLogger.debug('computeHistogram() called, attribute {:d}'.format(attribute))
         attType = self.__shape.colTypes[attribute]
+        identifier = (attribute, attType, 'hist')
         if self.__frame.nRows == 0:
             return self.onWorkerError((attribute, attType, 'hist'), tuple())
+        # Check if a task is already running for this attribute
+        if self.existsRunningTask(identifier):
+            return
+        # Create a new task
         hist = Hist()
         hist.setOptions(attribute=attribute, attType=attType, bins=histBins)
-        histWorker = Worker(hist, args=(self.__frame,), identifier=(attribute, attType, 'hist'))
-        histWorker.signals.result.connect(self.onWorkerSuccess, Qt.DirectConnection)
-        histWorker.signals.error.connect(self.onWorkerError, Qt.DirectConnection)
+        histWorker = Worker(hist, args=(self.__frame,), identifier=identifier)
+        rc = histWorker.signals.result.connect(self.onWorkerSuccess, Qt.DirectConnection)
+        ec = histWorker.signals.error.connect(self.onWorkerError, Qt.DirectConnection)
+        fc = histWorker.signals.finished.connect(self.onWorkerFinished, Qt.DirectConnection)
+        flogging.appLogger.debug('Connected hist worker: {:b}, {:b}, {:b}'.format(rc, ec, fc))
+        # Remember computations in progress
+        self._runningWorkers.add(identifier)
         QThreadPool.globalInstance().start(histWorker)
 
     @Slot(object, object)
     def onWorkerSuccess(self, identifier: Tuple[int, Type, str], result: Dict[Any, Any]) -> None:
         attribute, attType, mode = identifier
         if mode == 'stat':
+            self._dataAccessMutex.lock()
             self._statistics[attribute] = result
-            logging.info('Statistics computation succeeded')
+            self._dataAccessMutex.unlock()
+            flogging.appLogger.debug('Statistics computation succeeded')
         elif mode == 'hist':
+            self._dataAccessMutex.lock()
             self._histogram[attribute] = result
-            logging.info('Histogram computation succeeded')
+            self._dataAccessMutex.unlock()
+            flogging.appLogger.debug('Histogram computation succeeded')
         self.statisticsComputed.emit(identifier)
 
     @Slot(object, tuple)
     def onWorkerError(self, identifier: Tuple[int, Type, str],
                       error: Tuple[type, Exception, str]) -> None:
         if error:
-            logging.error('Statistics computation failed with {}: {}\n{}'.format(*error))
+            flogging.appLogger.error('Statistics computation (mode "{}") failed with {}: {}\n{}'.format(
+                identifier[2], *error))
         self.statisticsError.emit(identifier)
+
+    @Slot(object)
+    def onWorkerFinished(self, identifier: Tuple[int, Type, str]) -> None:
+        flogging.appLogger.debug('Worker (mode "{}") finished'.format(identifier[2]))
+        self._runningWorkers.remove(identifier)
+
+    # def checkWorkerFinished(self, identifier: Tuple[int, Type, str]) -> None:
+    #     """ Delete worker with specified identifier from worker dictionary if the worker
+    #     completed by receiving a result/error and a 'finished' signal. Otherwise keep track of the
+    #     status in order to delete it at the proper moment. This is necessary because the reception
+    #     order of signals across threads is unspecified """
+    #     w: Tuple[Worker, bool] = self._workers[identifier]
+    #     print(identifier[0], w[1])
+    #     if w[1] is True:
+    #         # Worker can be deleted
+    #         o = self._workers.pop(identifier)
+    #         shiboken2.delete(o[0])
+    #     else:
+    #         # Set flag to delete worker at next call
+    #         self._workers[identifier] = (w[0], True)
 
 
 class IncrementalRenderFrameModel(QIdentityProxyModel):
