@@ -9,8 +9,8 @@ from data_preprocessor import data, flogging
 from data_preprocessor import exceptions as exp
 from data_preprocessor.data.types import Types, Type
 from data_preprocessor.gui.editor.interface import AbsOperationEditor
+from data_preprocessor.gui.widgetutils import AttributeComboBox, TextOptionWidget, RadioButtonGroup
 from .interface.graph import GraphOperation
-from ..gui.editor.optionwidget import AttributeComboBox, TextOptionWidget, RadioButtonGroup
 
 
 @unique

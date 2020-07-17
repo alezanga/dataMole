@@ -1,7 +1,7 @@
 import abc
 from typing import Iterable, List, Optional, Dict, Callable, Tuple
 
-from PySide2.QtCore import Signal, Slot
+from PySide2.QtCore import Signal, Slot, QSize
 from PySide2.QtGui import QCloseEvent, Qt, QCursor
 from PySide2.QtWidgets import QWidget, QPushButton, QHBoxLayout, QVBoxLayout, QLabel, QWhatsThis, \
     QSizePolicy
@@ -68,7 +68,8 @@ class AbsOperationEditor(QWidget):
         self.errorLabel.hide()
 
         self._butOk.pressed.connect(self.onAcceptSlot)
-        butCancel.pressed.connect(self.reject)
+        butCancel.pressed.connect(self.reject)  # emit reject
+        self.__sh: Optional[QSize] = None  # Qt sizeHint property
 
     def setDescription(self, short: str, long: str) -> None:
         self.__descLabel.setText(short)
@@ -82,8 +83,7 @@ class AbsOperationEditor(QWidget):
                 lambda: QWhatsThis.showText(QCursor.pos(), long, self))
 
     def closeEvent(self, event: QCloseEvent) -> None:
-        """"""
-        # Reject changes and close editor if the close button is pressed
+        """ Reject changes and close editor if the close button is pressed """
         self.reject.emit()
 
     def setUpEditor(self):
@@ -115,7 +115,7 @@ class AbsOperationEditor(QWidget):
             self.errorLabel.show()
 
     def disableOkButton(self) -> None:
-        """ Makes the accept button unclickable.
+        """ Makes the accept button uncheckable.
             Useful to prevent user from saving invalid changes """
         self._butOk.setDisabled(True)
 
@@ -127,6 +127,18 @@ class AbsOperationEditor(QWidget):
     def onAcceptSlot(self) -> None:
         self.onAccept()
         self.accept.emit()
+
+    def setSizeHint(self, w: int, h: int) -> None:
+        """ Set the editor sizeHint property.
+         This function is provided for convenience: it is equivalent to reimplementing sizeHint()
+         directly in a subclass.
+        """
+        self.__sh = QSize(w, h)
+
+    def sizeHint(self) -> QSize:
+        if self.__sh:
+            return self.__sh
+        return super().sizeHint()
 
     # ----------------------------------------------------------------------------
     # ------------------------------ VIRTUAL METHODS -----------------------------

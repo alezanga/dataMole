@@ -1,15 +1,36 @@
 from abc import abstractmethod, ABCMeta, ABC
-from typing import Any, List, Optional, Dict
+from typing import Any, List, Optional, Dict, Union, Tuple, Set
 
+from PySide2.QtGui import QIcon, QPixmap, Qt
 from PySide2.QtWidgets import QWidget, QVBoxLayout, QLineEdit, QComboBox, QCompleter, QLabel, \
-    QSizePolicy, QButtonGroup, QGridLayout, QRadioButton
+    QSizePolicy, QButtonGroup, QGridLayout, QRadioButton, QCheckBox, QMessageBox, QStyle, QHBoxLayout, \
+    QApplication
 
 from data_preprocessor import data
 from data_preprocessor.data.types import Type
+from data_preprocessor.operation.utils import SingleStringValidator
 
 
 class QtABCMeta(type(QWidget), ABCMeta):
     pass
+
+
+def getStandardIcon(icon: Union[QMessageBox.Icon, QStyle.StandardPixmap], size: int) -> QPixmap:
+    style: QStyle = QApplication.style()
+    tmpIcon: QIcon
+    if icon == QMessageBox.Information or icon == QStyle.SP_MessageBoxInformation:
+        tmpIcon = style.standardIcon(QStyle.SP_MessageBoxInformation, None, None)
+    elif icon == QMessageBox.Warning or icon == QStyle.SP_MessageBoxWarning:
+        tmpIcon = style.standardIcon(QStyle.SP_MessageBoxWarning, None, None)
+    elif icon == QMessageBox.Critical or icon == QStyle.SP_MessageBoxCritical:
+        tmpIcon = style.standardIcon(QStyle.SP_MessageBoxCritical, None, None)
+    elif icon == QMessageBox.Question:
+        tmpIcon = style.standardIcon(QStyle.SP_MessageBoxQuestion, None, None)
+    else:
+        tmpIcon = style.standardIcon(icon, None, None)
+    if not tmpIcon.isNull():
+        return tmpIcon.pixmap(size, size)
+    return QPixmap()
 
 
 class OptionWidget(QWidget, ABC, metaclass=QtABCMeta):
@@ -178,11 +199,102 @@ class RadioButtonGroup(OptionWidget):
                 self.group.button(bid).setChecked(True)
                 break
 
-# class OutputNameTextBox(QLineEdit):
-#     from data_preprocessor.gui.workbench import WorkbenchModel
-#
-#     def __init__(self, workbench: WorkbenchModel, parent: QWidget = None):
-#         super().__init__(parent)
-#         self._workbench = workbench
-#
-#     def va
+
+class MessageLabel(QWidget):
+    # WordWrap should be fixed
+    def __init__(self, text: str, icon: Union[QMessageBox.Icon, QStyle.StandardPixmap, None] = None,
+                 color: Optional[str] = None, parent: QWidget = None):
+        super().__init__(parent)
+        layout = QHBoxLayout(self)
+        layout.setSpacing(0)
+        if icon:
+            size = 20
+            iconLabel = QLabel(self)
+            iconLabel.setContentsMargins(0, 0, 0, 0)
+            iconLabel.setMargin(0)
+            iconLabel.setPixmap(getStandardIcon(icon, size))
+            iconLabel.setFixedSize(size, size)
+            layout.addWidget(iconLabel, 1, Qt.AlignLeft | Qt.AlignVCenter)
+            iconLabel.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+            layout.addSpacing(6)
+        self._textLabel = QLabel(self)
+        self._textLabel.setContentsMargins(0, 0, 0, 0)
+        self._textLabel.setText(text)
+        if color:
+            self._textLabel.setStyleSheet('color: {}'.format(color))
+        self._textLabel.setMargin(0)
+        layout.addWidget(self._textLabel, 60, Qt.AlignLeft)
+        self._textLabel.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.Minimum)
+        self.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.Minimum)
+        # self._textLabel.setWordWrap(True)
+
+    def setText(self, text: str) -> None:
+        self._textLabel.setText(text)
+
+    def setTextColor(self, color: str) -> None:
+        self._textLabel.setStyleSheet('color: {}'.format(color))
+
+    def text(self) -> str:
+        return self._textLabel.text()
+
+
+class ReplaceAttributesWidget(QWidget):
+    """ A widget that allow the user to specify an attribute suffix and warn him if there are
+    duplicate names """
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.__replaceCB = QCheckBox('Replace original attribute', self)
+        self.__suffixLE = QLineEdit(self)
+        self.__suffixLE.setValidator(SingleStringValidator())
+        self.__suffixLE.setPlaceholderText('New attribute name')
+        self.__warnLabel = MessageLabel('', QMessageBox.Warning, 'orange', self)
+        self.__layout = QHBoxLayout(self)
+        self.__warnLayout = QVBoxLayout()
+        self.__layout.addWidget(self.__replaceCB)
+        self.__layout.addLayout(self.__warnLayout)
+
+        self.__warnLayout.addWidget(self.__suffixLE)
+        self.__warnLayout.addWidget(self.__warnLabel)
+        self.__warnLabel.hide()
+        self.__suffixLE.textChanged.connect(self._suffixChanged)
+        self.__shape: Optional[data.Shape] = None
+        self.__selectedNames: Set[str] = set()
+        self.__columnNames: Set[str] = set()
+
+    # @Slot(int)
+    # def addColumn(self, pos: int) -> None:
+    #     """ Slot to call when a new attribute is selected """
+    #     name = self.__shape.colNames[pos]
+    #     newName = name + self.__suffixLE.text().strip()
+    #     self.__columnNames.add(newName)
+    #
+    # @Slot(int)
+    # def removeColumn(self, pos: int) -> None:
+    #     """ Slot to call when a new attribute is removed """
+    #     name = self.__shape.colNames[pos]
+    #     newName = name + self.__suffixLE.text().strip()
+    #     self.__columnNames.discard(newName)
+
+    def setShape(self, s: data.Shape) -> None:
+        self.__shape = s
+        self.__columnNames = set(s.colNames)
+
+    def setData(self, replace: bool, name: Optional[str] = None) -> None:
+        self.__replaceCB.setChecked(replace)
+        if name:
+            self.__suffixLE.setText(name)
+
+    def getData(self) -> Tuple[bool, Optional[str]]:
+        return self.__replaceCB.isChecked(), self.__suffixLE.text()
+
+    # @Slot(str)
+    # def _suffixChanged(self, suffix: str) -> None:
+    #     self.__selectedNames = {n + suffix for n in self.__selectedNames}
+    #     duplicates = self.__selectedNames & self.__columnNames
+    #     if duplicates:
+    #         labels = ', '.join(["{:s}".format(n) for n in duplicates])
+    #         self.__warnLabel.setText('Duplicate names will be replaced: {:s}'.format(labels))
+    #         self.__warnLabel.show()
+    #     elif self.__warnLabel.isVisible():
+    #         self.__warnLabel.hide()

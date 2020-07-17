@@ -6,9 +6,10 @@ from PySide2.QtGui import QValidator
 from PySide2.QtWidgets import QLineEdit, QCheckBox, \
     QWidget, QFormLayout, QStyledItemDelegate, QAbstractItemDelegate
 
+from data_preprocessor import flogging
 from data_preprocessor.gui.editor.interface import AbsOperationEditor
-from data_preprocessor.gui.editor.optionwidget import RadioButtonGroup
 from data_preprocessor.gui.mainmodels import SearchableAttributeTableWidget, AttributeTableModel
+from data_preprocessor.gui.widgetutils import RadioButtonGroup, ReplaceAttributesWidget
 from data_preprocessor.utils import singleton
 
 
@@ -142,11 +143,12 @@ class OptionsEditorFactory:
         self.__optionsGetter: Dict[str, Callable] = dict()
         self.__optionsSetter: Dict[str, Callable] = dict()
         self.__editorWidgets: List[Tuple[str, QWidget]] = list()
+        self.__hasTable: str = None
 
     def withAttributeTable(self, key: str, checkbox: bool, nameEditable: bool, showTypes: bool,
                            options: Optional[Dict[str, Tuple[str, Optional[QAbstractItemDelegate],
                                                              Optional[Any]]]],
-                           types: Optional[List]):
+                           types: Optional[List]) -> None:
         """
         Adds a table widget to the editor
 
@@ -161,6 +163,7 @@ class OptionsEditorFactory:
             has been set
         :param types: the list of accepted types to show. If None no filter will be applied
         """
+        self.__hasTable = key
         tableWidget = SearchableAttributeTableWidget(self.__body)
         tableModel = AttributeTableWithOptions(self.__body, checkbox, nameEditable, showTypes, options)
         tableWidget.setAttributeModel(tableModel, filterTypes=types)
@@ -201,6 +204,17 @@ class OptionsEditorFactory:
         self.__optionsSetter[key] = group.setData  # wants the value
         self.__editorWidgets.append((key, group))
 
+    def withAttributeNameOptionsForTable(self, key: str) -> None:
+        if not self.__hasTable:
+            flogging.appLogger.warning('Request to add an attribute names box but no table has '
+                                       'been added. Doing nothing')
+            return
+        wi = ReplaceAttributesWidget(self.__body)
+        self.__layout.addRow(wi)
+        self.__optionsGetter[key] = wi.getData
+        self.__optionsSetter[key] = wi.setData
+        self.__editorWidgets.append((key, wi))
+
     def initEditor(self) -> None:
         """
         Initializes an editor object clearing the internal state.
@@ -208,6 +222,7 @@ class OptionsEditorFactory:
         """
 
         self.__body = QWidget()
+        self.__hasTable = False
         self.__layout = QFormLayout(self.__body)
         self.__optionsGetter: Dict[str, Callable] = dict()
         self.__optionsSetter: Dict[str, Callable] = dict()
@@ -237,8 +252,8 @@ class OptionsEditorFactory:
 
         def getOptions() -> Dict:
             options = dict()
-            for k, get in self.__optionsGetter.items():
-                options[k] = get()
+            for k, getter in self.__optionsGetter.items():
+                options[k] = getter()
             return options
 
         def setOptions(*args, **kwargs) -> None:

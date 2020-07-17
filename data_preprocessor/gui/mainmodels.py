@@ -711,6 +711,10 @@ class AttributeProxyModel(AbstractAttributeModel, QSortFilterProxyModel,
                 self.index(self.rowCount() - 1, self.checkboxColumn, QModelIndex()))
             sourceIndexes: List[QModelIndex] = self.mapSelectionToSource(allIndexes).indexes()
             return all(map(lambda x: x.row() in checkedAttr, sourceIndexes))
+        if orientation == Qt.Vertical and role == Qt.DisplayRole:
+            # Display the true column number (as in source model)
+            sourceSection = self.mapToSource(self.index(section, 0, QModelIndex())).row()
+            return self.sourceModel().headerData(sourceSection, orientation, role)
         return self.sourceModel().headerData(section, orientation, role)
 
 
