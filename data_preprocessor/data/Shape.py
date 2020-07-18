@@ -29,6 +29,16 @@ class Shape:
     def clone(self) -> 'Shape':
         return copy.deepcopy(self)
 
+    @staticmethod
+    def fromDict(columns: Dict[str, Type], indexes: Dict[str, Type] = None) -> 'Shape':
+        s = Shape()
+        s.colNames = list(columns.keys())
+        s.colTypes = list(columns.values())
+        if indexes:
+            s.index = list(indexes.keys())
+            s.indexTypes = list(indexes.values())
+        return s
+
     @property
     def columnsDict(self) -> Dict[str, Type]:
         return dict(zip(self.colNames, self.colTypes))

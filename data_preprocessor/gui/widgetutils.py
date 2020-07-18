@@ -244,10 +244,10 @@ class ReplaceAttributesWidget(QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.__replaceCB = QCheckBox('Replace original attribute', self)
+        self.__replaceCB = QCheckBox('Create new column?', self)
         self.__suffixLE = QLineEdit(self)
         self.__suffixLE.setValidator(SingleStringValidator())
-        self.__suffixLE.setPlaceholderText('New attribute name')
+        self.__suffixLE.setPlaceholderText('New column name')
         self.__warnLabel = MessageLabel('', QMessageBox.Warning, 'orange', self)
         self.__layout = QHBoxLayout(self)
         self.__warnLayout = QVBoxLayout()
@@ -257,8 +257,6 @@ class ReplaceAttributesWidget(QWidget):
         self.__warnLayout.addWidget(self.__suffixLE)
         self.__warnLayout.addWidget(self.__warnLabel)
         self.__warnLabel.hide()
-        self.__suffixLE.textChanged.connect(self._suffixChanged)
-        self.__shape: Optional[data.Shape] = None
         self.__selectedNames: Set[str] = set()
         self.__columnNames: Set[str] = set()
 
@@ -276,14 +274,10 @@ class ReplaceAttributesWidget(QWidget):
     #     newName = name + self.__suffixLE.text().strip()
     #     self.__columnNames.discard(newName)
 
-    def setShape(self, s: data.Shape) -> None:
-        self.__shape = s
-        self.__columnNames = set(s.colNames)
-
-    def setData(self, replace: bool, name: Optional[str] = None) -> None:
-        self.__replaceCB.setChecked(replace)
-        if name:
-            self.__suffixLE.setText(name)
+    def setData(self, val: Tuple[bool, Optional[str]]) -> None:
+        self.__replaceCB.setChecked(val[0])
+        if val[0]:
+            self.__suffixLE.setText(val[1])
 
     def getData(self) -> Tuple[bool, Optional[str]]:
         return self.__replaceCB.isChecked(), self.__suffixLE.text()

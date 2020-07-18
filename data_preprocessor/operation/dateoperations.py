@@ -1,49 +1,77 @@
-from typing import Iterable, List, Tuple, Optional
+import datetime as dt
+from typing import List, Tuple, Optional, Dict, Set, Union
 
 import pandas as pd
-from PySide2.QtCore import Slot
-from PySide2.QtWidgets import QWidget, QDateEdit, QTimeEdit, QCheckBox, QButtonGroup, QGridLayout, \
-    QSpacerItem
+from PySide2.QtCore import Slot, QModelIndex, QAbstractItemModel, QDateTime, QDate, QEvent, QObject, \
+    QTime
+from PySide2.QtGui import QIcon, Qt
+from PySide2.QtWidgets import QWidget, QDateEdit, QGridLayout, \
+    QSpacerItem, QPushButton, QVBoxLayout, QSizePolicy, \
+    QStyledItemDelegate, QTimeEdit, QCheckBox, QButtonGroup, QHBoxLayout, QAbstractButton, QHeaderView, \
+    QTableView, QLineEdit
 
-from data_preprocessor import data
+from data_preprocessor import data, exceptions as exp, flogging
 from data_preprocessor.data.types import Types, Type
-from data_preprocessor.gui.editor import AbsOperationEditor
-from data_preprocessor import exceptions as exp
+from data_preprocessor.gui.editor import AbsOperationEditor, OptionsEditorFactory
+from data_preprocessor.gui.mainmodels import FrameModel
 from data_preprocessor.operation.interface.graph import GraphOperation
+from data_preprocessor.operation.utils import splitString
 
 
 class DateDiscretizer(GraphOperation):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.__attribute: int = None
-        self.__intervals: List[pd.Interval] = list()
-        self.__labels: List[str] = list()
-        self.__byTime: bool = False
-        self.__byDate: bool = True
+        # { Attribute index: (timePoints, labels, byTimeOnly) }
+        self.__attributes: Dict[int, Tuple[List[pd.Timestamp], List[str], bool, bool]] = dict()
+        self.__attributesSuffix: Optional[str] = '_discr'
 
     def execute(self, df: data.Frame) -> data.Frame:
+        columns = df.colnames
         df = df.getRawFrame().copy(True)
-        if not self.__byDate:
-            raise NotImplementedError('Selection by time only is not implemented')
-        if not self.__byTime:
-            self.__intervals = list(map(
-                lambda x: pd.Interval(pd.Timestamp(x.left.date()), pd.Timestamp(x.right.date())),
-                self.__intervals))
 
-        intervalIndex = pd.IntervalIndex(self.__intervals)
-        df.iloc[:, self.__attribute] = pd.cut(df.iloc[:, self.__attribute], bins=intervalIndex)
+        # Notice that this timestamps are already set to a proper format (with default time/date) by
+        # the editor
+        intervals: Dict[int, pd.IntervalIndex] = \
+            {i: pd.IntervalIndex([pd.Interval(a, b, closed='right') for a, b in zip(opts[0],
+                                                                                    opts[0][1:])])
+             for i, opts in self.__attributes.items()}
 
-        # Rename categories as specified with labels
-        nameMap = {interval: lab for interval, lab in zip(df.iloc[:,
-                                                          self.__attribute].cat.categories.to_list(),
-                                                          self.__labels)}
-        df.iloc[:, self.__attribute].cat.rename_categories(nameMap, inplace=True)
+        processedDict = dict()
+        for i, opts in self.__attributes.items():
+            _, labels, byDate, byTime = opts
+            applyCol = df.iloc[:, i]
+            if byTime and not byDate:
+                # Replace the date part with the default date in a way that every ts has the
+                # same date, but retains its original time. Nan values are propagated
+                applyCol = applyCol \
+                    .map(lambda ts:
+                         pd.Timestamp(QDateTime(_IntervalWidget.DEFAULT_DATE,
+                                                toQtDateTime(ts.to_pydatetime()).time()).toPython()),
+                         na_action='ignore')
+            name = columns[i]
+            if self.__attributesSuffix:
+                name += self.__attributesSuffix
+            categoriesMap = dict(zip(intervals[i], labels))
+            processedDict[name] = pd.cut(applyCol, bins=intervals[i]).cat.rename_categories(
+                categoriesMap)
 
+        if self.__attributesSuffix:
+            duplicateColumns: Set[str] = set(processedDict.keys()) & set(columns)
+        else:
+            duplicateColumns: List[str] = list(processedDict.keys())
+        if duplicateColumns:
+            df = df.drop(columns=duplicateColumns)
+        processed = pd.DataFrame(processedDict).set_index(df.index)
+
+        df = pd.concat([df, processed], ignore_index=False, axis=1)
+        if not self.__attributesSuffix:
+            # Reorder columns
+            df = df[columns]
         return data.Frame(df)
 
     @staticmethod
     def name() -> str:
-        return 'Date discretizer'
+        return 'DateDiscretizer'
 
     def shortDescription(self) -> str:
         return 'Discretize date and times based on ranges'
@@ -52,51 +80,89 @@ class DateDiscretizer(GraphOperation):
         return [Types.Datetime]
 
     def hasOptions(self) -> bool:
-        return self.__intervals is not None and self.__attribute is not None and self.__labels
+        return bool(self.__attributes)
 
     def unsetOptions(self) -> None:
-        self.__attribute = None
+        self.__attributes = dict()
 
     def needsOptions(self) -> bool:
         return True
 
-    def getOptions(self) -> Iterable:
-        options: List[Tuple[pd.Interval, str]] = list()
-        if self.__intervals:
-            options = list(zip(self.__intervals, self.__labels))
-        return self.__attribute, options, self.__byDate, self.__byTime
+    def getOptions(self) -> Dict[str, Dict[int, Dict[str, List]]]:
+        return {
+            'selected': {k: {'ranges': (v[0], v[2], v[3]), 'labels': v[1]}
+                         for k, v in self.__attributes.items()},
+            'suffix': (bool(self.__attributesSuffix), self.__attributesSuffix)
+        }
 
-    def setOptions(self, attribute: Optional[int], intervals: List[Tuple[pd.Interval, str]],
-                   byDate: bool, byTime: bool) -> None:
-        intervalList = list(map(lambda x: x[0], intervals))
-        intervalIndex = pd.IntervalIndex(intervalList)
-        labels: List[str] = list(map(lambda x: x[1].strip() if x[1] else None, intervals))
-
+    def setOptions(self, selected: Dict[int, Dict[str, Union[List, Tuple]]],
+                   suffix: Tuple[bool, Optional[str]]) -> None:
         errors = list()
-        if attribute is None:
-            errors.append(('attribute', 'Error: target attribute is not selected'))
-        if intervalIndex.is_overlapping:
-            errors.append(('overlapping', 'Error: intervals are overlapping'))
-        if not all(labels):
-            errors.append(('labels', 'Error: name is not set in every interval'))
+        if not selected:
+            errors.append(('attribute', 'Error: no attribute is selected'))
+        if suffix[0] and not suffix[1]:
+            errors.append(('suff', 'Error: suffix is unspecified'))
+        selection: Dict[int, Tuple[List[pd.Timestamp], List[str], bool, bool]] = dict()
+        for k, opts in selected.items():
+            optionsTuple: Tuple[List[pd.Timestamp], bool, bool] = opts.get('ranges', None)
+            labels: Optional[List[str]] = opts.get('labels', None)
+            if not optionsTuple or not optionsTuple[0]:
+                errors.append(('bins', 'Error: bins are not specified at row {:d}'.format(k)))
+            if not labels:
+                errors.append(('lab', 'Error: no labels are specified at row {:d}'.format(k)))
+            if optionsTuple:
+                bins, byDate, byTime = optionsTuple  # unpack
+                if labels and bins and len(labels) != len(bins) - 1:
+                    errors.append(('len',
+                                   'Error: interval number ({:d}) '
+                                   'does not match labels number ({:d}) at row {:d}'
+                                   .format(len(bins) - 1, len(labels), k)))
+                # byTimeOnly = byTime and not byDate
+                selection[k] = bins, labels, byDate, byTime
+            if len(errors) > 8:
+                # Don't stack to many errors
+                break
+            # Not necessary to check for overlapping dates, since that is ensured by the delegate
         if errors:
             raise exp.OptionValidationError(errors)
 
-        self.__attribute = attribute
-        self.__intervals = intervalList
-        self.__labels = labels
-        self.__byDate = byDate
-        self.__byTime = byTime
+        self.__attributesSuffix = suffix[1] if suffix[0] else None
+        self.__attributes = selection
 
     def getOutputShape(self) -> Optional[data.Shape]:
         if not self.hasOptions() or not self.shapes[0]:
             return None
         s = self.shapes[0].clone()
-        s.colTypes[self.__attribute] = Types.Ordinal
+        attr = list(self.__attributes.keys())
+        if self.__attributesSuffix:
+            shapeDict: Dict[str, Type] = s.columnsDict
+            newCols = [s.colNames[i] + self.__attributesSuffix for i in attr]
+            shapeDict.update({c: Types.Ordinal for c in newCols})
+            s = data.Shape.fromDict(shapeDict, s.indexDict)
+        else:
+            s.colTypes = [t if i not in attr else Types.Ordinal for i, t in enumerate(s.colTypes)]
         return s
 
     def getEditor(self) -> AbsOperationEditor:
-        pass
+        factory = OptionsEditorFactory()
+        factory.initEditor()
+        factory.withAttributeTable(key='selected', checkbox=True, nameEditable=False, showTypes=True,
+                                   options={'ranges': ('Ranges', _DateIntervalDelegate(), None),
+                                            'labels': ('Label', _LabelsDelegate(), None)},
+                                   types=self.acceptedTypes())
+        factory.withAttributeNameOptionsForTable('suffix')
+        return factory.getEditor()
+
+    def injectEditor(self, editor: 'AbsOperationEditor') -> None:
+        editor.inputShapes = self.shapes
+        editor.selected.setSourceFrameModel(FrameModel(editor, frame=self.shapes[0]))
+        hh = editor.selected.tableView.horizontalHeader()
+        hh.setSectionResizeMode(1, QHeaderView.ResizeToContents)
+        hh.setSectionResizeMode(2, QHeaderView.Fixed)
+        hh.setSectionResizeMode(3, QHeaderView.Stretch)
+        hh.setSectionResizeMode(4, QHeaderView.Stretch)
+        editor.selected.tableView.setWordWrap(True)
+        editor.setSizeHint(800, 500)
 
     @staticmethod
     def minInputNumber() -> int:
@@ -115,83 +181,267 @@ class DateDiscretizer(GraphOperation):
         return -1
 
 
-class _DateDiscretizerEditor(AbsOperationEditor):
+def toQtDateTime(ts: Union[dt.datetime, pd.Timestamp]) -> QDateTime:
+    date = QDate(ts.year, ts.month, ts.day)  # y, m, d
+    time = QTime(ts.hour, ts.minute, ts.second, (ts.microsecond // 1000))  # h, m, s, ms
+    return QDateTime(date, time, Qt.UTC)
+
+
+class _LabelsDelegate(QStyledItemDelegate):
+    def setModelData(self, editor: QLineEdit, model: QAbstractItemModel, index: QModelIndex) -> None:
+        text = editor.text()
+        strings: List[str] = splitString(text, ' ') if text else list()
+        model.setData(index, strings, Qt.EditRole)
+
+    def setEditorData(self, editor: QLineEdit, index: QModelIndex) -> None:
+        strings: Optional[List[str]] = index.data(Qt.EditRole)
+        if strings:
+            editor.setText(' '.join(strings))
+
+    def displayText(self, value: Optional[List[str]], locale) -> str:
+        if value:
+            return ' '.join(value)
+        return ''
+
+
+class _DateIntervalDelegate(QStyledItemDelegate):
+    _DATETIME_FORMAT = '%Y-%m-%d_%H:%M'
+    _DATE_FORMAT = '%Y-%m-%d'
+    _TIME_FORMAT = '%H:%M'
+
+    def createEditor(self, parent: QWidget, option, index: QModelIndex) -> QWidget:
+        # I use an OperationEditor with this delegate, since it already comes with close/accept
+        # buttons, description and nice formatting
+        self.w = _IntervalWidget(parent)
+        self.w.setUpEditor()
+        self.w.accept.connect(self.onCommit)
+        self.w.reject.connect(self.onReject)
+        self.w.setWindowFlags(Qt.Dialog)
+        self.w.setWindowModality(Qt.WindowModal)
+        columnName = index.model().index(index.row(), index.model().nameColumn, QModelIndex())
+        self.w.setWindowTitle('Date intervals: {:s}'.format(columnName.data(Qt.DisplayRole)))
+        self.w.setDescription(
+            'Define the bin edges as dates or datetimes. Intervals are right-inclusive',
+            long='If date or time components are not both required they can be disabled.<br>'
+                 'Time points must define a strictly increasing time series, since they describe '
+                 'contiguous ranges')
+        self.w.setFocusPolicy(Qt.StrongFocus)  # Advised by docs
+        return self.w
+
+    @Slot()
+    def onCommit(self) -> None:
+        self.commitData.emit(self.w)
+        # self.onReject()
+
+    @Slot()
+    def onReject(self) -> None:
+        self.closeEditor.emit(self.w, QStyledItemDelegate.NoHint)
+
+    def eventFilter(self, obj: QObject, event: QEvent) -> bool:
+        if obj is not self.w:
+            return False
+        if event.type() == QEvent.WindowDeactivate or event.type() == QEvent.WindowActivate or \
+                event.type() == QEvent.FocusOut or event.type() == QEvent.FocusIn:
+            return False
+        return super().eventFilter(obj, event)
+
+    def setEditorData(self, editor: '_IntervalWidget', index: QModelIndex) -> None:
+        bins: List[pd.Timestamp]
+        obj = index.data(Qt.EditRole)
+        if obj:
+            bins, byDate, byTime = index.data(Qt.EditRole)
+            if bins:
+                dataBins: List[QDateTime] = list(map(toQtDateTime, bins))
+                editor.setOptions(dataBins, byDate, byTime)
+                return
+        # Make two row by default (minimum required to define a range)
+        editor.addRow()
+        editor.addRow()
+
+    def setModelData(self, editor: '_IntervalWidget', model: QAbstractItemModel,
+                     index: QModelIndex) -> None:
+        datetimes: List[QDateTime]
+        datetimes, byDate, byTime = editor.getOptions()
+        # Do some validation
+        errors = list()
+        if len(datetimes) < 2:
+            errors.append(('e1', 'Error: at least one range must be defined'))
+        if any([a >= b for a, b in zip(datetimes, datetimes[1:])]):
+            errors.append(('e2', 'Error: datetime points must be strictly increasing'))
+        if errors:
+            editor.handleErrors(errors)
+            # Avoid setting options and leave editor open
+            return
+        options = ([pd.Timestamp(date.toPython(), tz='UTC') for date in datetimes], byDate, byTime)
+        model.setData(index, options, Qt.EditRole)
+        # Resize rows. This assumes that the TableView is the delegate parent
+        rowHeight = 60 * (len(options[0]) - 1)
+        table: QTableView = self.parent()
+        table.setRowHeight(index.row(), rowHeight)
+        # Close editor. Works because it's the delegate that tells the view to close it with this signal
+        self.closeEditor.emit(self.w, QStyledItemDelegate.NoHint)
+
+    def displayText(self, value: Tuple[List[pd.Timestamp], bool, bool], locale) -> str:
+        # Display only relevant part (time/date/both)
+        timestamps, byDate, byTime = value
+        fmt = self._DATE_FORMAT if not byTime else self._TIME_FORMAT if not byDate \
+            else self._DATETIME_FORMAT
+        pairs: List[Tuple[pd.Timestamp, pd.Timestamp]] = list(zip(timestamps, timestamps[1:]))
+        strings: List[str] = ['({}, {}]'.format(t[0].strftime(fmt), t[1].strftime(fmt)) for t in pairs]
+        return '  '.join(strings)
+
+
+class _IntervalWidget(AbsOperationEditor):
+    _SPACER: int = 40
+    DEFAULT_DATE = QDate(1900, 1, 1)
+    DEFAULT_TIME = QTime(0, 0, 0, 0)
+
     def editorBody(self) -> QWidget:
-        pass
+        self.body = _Widget(self)
+        self.body.group.buttonToggled[QAbstractButton, bool].connect(self.checkboxToggled)
+        self.body.addRowBut.clicked.connect(self.addRow)
+        self.__layoutRows: List[int] = list()  # Important to initialize before addRow()
+        self.__timeVisible: bool = True
+        self.__dateVisible: bool = True
+        return self.body
 
-    def getOptions(self) -> Iterable:
-        pass
+    def setOptions(self, bins: List[QDateTime], byDate: bool, byTime: bool) -> None:
+        for b in bins:
+            d, t = self.addRow()
+            d.setDate(b.date())
+            t.setTime(b.time())
+        if not (byDate or byTime):
+            # All checked by default
+            byDate = True
+            byTime = True
+        self.body.byDate.setChecked(byDate)
+        self.body.byTime.setChecked(byTime)
 
-    def setOptions(self, *args, **kwargs) -> None:
-        pass
+    def getOptions(self) -> Tuple[List[QDateTime], bool, bool]:
+        dates = list()
+        byTime: bool = self.body.byTime.isChecked()
+        byDate: bool = self.body.byDate.isChecked()
+        for row in self.__layoutRows:
+            date: QDate = self.body.gLayout.itemAtPosition(row, 0).widget().date()
+            time: QTime = self.body.gLayout.itemAtPosition(row, 2).widget().time()
+            if byDate and byTime:
+                datetime = QDateTime(date, time, Qt.UTC)
+            elif not byTime:
+                # Date only
+                datetime = QDateTime(date, self.DEFAULT_TIME, Qt.UTC)
+            elif not byDate:
+                # Time only
+                datetime = QDateTime(self.DEFAULT_DATE, time, Qt.UTC)
+            else:
+                flogging.appLogger.error(
+                    'Invalid byDate/byTime combination: {}, {}'.format(byDate, byTime))
+                raise ValueError('Unexpected error: unsupported datetime input arguments')
+            dates.append(datetime)
+        return dates, byDate, byTime
+
+    def showTime(self) -> None:
+        for row in self.__layoutRows:
+            self.body.gLayout.addItem(QSpacerItem(self._SPACER, 0), row, 1)
+            self.body.gLayout.itemAtPosition(row, 2).widget().show()
+        self.__timeVisible = True
+
+    def showDate(self) -> None:
+        for row in self.__layoutRows:
+            self.body.gLayout.addItem(QSpacerItem(self._SPACER, 0), row, 1)
+            self.body.gLayout.itemAtPosition(row, 0).widget().show()
+        self.__dateVisible = True
+
+    def hideTime(self) -> None:
+        for row in self.__layoutRows:
+            self.body.gLayout.removeItem(self.body.gLayout.itemAtPosition(row, 1))
+            self.body.gLayout.itemAtPosition(row, 2).widget().hide()
+        self.__timeVisible = False
+
+    def hideDate(self) -> None:
+        for row in self.__layoutRows:
+            self.body.gLayout.removeItem(self.body.gLayout.itemAtPosition(row, 1))
+            self.body.gLayout.itemAtPosition(row, 0).widget().hide()
+        self.__dateVisible = False
+
+    @Slot(QAbstractButton, bool)
+    def checkboxToggled(self, checkbox: QCheckBox, checked: bool) -> None:
+        if not checked and self.body.group.checkedId() == -1:
+            # No button checked, restore previous state and do nothing
+            checkbox.setChecked(True)
+        else:
+            if checkbox is self.body.byTime and checked != self.__timeVisible:
+                if checked:
+                    self.showTime()
+                else:
+                    self.hideTime()
+            elif checkbox is self.body.byDate and checked != self.__dateVisible:
+                if checked:
+                    self.showDate()
+                else:
+                    self.hideDate()
+
+    @Slot()
+    def addRow(self) -> (QDateEdit, QTimeEdit):
+        # New row should be the successor of the last one
+        row: int = max(self.__layoutRows) + 1 if self.__layoutRows else 0
+        a = QDateEdit(self)
+        b = QTimeEdit(self)
+        a.setFixedHeight(30)
+        b.setFixedHeight(30)
+        a.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
+        b.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
+        self.body.gLayout.addWidget(a, row, 0)
+        self.body.gLayout.addItem(QSpacerItem(self._SPACER, 0), row, 1)
+        self.body.gLayout.addWidget(b, row, 2)
+        self.body.gLayout.addItem(QSpacerItem(self._SPACER, 0), row, 3)
+        # Create a button to remove row
+        removeBut = QPushButton(QIcon('data_preprocessor/style/icons/close.png'), '', self)
+        removeBut.setFixedSize(30, 30)
+        removeBut.setToolTip('Remove row {:d}'.format(row))
+        # Lambda here is ok since it's called from main thread, so even if it's not a slot it's safe
+        removeBut.clicked.connect(lambda: self.removeRow(row))
+        self.body.gLayout.addWidget(removeBut, row, 4)
+        # Hide time if it's not wanted
+        if not self.__timeVisible:
+            self.body.gLayout.removeItem(self.body.gLayout.itemAtPosition(row, 1))
+            b.hide()
+        if not self.__dateVisible:
+            self.body.gLayout.removeItem(self.body.gLayout.itemAtPosition(row, 1))
+            a.hide()
+        self.__layoutRows.append(row)
+        return a, b
+
+    @Slot(int)
+    def removeRow(self, row: int) -> None:
+        self.body.gLayout.itemAtPosition(row, 0).widget().deleteLater()
+        self.body.gLayout.removeItem(self.body.gLayout.itemAtPosition(row, 1))
+        self.body.gLayout.itemAtPosition(row, 2).widget().deleteLater()
+        self.body.gLayout.removeItem(self.body.gLayout.itemAtPosition(row, 3))
+        self.body.gLayout.itemAtPosition(row, 4).widget().deleteLater()
+        self.__layoutRows.remove(row)
 
 
-class _BodyWidget(QWidget):
+class _Widget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
-        # Checkboxes
+        self.mainLayout = QVBoxLayout(self)
         self.byTime = QCheckBox('By time', self)
         self.byDate = QCheckBox('By date', self)
-        self.buttonGroup = QButtonGroup(self)
-        self.buttonGroup.addButton(self.byDate)
-        self.buttonGroup.addButton(self.byTime)
-        self.__checkedCount: int = 0
-        self.buttonGroup.buttonToggled.connect(self.checkboxToggled)
-
-    @Slot(QCheckBox, bool)
-    def checkboxToggled(self, button: QCheckBox, checked: bool) -> None:
-        if checked is True:
-            self.__checkedCount += 1
-        elif self.__checkedCount == 1:
-            # Don't allow to have no button checked
-            button.setChecked(True)
-
-        if button is self.byTime:
-            # update layout
-            pass
+        self.group = QButtonGroup(self)
+        butLayout = QHBoxLayout()
+        butLayout.addWidget(self.byDate)
+        butLayout.addWidget(self.byTime)
+        self.group.addButton(self.byDate)
+        self.group.addButton(self.byTime)
+        self.addRowBut = QPushButton('Add interval', self)
+        self.addRowBut.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        self.gLayout = QGridLayout()
+        self.mainLayout.addLayout(butLayout)
+        self.mainLayout.addWidget(self.addRowBut, 0, Qt.AlignLeft)
+        self.mainLayout.addLayout(self.gLayout)
+        self.group.setExclusive(False)
+        self.byDate.setChecked(True)
+        self.byTime.setChecked(True)
 
 
-class _IntervalWidget(QWidget):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.dateStartCB = QDateEdit(self)
-        self.dateEndCB = QDateEdit(self)
-        self.timeStartCB = QTimeEdit(self)
-        self.timeEndCB = QTimeEdit(self)
-
-        self.gLayout = QGridLayout(self)
-        self.gLayout.addWidget(QDateEdit(self), 1, 0)
-        self.gLayout.addWidget(QDateEdit(self), 1, 1)
-        self.gLayout.addItem(QSpacerItem(50, 0), 1, 2)
-        self.gLayout.addWidget(QTimeEdit(self), 1, 3)
-        self.gLayout.addWidget(QTimeEdit(self), 1, 4)
-
-    def addTime(self) -> None:
-        for row in range(self.gLayout.rowCount()):
-            self.gLayout.addItem(QSpacerItem(50, 0), row, 2)
-            self.gLayout.addWidget(QTimeEdit(), row, 3)
-            self.gLayout.addWidget(QTimeEdit(), row, 4)
-
-    def removeTime(self) -> None:
-        for row in range(self.gLayout.rowCount()):
-            self.gLayout.removeItem(self.gLayout.itemAtPosition(row, 2))
-            self.gLayout.itemAtPosition(row, 3).widget().deleteLater()
-            self.gLayout.itemAtPosition(row, 4).widget().deleteLater()
-
-    def addDate(self) -> None:
-        for row in range(self.gLayout.rowCount()):
-            self.gLayout.addWidget(QDateEdit(), row, 0)
-            self.gLayout.addWidget(QDateEdit(), row, 1)
-            self.gLayout.addItem(QSpacerItem(50, 0), row, 2)
-
-    def removeDate(self) -> None:
-        for row in range(self.gLayout.rowCount()):
-            self.gLayout.removeItem(self.gLayout.itemAtPosition(row, 2))
-            self.gLayout.itemAtPosition(row, 0).widget().deleteLater()
-            self.gLayout.itemAtPosition(row, 1).widget().deleteLater()
-
-    def addRow(self) -> None:
-        pass
-
-    def removeRow(self) -> None:
-        pass
+export = DateDiscretizer

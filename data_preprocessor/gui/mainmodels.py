@@ -550,6 +550,11 @@ class AttributeTableModel(AbstractAttributeModel, QAbstractTableModel,
                 return all(self._checked)
         elif orientation == Qt.Vertical and role == Qt.DisplayRole:
             return section
+        elif role == Qt.TextAlignmentRole:
+            if orientation == Qt.Horizontal:
+                return Qt.AlignCenter
+            else:
+                return Qt.AlignVCenter
         return None
 
     def flags(self, index: QModelIndex) -> Qt.ItemFlags:

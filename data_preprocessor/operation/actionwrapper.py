@@ -116,7 +116,13 @@ class OperationWrapper(QObject):
             # Get editor from operation
             self.editor = self.operation.getEditor()
             self.editor.setUpEditor()
-            # Notice that this wrapper does setOptions in the editor (since they are one-shot editors)
+            # Notice that this wrapper does not need options (it sets them if they are present)
+            options = self.operation.getOptions()
+            if options:
+                if isinstance(options, dict):
+                    self.editor.setOptions(**options)
+                else:
+                    self.editor.setOptions(*options)
             self.editor.setParent(None)
         else:
             # Create empty editor
