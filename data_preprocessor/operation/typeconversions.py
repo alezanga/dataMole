@@ -375,4 +375,99 @@ class ToTimestamp(GraphOperation, flogging.Loggable):
         return -1
 
 
-export = [ToNumericOp, ToCategoricalOp, ToTimestamp]
+class ToString(GraphOperation, flogging.Loggable):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.__attributes: List[int] = list()
+
+    def hasOptions(self) -> bool:
+        if self.__attributes:
+            return True
+        return False
+
+    def logOptions(self) -> str:
+        columns = self.shapes[0].colNames
+        tt = pt.PrettyTable(field_names=['Columns'])
+        tt.align = 'l'
+        for a in self.__attributes:
+            tt.add_row([columns[a]])
+        return tt.get_string(border=True, vrules=pt.ALL)
+
+    def execute(self, df: data.Frame) -> data.Frame:
+        # Deep copy
+        raw_df = df.getRawFrame().copy(deep=True)
+        # To string
+        isNan = raw_df.iloc[:, self.__attributes].isnull()
+        processed = raw_df.iloc[:, self.__attributes].astype(dtype=str, errors='raise')
+        # Set to nan where values where nan
+        processed = processed.mask(isNan, np.nan)
+        colNames = df.shape.colNames
+        raw_df.iloc[:, self.__attributes] = processed
+        return data.Frame(raw_df)
+
+    @staticmethod
+    def name() -> str:
+        return 'toString'
+
+    def shortDescription(self) -> str:
+        return 'Convert a column of any type to string'
+
+    def acceptedTypes(self) -> List[Type]:
+        return [Types.Numeric, Types.Ordinal, Types.Nominal, Types.Datetime]
+
+    def setOptions(self, attributes: Dict[int, None]) -> None:
+        if not attributes:
+            raise exp.OptionValidationError([('noopt', 'Error: select at least one attribute')])
+        self.__attributes = list(attributes.keys())
+
+    def unsetOptions(self) -> None:
+        self.__attributes = dict()
+
+    def needsOptions(self) -> bool:
+        return True
+
+    def getOptions(self) -> Dict[str, Dict[int, None]]:
+        return {'attributes': {i: None for i in self.__attributes}}
+
+    def getEditor(self) -> AbsOperationEditor:
+        factory = OptionsEditorFactory()
+        factory.initEditor()
+        factory.withAttributeTable('attributes', True, False, True, {}, types=self.acceptedTypes())
+        return factory.getEditor()
+
+    def injectEditor(self, editor: 'AbsOperationEditor') -> None:
+        editor.acceptedTypes = self.acceptedTypes()
+        editor.inputShapes = self._shapes
+        # Set frame model
+        editor.attributes.setSourceFrameModel(FrameModel(editor, self.shapes[0]))
+
+    def getOutputShape(self) -> Optional[data.Shape]:
+        if not self.hasOptions() or not self._shapes[0]:
+            return None
+        s = self._shapes[0].clone()
+        s.colTypes = [Types.String if i in self.__attributes else s.colTypes[i] for i in
+                      self.__attributes]
+        return s
+
+    @staticmethod
+    def isOutputShapeKnown() -> bool:
+        return True
+
+    @staticmethod
+    def minInputNumber() -> int:
+        return 1
+
+    @staticmethod
+    def maxInputNumber() -> int:
+        return 1
+
+    @staticmethod
+    def minOutputNumber() -> int:
+        return 1
+
+    @staticmethod
+    def maxOutputNumber() -> int:
+        return -1
+
+
+export = ToNumericOp, ToCategoricalOp, ToTimestamp, ToString

@@ -3,7 +3,7 @@ import pytest
 
 from data_preprocessor import data, exceptions as exp
 from data_preprocessor.data.types import Types
-from data_preprocessor.operation.merge_values import MergeValuesOp
+from data_preprocessor.operation.replacevalues import ReplaceValues
 from tests.utilities import nan_to_None
 
 
@@ -11,7 +11,7 @@ def test_exception():
     d = {'col1': [1, 2, 3, 4.0, 10], 'col2': [3, 4, 5, 6, 0], 'col3': ['q', '2', 'c', '4', 'x'],
          'date': ['05-09-1988', '22-12-1994', '21-11-1995', '22-06-1994', '12-12-2012']}
     f = data.Frame(d)
-    op = MergeValuesOp()
+    op = ReplaceValues()
 
     op.addInputShape(f.shape, 0)
 
@@ -36,7 +36,7 @@ def test_merge_numeric():
     d = {'col1': [1, 2, 3, 4.0, 10], 'col2': [3, 4, 5, 6, 0], 'col3': ['q', '2', 'c', '4', 'x'],
          'date': ['05-09-1988', '22-12-1994', '21-11-1995', '22-06-1994', '12-12-2012']}
     f = data.Frame(d)
-    op = MergeValuesOp()
+    op = ReplaceValues()
 
     op.addInputShape(f.shape, 0)
     op.setOptions(table={1: {'values': '1.0 3.0 4.0;  6  0', 'replace': '-1;-2'},
@@ -58,7 +58,7 @@ def test_merge_numeric_inverted():
     d = {'col1': [1, 2, 3, 4.0, 10], 'col2': [3, 4, 5, 6, 0], 'col3': ['q', '2', 'c', '4', 'x'],
          'date': ['05-09-1988', '22-12-1994', '21-11-1995', '22-06-1994', '12-12-2012']}
     f = data.Frame(d)
-    op = MergeValuesOp()
+    op = ReplaceValues()
 
     op.addInputShape(f.shape, 0)
     # Substitution doesn't make sense, but it's test
@@ -82,7 +82,7 @@ def test_merge_category():
          'col3': ['q', '2', 'c', '4', 'x'],
          'date': ['05-09-1988', '22-12-1994', '21-11-1995', '22-06-1994', '12-12-2012']}
     f = data.Frame(d)
-    op = MergeValuesOp()
+    op = ReplaceValues()
 
     op.addInputShape(f.shape, 0)
     op.setOptions(table={
@@ -111,7 +111,7 @@ def test_merge_category_inverted():
          'col3': ['q', '2', 'c', '4', 'x'],
          'date': ['05-09-1988', '22-12-1994', '21-11-1995', '22-06-1994', '12-12-2012']}
     f = data.Frame(d)
-    op = MergeValuesOp()
+    op = ReplaceValues()
 
     op.addInputShape(f.shape, 0)
     op.setOptions(table={
@@ -139,7 +139,7 @@ def test_merge_string():
     d = {'cowq': [1, 2, None, 4.0, None], 'col3': ['q', '2', 'c', '4', 'q']}
     f = data.Frame(d)
 
-    op = MergeValuesOp()
+    op = ReplaceValues()
     op.addInputShape(f.shape, 0)
     op.setOptions(table={
         1: {'values': 'q 2; nAn',
@@ -160,7 +160,7 @@ def test_merge_nan():
          'col3': ['q', '2', 'c', '4', 'x']}
     f = data.Frame(d)
 
-    op = MergeValuesOp()
+    op = ReplaceValues()
     op.addInputShape(f.shape, 0)
     op.setOptions(table={
         1: {
@@ -187,7 +187,7 @@ def test_merge_from_nan():
          'col3': ['q', '2', 'c', '4', 'x']}
     f = data.Frame(d)
 
-    op = MergeValuesOp()
+    op = ReplaceValues()
     op.addInputShape(f.shape, 0)
     op.setOptions(table={
         0: {
@@ -213,7 +213,7 @@ def test_merge_index_val():
                            dtype='datetime64[ns]')}
     f = data.Frame(d)
 
-    op = MergeValuesOp()
+    op = ReplaceValues()
     op.addInputShape(f.shape, 0)
     op.setOptions(table={1: {
         'values': '3 4;  6  0', 'replace': 'h; nan'}

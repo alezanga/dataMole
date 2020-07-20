@@ -12,16 +12,7 @@ from data_preprocessor.gui.editor import OptionsEditorFactory, OptionValidatorDe
 from data_preprocessor.gui.mainmodels import FrameModel
 from data_preprocessor.operation.interface.graph import GraphOperation
 from data_preprocessor.operation.utils import ManyMixedListsValidator, MixedListValidator, splitString, \
-    parseNan, joinList
-
-
-def isValidFloat(x):
-    try:
-        float(x)
-    except ValueError:
-        return False
-    else:
-        return True
+    parseNan, joinList, isFloat
 
 
 def floatList(values: List, invalid: str) -> List:
@@ -38,7 +29,7 @@ def floatList(values: List, invalid: str) -> List:
     """
     floatValues = list()
     for el in values:
-        if isValidFloat(el):
+        if isFloat(el):
             floatValues.append(float(el))
         elif invalid == 'ignore':
             floatValues.append(el)
@@ -47,7 +38,7 @@ def floatList(values: List, invalid: str) -> List:
     return floatValues
 
 
-class MergeValuesOp(GraphOperation, flogging.Loggable):
+class ReplaceValues(GraphOperation, flogging.Loggable):
     """ Merge values of one attribute into a single value """
     Nan = np.nan
 
@@ -56,9 +47,6 @@ class MergeValuesOp(GraphOperation, flogging.Loggable):
         # { col: ([ [vala1, vala2], [valb1, valb2] ], [replacea, replaceb])}
         self.__attributes: Dict[int, Tuple[List[List], List[Any]]] = dict()
         self.__invertedReplace: bool = False
-        # self.__attribute: int = None
-        # self.__values_to_merge: List = list()
-        # self.__merge_val: Any = None
 
     def logOptions(self) -> str:
         columns = self.shapes[0].colNames
@@ -97,7 +85,7 @@ class MergeValuesOp(GraphOperation, flogging.Loggable):
 
     @staticmethod
     def name() -> str:
-        return 'Merge values'
+        return 'ReplaceValues'
 
     def shortDescription(self) -> str:
         return 'Substitute all specified values in a attribute and substitute them with a single value'
@@ -129,7 +117,7 @@ class MergeValuesOp(GraphOperation, flogging.Loggable):
                       .format(c))])
             parsedValues: List[List[str]] = [splitString(s, ' ') for s in lists]
             if type_c == Types.Numeric:
-                if not all(map(isValidFloat, replace)):
+                if not all(map(isFloat, replace)):
                     err = ('numericinvalid', 'Error: list of values to replace contains non '
                                              'numeric value at row {:d}, but selected attribute '
                                              'is numeric'.format(c))
@@ -208,4 +196,4 @@ class MergeValuesOp(GraphOperation, flogging.Loggable):
         return -1
 
 
-export = MergeValuesOp
+export = ReplaceValues

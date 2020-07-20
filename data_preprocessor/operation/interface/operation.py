@@ -24,6 +24,16 @@ class Operation(ABC):
         """
         pass
 
+    def getOptions(self) -> Iterable:
+        """
+        Called to get current options set for the operation. Typically called to get the
+        existing configuration when an editor is opened
+
+        :return: a list or tuple containing all the objects needed by the editor, which will be passed
+            in the same order. By default returns an empty tuple
+        """
+        return tuple()
+
     @abstractmethod
     def setOptions(self, *args, **kwargs) -> None:
         """
@@ -83,16 +93,6 @@ class Operation(ABC):
         :return a boolean value, True if the operation needs to be configured, False otherwise
         """
         pass
-
-    def getOptions(self) -> Iterable:
-        """
-        Called to get current options set for the operation. Typically called to get the
-        existing configuration when an editor is opened
-
-        :return: a list or tuple containing all the objects needed by the editor, which will be passed
-            in the same order. By default returns an empty tuple
-        """
-        return tuple()
 
     def acceptedTypes(self) -> List[Type]:
         """
