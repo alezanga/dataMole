@@ -2,6 +2,7 @@ import datetime as dt
 from typing import List, Tuple, Optional, Dict, Set, Union
 
 import pandas as pd
+import prettytable as pt
 from PySide2.QtCore import Slot, QModelIndex, QAbstractItemModel, QDateTime, QDate, QEvent, QObject, \
     QTime
 from PySide2.QtGui import QIcon, Qt
@@ -12,18 +13,37 @@ from PySide2.QtWidgets import QWidget, QDateEdit, QGridLayout, \
 
 from data_preprocessor import data, exceptions as exp, flogging
 from data_preprocessor.data.types import Types, Type
+from data_preprocessor.flogging import Loggable
 from data_preprocessor.gui.editor import AbsOperationEditor, OptionsEditorFactory
 from data_preprocessor.gui.mainmodels import FrameModel
 from data_preprocessor.operation.interface.graph import GraphOperation
-from data_preprocessor.operation.utils import splitString
+from data_preprocessor.operation.utils import splitString, joinList
 
 
-class DateDiscretizer(GraphOperation):
+class DateDiscretizer(GraphOperation, Loggable):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # { Attribute index: (timePoints, labels, byTimeOnly) }
+        # { Attribute index: (timePoints, labels, byDate, byTime) }
         self.__attributes: Dict[int, Tuple[List[pd.Timestamp], List[str], bool, bool]] = dict()
         self.__attributesSuffix: Optional[str] = '_discr'
+
+    def logOptions(self) -> str:
+        columns = self.shapes[0].colNames
+        tt = pt.PrettyTable(field_names=['Column', 'Intervals', 'Labels', 'byDate', 'byTime'])
+        for i, opts in self.__attributes.items():
+            timestamps, labels, byDate, byTime = opts
+            intervals = list(zip(timestamps, timestamps[1:]))
+            if byDate and byTime:
+                fmt = _DateIntervalDelegate.DATETIME_FORMAT.replace('_', ' ', 1)
+            elif byDate:
+                fmt = _DateIntervalDelegate.DATE_FORMAT
+            else:
+                fmt = _DateIntervalDelegate.TIME_FORMAT
+            strIntervals = ['({}, {}]'.format(r[0].strftime(fmt), r[1].strftime(fmt)) for r in intervals]
+            tt.add_row([columns[i], '\n'.join(strIntervals), ', '.join(labels), byDate, byTime])
+        suffixStr = '\nNew attribute: {} ({:s})'.format(True, self.__attributesSuffix) if \
+            self.__attributesSuffix else '\nNew attribute: False'
+        return tt.get_string(border=True, vrules=pt.ALL) + suffixStr
 
     def execute(self, df: data.Frame) -> data.Frame:
         columns = df.colnames
@@ -110,6 +130,8 @@ class DateDiscretizer(GraphOperation):
                 errors.append(('bins', 'Error: bins are not specified at row {:d}'.format(k)))
             if not labels:
                 errors.append(('lab', 'Error: no labels are specified at row {:d}'.format(k)))
+            if labels and len(set(labels)) != len(labels):
+                errors.append(('unique', 'Error: labels are not unique'))
             if optionsTuple:
                 bins, byDate, byTime = optionsTuple  # unpack
                 if labels and bins and len(labels) != len(bins) - 1:
@@ -148,7 +170,7 @@ class DateDiscretizer(GraphOperation):
         factory.initEditor()
         factory.withAttributeTable(key='selected', checkbox=True, nameEditable=False, showTypes=True,
                                    options={'ranges': ('Ranges', _DateIntervalDelegate(), None),
-                                            'labels': ('Label', _LabelsDelegate(), None)},
+                                            'labels': ('Labels', _LabelsDelegate(), None)},
                                    types=self.acceptedTypes())
         factory.withAttributeNameOptionsForTable('suffix')
         return factory.getEditor()
@@ -196,18 +218,17 @@ class _LabelsDelegate(QStyledItemDelegate):
     def setEditorData(self, editor: QLineEdit, index: QModelIndex) -> None:
         strings: Optional[List[str]] = index.data(Qt.EditRole)
         if strings:
-            editor.setText(' '.join(strings))
+            editor.setText(joinList(strings, ' '))
 
     def displayText(self, value: Optional[List[str]], locale) -> str:
         if value:
-            return ' '.join(value)
-        return ''
+            return joinList(value, ' ')
 
 
 class _DateIntervalDelegate(QStyledItemDelegate):
-    _DATETIME_FORMAT = '%Y-%m-%d_%H:%M'
-    _DATE_FORMAT = '%Y-%m-%d'
-    _TIME_FORMAT = '%H:%M'
+    DATETIME_FORMAT = '%Y-%m-%d_%H:%M'
+    DATE_FORMAT = '%Y-%m-%d'
+    TIME_FORMAT = '%H:%M'
 
     def createEditor(self, parent: QWidget, option, index: QModelIndex) -> QWidget:
         # I use an OperationEditor with this delegate, since it already comes with close/accept
@@ -284,8 +305,8 @@ class _DateIntervalDelegate(QStyledItemDelegate):
     def displayText(self, value: Tuple[List[pd.Timestamp], bool, bool], locale) -> str:
         # Display only relevant part (time/date/both)
         timestamps, byDate, byTime = value
-        fmt = self._DATE_FORMAT if not byTime else self._TIME_FORMAT if not byDate \
-            else self._DATETIME_FORMAT
+        fmt = self.DATE_FORMAT if not byTime else self.TIME_FORMAT if not byDate \
+            else self.DATETIME_FORMAT
         pairs: List[Tuple[pd.Timestamp, pd.Timestamp]] = list(zip(timestamps, timestamps[1:]))
         strings: List[str] = ['({}, {}]'.format(t[0].strftime(fmt), t[1].strftime(fmt)) for t in pairs]
         return '  '.join(strings)
@@ -397,7 +418,7 @@ class _IntervalWidget(AbsOperationEditor):
         # Create a button to remove row
         removeBut = QPushButton(QIcon('data_preprocessor/style/icons/close.png'), '', self)
         removeBut.setFixedSize(30, 30)
-        removeBut.setToolTip('Remove row {:d}'.format(row))
+        removeBut.setToolTip('Remove row')
         # Lambda here is ok since it's called from main thread, so even if it's not a slot it's safe
         removeBut.clicked.connect(lambda: self.removeRow(row))
         self.body.gLayout.addWidget(removeBut, row, 4)

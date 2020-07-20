@@ -1,6 +1,7 @@
 from abc import abstractmethod, ABCMeta, ABC
 from typing import Any, List, Optional, Dict, Union, Tuple, Set
 
+from PySide2.QtCore import Slot
 from PySide2.QtGui import QIcon, QPixmap, Qt
 from PySide2.QtWidgets import QWidget, QVBoxLayout, QLineEdit, QComboBox, QCompleter, QLabel, \
     QSizePolicy, QButtonGroup, QGridLayout, QRadioButton, QCheckBox, QMessageBox, QStyle, QHBoxLayout, \
@@ -259,6 +260,7 @@ class ReplaceAttributesWidget(QWidget):
         self.__warnLabel.hide()
         self.__selectedNames: Set[str] = set()
         self.__columnNames: Set[str] = set()
+        self.__replaceCB.toggled.connect(self.onCBToggle)
 
     # @Slot(int)
     # def addColumn(self, pos: int) -> None:
@@ -273,6 +275,13 @@ class ReplaceAttributesWidget(QWidget):
     #     name = self.__shape.colNames[pos]
     #     newName = name + self.__suffixLE.text().strip()
     #     self.__columnNames.discard(newName)
+
+    @Slot(bool)
+    def onCBToggle(self, checked: bool) -> None:
+        if checked:
+            self.__suffixLE.setEnabled(True)
+        else:
+            self.__suffixLE.setDisabled(True)
 
     def setData(self, val: Tuple[bool, Optional[str]]) -> None:
         self.__replaceCB.setChecked(val[0])

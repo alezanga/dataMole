@@ -139,7 +139,7 @@ def test_discretize_by_date_and_time():
     intervals = [pd.Timestamp('05-09-1988 07:00'), pd.Timestamp('20-12-1994 11:30'),
                  pd.Timestamp('05-09-2000 14:20'), pd.Timestamp('01-09-2010 14:30'),
                  pd.Timestamp('12-12-2012 09:14')]
-    labels = ['early', 'middle', 'late', 'now']
+    labels = ['early mo', 'middle', 'late', 'now']
 
     op.setOptions(selected={
         0: {'ranges': (intervals, True, True), 'labels': labels},
@@ -164,11 +164,11 @@ def test_discretize_by_date_and_time():
 
     output = nan_to_None(g.to_dict())
     assert output == {
-        'cold': ['early', 'middle', 'middle', None, None],
-        'cold2': ['early', 'middle', 'middle', None, None]}
-    assert g.getRawFrame()['cold'].cat.categories.to_list() == ['early', 'middle', 'late', 'now']
+        'cold': ['early mo', 'middle', 'middle', None, None],
+        'cold2': ['early mo', 'middle', 'middle', None, None]}
+    assert g.getRawFrame()['cold'].cat.categories.to_list() == ['early mo', 'middle', 'late', 'now']
     assert g.getRawFrame()['cold'].dtype.ordered is True
-    assert g.getRawFrame()['cold2'].cat.categories.to_list() == ['early', 'middle', 'late', 'now']
+    assert g.getRawFrame()['cold2'].cat.categories.to_list() == ['early mo', 'middle', 'late', 'now']
     assert g.getRawFrame()['cold2'].dtype.ordered is True
 
 
@@ -295,6 +295,12 @@ def test_discretize_set_options_exceptions():
             2: {'ranges': (intervals, False, True), 'labels': None}},
             suffix=(False, '_disc'))
     assert e.value.invalid[0][0] == 'lab'
+
+    with pytest.raises(exp.OptionValidationError) as e:
+        op.setOptions(selected={
+            2: {'ranges': (intervals, False, True), 'labels': ['a', 'b', 'c', 'a']}},
+            suffix=(False, '_disc'))
+    assert e.value.invalid[0][0] == 'unique'
 
     with pytest.raises(exp.OptionValidationError) as e:
         op.setOptions(selected={
