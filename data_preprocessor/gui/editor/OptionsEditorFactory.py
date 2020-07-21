@@ -1,10 +1,11 @@
 import copy
+import os
 from typing import Dict, List, Callable, Tuple, Any, Iterable, Optional
 
-from PySide2.QtCore import Qt, QModelIndex
+from PySide2.QtCore import Qt, QModelIndex, QAbstractItemModel
 from PySide2.QtGui import QValidator
 from PySide2.QtWidgets import QLineEdit, QCheckBox, \
-    QWidget, QFormLayout, QStyledItemDelegate, QAbstractItemDelegate
+    QWidget, QFormLayout, QStyledItemDelegate, QAbstractItemDelegate, QComboBox, QPushButton, QFileDialog
 
 from data_preprocessor import flogging
 from data_preprocessor.gui.editor.interface import AbsOperationEditor
@@ -144,6 +145,7 @@ class OptionsEditorFactory:
         self.__optionsSetter: Dict[str, Callable] = dict()
         self.__editorWidgets: List[Tuple[str, QWidget]] = list()
         self.__hasTable: str = None
+        self.__subclass: Optional[type] = None
 
     def withAttributeTable(self, key: str, checkbox: bool, nameEditable: bool, showTypes: bool,
                            options: Optional[Dict[str, Tuple[str, Optional[QAbstractItemDelegate],
@@ -204,6 +206,22 @@ class OptionsEditorFactory:
         self.__optionsSetter[key] = group.setData  # wants the value
         self.__editorWidgets.append((key, group))
 
+    def withComboBox(self, label: str, key: str, editable: bool,
+                     model: QAbstractItemModel = None, strings: List[str] = None) -> \
+            None:
+        combo = QComboBox(self.__body)
+        if model:
+            combo.setModel(model)
+        elif strings:
+            combo.addItems(strings)
+        else:
+            raise ValueError('Either "model" or "strings" must be set')
+        combo.setEditable(editable)
+        self.__layout.addRow(label, combo)
+        self.__optionsGetter[key] = combo.currentText
+        self.__optionsSetter[key] = combo.setCurrentText
+        self.__editorWidgets.append((key, combo))
+
     def withAttributeNameOptionsForTable(self, key: str) -> None:
         if not self.__hasTable:
             flogging.appLogger.warning('Request to add an attribute names box but no table has '
@@ -215,12 +233,26 @@ class OptionsEditorFactory:
         self.__optionsSetter[key] = wi.setData
         self.__editorWidgets.append((key, wi))
 
-    def initEditor(self) -> None:
+    def withFileChooser(self, key: str, label: str, extensions: str) -> None:
+        openFileChooser = QPushButton('Choose', self.__body)
+        fileChooser = QFileDialog(self.__body, label, str(os.getcwd()), extensions)
+        fileChooser.setFileMode(QFileDialog.AnyFile)
+        filePath = QLineEdit(self.__body)
+        openFileChooser.released.connect(fileChooser.show)
+        fileChooser.fileSelected.connect(filePath.setText)
+        self.__layout.addRow(openFileChooser, filePath)
+        self.__optionsGetter[key] = filePath.text
+        self.__optionsSetter[key] = filePath.setText
+        self.__editorWidgets.append((key, fileChooser))
+
+    def initEditor(self, subclass: Optional[type] = None) -> None:
         """
         Initializes an editor object clearing the internal state.
         You should call this method every time you need to generate a new editor.
         """
 
+        if subclass and issubclass(subclass, AbsOperationEditor):
+            self.__subclass = subclass
         self.__body = QWidget()
         self.__hasTable = False
         self.__layout = QFormLayout(self.__body)
@@ -229,18 +261,10 @@ class OptionsEditorFactory:
         self.__editorWidgets: List[Tuple[str, QWidget]] = list()
         self.__layout.setHorizontalSpacing(30)
 
-    # def addComboBox(self, label: str, options: QAbstractItemModel, tooltip: str = '') -> None:
-    #     row: int = self.__layout.rowCount()
-    #     self.__layout.addWidget(QLabel(label), row, 0)
-    #     combo = QComboBox()
-    #     if tooltip: combo.setToolTip(tooltip)
-    #     options.setParent(combo)
-    #     combo.setModel(options)
-    #     self.__layout.addWidget(combo, row, 1)
-    #     self.__optionsGetter.append(combo.currentText)
-
     def getEditor(self) -> AbsOperationEditor:
-        class Editor(AbsOperationEditor):
+        superType: type = self.__subclass if self.__subclass else AbsOperationEditor
+
+        class Editor(superType):
             def editorBody(self) -> QWidget:
                 pass
 
