@@ -29,7 +29,11 @@ def computeAxisValue(axis: Optional[QtCharts.QAbstractAxis], value: float) -> st
         text = axis.at(round(value))
     elif axis.type() == QtCharts.QAbstractAxis.AxisTypeCategory:
         axis: QtCharts.QCategoryAxis
-        text = axis.categoriesLabels()[round(value)]
+        categories = axis.categoriesLabels()
+        if 0 <= round(value) < len(categories):
+            text = axis.categoriesLabels()[round(value)]
+        else:
+            text = '-'
     else:
         text = '{0:.2f}'.format(value)
     return text

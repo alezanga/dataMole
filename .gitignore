@@ -136,3 +136,4 @@ logs/
 /libs/
 libs/*
 /dask-worker-space/
+/venv2/

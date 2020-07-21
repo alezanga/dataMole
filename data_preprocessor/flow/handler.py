@@ -46,8 +46,8 @@ class OperationHandler:
     def startNode(self, node: 'OperationNode'):
         worker = Worker(node, identifier=node.uid)
         # Connect
-        worker.signals.result.connect(self.__qtSlots.nodeCompleted, Qt.QueuedConnection)
-        worker.signals.error.connect(self.__qtSlots.nodeErrored, Qt.QueuedConnection)
+        worker.signals.result.connect(self.__qtSlots.nodeCompleted, Qt.AutoConnection)
+        worker.signals.error.connect(self.__qtSlots.nodeErrored, Qt.AutoConnection)
         self.signals.statusChanged.emit(node.uid, NodeStatus.PROGRESS)
         QThreadPool.globalInstance().start(worker)
 
@@ -103,7 +103,7 @@ class HandlerSignals(QObject):
 class _HandlerSlots(QObject):
     def __init__(self, handler: OperationHandler, parent: QObject = None):
         super().__init__(parent)
-        self.handler = handler
+        self.handler: OperationHandler = handler
 
     @Slot(object, object)
     def nodeCompleted(self, node_id: int, result: data.Frame):

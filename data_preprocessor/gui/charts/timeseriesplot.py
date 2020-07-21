@@ -6,7 +6,7 @@ from PySide2.QtCore import Qt, QAbstractItemModel, Slot, QAbstractTableModel, QM
     QSortFilterProxyModel, QMargins, QPointF, QStringListModel
 from PySide2.QtGui import QFont
 from PySide2.QtWidgets import QWidget, QComboBox, QLineEdit, QLabel, QHBoxLayout, QVBoxLayout, \
-    QCheckBox, QSplitter, QTableView, QHeaderView, QPushButton, QSizePolicy
+    QSplitter, QTableView, QHeaderView, QPushButton, QSizePolicy
 
 from data_preprocessor.data.types import Types, Type
 from data_preprocessor.gui.charts.views import InteractiveChartView
@@ -169,7 +169,7 @@ class _SettingsPanel(QWidget):
         self.valuesTable = SearchableAttributeTableWidget(self, True, False, True, [Types.Numeric,
                                                                                     Types.Ordinal])
         self.indexTable = SearchableTableWidget(self)
-        self.meanCB = QCheckBox('Mean of selected', self)
+        # self.meanCB = QCheckBox('Mean of selected', self)
         self.createButton = QPushButton('Create chart', self)
 
         sideLayout = QVBoxLayout(self)
@@ -199,7 +199,7 @@ class _SettingsPanel(QWidget):
         sideLayout.addSpacing(30)
         sideLayout.addWidget(lab)
         sideLayout.addWidget(self.indexTable)
-        sideLayout.addWidget(self.meanCB)
+        # sideLayout.addWidget(self.meanCB)
         sideLayout.addSpacing(30)
         sideLayout.addWidget(self.createButton)
 
@@ -308,6 +308,8 @@ class TimeSeriesPlot(QWidget):
         filteredDf = dataframe.iloc[:, [timeIndex, *attributes]].sort_values(by=timeIndexName, axis=0,
                                                                              ascending=True)
         # filteredDf has timeIndex at position 0, attributes following
+        # Drop nan labels
+        filteredDf.dropna(axis=0, inplace=True, subset=[timeIndexName])
 
         # Create X axis
         timeSeries: pd.Series = filteredDf.iloc[:, 0]
@@ -331,7 +333,8 @@ class TimeSeriesPlot(QWidget):
                                  indexes: List[Any], timeIndex: int, timeIndexType: Type,
                                  indexMean: bool) -> QtCharts.QChart:
         timeIndexName: str = dataframe.columns[timeIndex]
-        filteredDf = dataframe.loc[indexes, :].iloc[:, [timeIndex, *attributes]]
+        filteredDf = dataframe.loc[indexes, :].iloc[:, [timeIndex, *attributes]] \
+            .dropna(axis=0, subset=[timeIndexName])
         filteredDf = filteredDf.sort_values(by=timeIndexName, axis=0, ascending=True)
 
         # Group rows by their index attribute. Every index has a distinct list of values
@@ -371,7 +374,7 @@ class TimeSeriesPlot(QWidget):
         timeAxis: str = self.settingsPanel.timeAxisAttributeCB.currentText()
         attributes: List[int] = self.settingsPanel.valuesTable.model().checked
         indexes: List[Any] = self.settingsPanel.indexTable.model().sourceModel().checked
-        indexMean: bool = self.settingsPanel.meanCB.isChecked()
+        indexMean: bool = False  # self.settingsPanel.meanCB.isChecked()
 
         # Possibilities:
         # 1) 0 indexes and 1+ attributes
