@@ -41,6 +41,10 @@ class OperationAction(QAction):
         self.__results: Dict[int, Any] = dict()  # { op_id: result }
         self.triggered.connect(self.startOperation)
 
+    def setOperationArgs(self, *args, **kwargs) -> None:
+        self.__args = args
+        self.__kwargs = kwargs
+
     def getResult(self, key: int) -> Any:
         """ Pops the result of operation with specified key if it exists. Otherwise returns None """
         return self.__results.pop(key, None)
@@ -123,10 +127,13 @@ class OperationWrapper(QObject):
                     self.editor.setOptions(**options)
                 else:
                     self.editor.setOptions(*options)
-            self.editor.setParent(None)
         else:
             # Create empty editor
-            self.editor = AbsOperationEditor(None)
+            self.editor = AbsOperationEditor()
+        # FIXME: Setting parent causes segfault
+        # self.editor.setParent(self)
+        # self.editor.setWindowFlags(Qt.Window)
+        # self.editor.setWindowModality(Qt.ApplicationModal)
         # Configure title, description and connect
         self.editor.setWindowTitle(self.operation.name())
         self.editor.setDescription(self.operation.shortDescription(), self.operation.longDescription())

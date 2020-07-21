@@ -137,6 +137,7 @@ class WorkbenchModel(QAbstractListModel):
 
 class WorkbenchView(QTableView):
     selectedRowChanged = Signal((int, int), (str, str))
+    rightClick = Signal(QModelIndex)
 
     def __init__(self, parent=None, editable: bool = True):
         super().__init__(parent)
@@ -180,17 +181,22 @@ class WorkbenchView(QTableView):
         self.selectedRowChanged[int, int].emit(currRow, prevRow)
         self.selectedRowChanged[str, str].emit(currName, prevName)
 
-    def mousePressEvent(self, event: QtGui.QMouseEvent):
+    def mousePressEvent(self, event: QtGui.QMouseEvent) -> None:
         super().mousePressEvent(event)
         if self._editable:
             self.verticalHeader().mousePressEvent(event)
 
-    def mouseMoveEvent(self, event: QtGui.QMouseEvent):
+    def mouseMoveEvent(self, event: QtGui.QMouseEvent) -> None:
         super().mouseMoveEvent(event)
         if self._editable:
             self.verticalHeader().mouseMoveEvent(event)
 
-    def mouseReleaseEvent(self, event: QtGui.QMouseEvent):
+    def mouseReleaseEvent(self, event: QtGui.QMouseEvent) -> None:
         super().mouseReleaseEvent(event)
         if self._editable:
             self.verticalHeader().mouseReleaseEvent(event)
+
+    def contextMenuEvent(self, event: QtGui.QContextMenuEvent) -> None:
+        index: QModelIndex = self.indexAt(event.pos())
+        if index.isValid():
+            self.rightClick.emit(index)

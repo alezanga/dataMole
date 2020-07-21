@@ -1,15 +1,17 @@
-from typing import Iterable, List
+from typing import Iterable, List, Dict
 
 import pandas as pd
+from PySide2.QtCore import Slot
 
 from data_preprocessor import data, exceptions as exp
 from .interface.operation import Operation
+from ..gui.editor import OptionsEditorFactory, AbsOperationEditor
 from ..gui.editor.loaders import LoadCSVEditor
 
 
 class CsvLoader(Operation):
-    def __init__(self, w):
-        super().__init__(w)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.__file: str = None
         self.__separator: str = None
         self.__wName: str = None
@@ -72,3 +74,116 @@ class CsvLoader(Operation):
 
     def getEditor(self) -> 'AbsOperationEditor':
         return LoadCSVEditor()
+
+
+class CsvWriter(Operation):
+    def __init__(self, frameName: str = None, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.__frame_name: str = frameName
+        self.__path: str = None
+        self.__sep: str = ','
+        self.__nan_rep: str = 'nan'
+        self.__float_format: str = '%g'
+        self.__header: bool = True
+        self.__index: bool = True
+        self.__selected_columns: List[str] = list()
+        self.__date_format: str = '%Y-%m-%d %H:%M:%S'
+        self.__decimal: str = '.'
+
+    def execute(self) -> None:
+        df: pd.DataFrame = self._workbench.getDataframeModelByName(self.__frame_name).frame.getRawFrame()
+        df.to_csv(self.__path, sep=self.__sep, na_rep=self.__nan_rep,
+                  float_format=self.__float_format, columns=self.__selected_columns,
+                  header=self.__header, index=self.__index, date_format=self.__date_format,
+                  decimal=self.__decimal)
+
+    def getEditor(self) -> 'AbsOperationEditor':
+        factory = OptionsEditorFactory()
+        factory.initEditor(subclass=WriteEditorBase)
+        factory.withComboBox('Frame to write', 'frame', False, model=self.workbench)
+        factory.withFileChooser(key='file', label='Choose a file', extensions='Csv (*.csv)')
+        factory.withAttributeTable(key='sele', checkbox=True, nameEditable=False, showTypes=True,
+                                   options=None, types=self.acceptedTypes())
+        factory.withTextField('Separator', 'sep')
+        factory.withTextField('Nan repr', 'nan')
+        factory.withTextField('Float format', 'ffloat')
+        factory.withTextField('Decimal', 'decimal')
+        factory.withCheckBox('Write column names', 'header')
+        factory.withCheckBox('Write index values', 'index')
+        factory.withComboBox('Datetime format', 'date', True, strings=['%Y-%m-%d %H:%M:%S',
+                                                                       '%Y-%m-%d', '%H:%M:%S'])
+        return factory.getEditor()
+
+    def injectEditor(self, editor: 'AbsOperationEditor') -> None:
+        editor.workbench = self.workbench
+        # Make editor react to frame change
+        editor.frame.currentTextChanged.connect(editor.inputFrameChanged)
+        ct = editor.frame.currentText()
+        if ct:
+            editor.inputFrameChanged(ct)
+
+    def setOptions(self, frame: str, file: str, sele: Dict[int, None], sep: str, nan: str, ffloat: str,
+                   decimal: str, header: bool, index: bool, date: str) -> None:
+        errors = list()
+        if frame not in self.workbench.names:
+            errors.append(('e1', 'Error: frame name is not valid'))
+        if not sele:
+            errors.append(('e2', 'Error: no attribute to write are selected'))
+        nan = parseUnicodeStr(nan)
+        sep = parseUnicodeStr(sep)
+        if not sep:
+            errors.append(('es1', 'Error: a separator char is required'))
+        elif len(sep) > 1:
+            errors.append(('es2', 'Error: separator must be a single character'))
+        if not decimal:
+            errors.append(('na1', 'Error: a decimal separator is required'))
+        elif len(decimal) > 1:
+            errors.append(('na2', 'Error: decimal separator must be a single character'))
+        if not date:
+            errors.append(('d1', 'Error: datetime format must be specified'))
+        if not file:
+            errors.append(('f1', 'Error: no output file specified'))
+        if errors:
+            raise exp.OptionValidationError(errors)
+
+        # Save selected column names
+        columns: List[str] = self.workbench.getDataframeModelByName(frame).frame.colnames
+
+        self.__frame_name = frame
+        self.__path = file
+        self.__selected_columns = [columns[i] for i in sele.keys()]
+        self.__date_format = date
+        self.__sep = sep
+        self.__nan_rep = nan
+        self.__float_format = ffloat
+        self.__decimal = decimal
+        self.__index = index
+        self.__header = header
+
+    def getOptions(self) -> Iterable:
+        return {
+            'frame': self.__frame_name,
+            'file': self.__path,
+            'sele': {i: None for i in self.__selected_columns},
+            'date': self.__date_format,
+            'sep': self.__sep,
+            'nan': self.__nan_rep,
+            'ffloat': self.__float_format,
+            'decimal': self.__decimal,
+            'header': self.__header,
+            'index': self.__index
+        }
+
+    def needsOptions(self) -> bool:
+        return True
+
+
+def parseUnicodeStr(s: str) -> str:
+    return bytes(s, 'utf-8').decode('unicode_escape')
+
+
+class WriteEditorBase(AbsOperationEditor):
+    @Slot(str)
+    def inputFrameChanged(self, name: str) -> None:
+        frame: 'FrameModel' = self.workbench.getDataframeModelByName(name)
+        self.sele.setSourceFrameModel(frame)

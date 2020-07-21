@@ -1,9 +1,9 @@
 import logging
 
 from PySide2 import QtGui
-from PySide2.QtCore import Slot, QThreadPool, Qt
+from PySide2.QtCore import Slot, QThreadPool, Qt, QModelIndex
 from PySide2.QtWidgets import QTabWidget, QWidget, QMainWindow, QMenuBar, QAction, QSplitter, \
-    QHBoxLayout
+    QHBoxLayout, QMenu
 
 from data_preprocessor import flow
 from data_preprocessor.gui.attributepanel import AttributePanel
@@ -14,7 +14,7 @@ from data_preprocessor.gui.graph import GraphController, GraphView, GraphScene
 from data_preprocessor.gui.operationmenu import OperationMenu
 from data_preprocessor.gui.workbench import WorkbenchModel, WorkbenchView
 from data_preprocessor.operation.actionwrapper import OperationAction
-from data_preprocessor.operation.loaders import CsvLoader
+from data_preprocessor.operation.loaders import CsvLoader, CsvWriter
 
 
 class MainWidget(QWidget):
@@ -61,6 +61,7 @@ class MainWidget(QWidget):
         workbenchView.selectedRowChanged[str, str].connect(attributeTab.onFrameSelectionChanged)
         workbenchView.selectedRowChanged[str, str].connect(chartsTab.onFrameSelectionChanged)
         workbenchView.selectedRowChanged[str, str].connect(self.frameInfoPanel.onFrameSelectionChanged)
+        workbenchView.rightClick.connect(self.createWorkbenchPopupMenu)
 
     @Slot(int)
     def switch_view(self, tab_index: int) -> None:
@@ -74,6 +75,20 @@ class MainWidget(QWidget):
             self.operationMenu.hide()
             self.frameInfoPanel.show()
             self.__curr_tab = tab_index
+
+    @Slot(QModelIndex)
+    def createWorkbenchPopupMenu(self, index: QModelIndex) -> None:
+        # Create a popup menu when workbench is right-clicked over a valid frame name
+        # Menu display delete and remove options
+        frameName: str = index.data(Qt.DisplayRole)
+        pMenu = QMenu(self)
+        writeAction = OperationAction(CsvWriter, pMenu, 'To csv', self.rect().center())
+        writeAction.setOperationArgs(w=self.workbench_model, frameName=frameName)
+        writeAction.stateChanged.connect(self.parentWidget().operationStateChanged)
+        deleteAction = QAction('Remove', pMenu)
+        deleteAction.triggered.connect(lambda: self.workbench_model.removeRow(index.row()))
+        pMenu.addActions([writeAction, deleteAction])
+        pMenu.popup(QtGui.QCursor.pos())
 
 
 class MainWindow(QMainWindow):
