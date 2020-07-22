@@ -1,6 +1,6 @@
 from PySide2.QtCore import Slot
 from PySide2.QtWidgets import QWidget, QTableView, QSplitter, QHBoxLayout, QComboBox, QVBoxLayout, \
-    QPushButton
+    QPushButton, QCheckBox, QScrollBar
 
 from data_preprocessor.data import Frame
 from data_preprocessor.gui.mainmodels import IncrementalRenderFrameModel, SearchableAttributeTableWidget, \
@@ -49,22 +49,45 @@ class DataframeSideBySideView(QWidget):
         super().__init__(parent)
         self.dataWidgetL = DataframeView(self)
         self.dataWidgetR = DataframeView(self)
+        self.scrollTogetherH = QCheckBox('Lock horizontal scroll', self)
+        self.scrollTogetherV = QCheckBox('Lock vertical scroll', self)
+        cLayout = QHBoxLayout()
+        cLayout.addWidget(self.scrollTogetherH)
+        cLayout.addWidget(self.scrollTogetherV)
 
         splitter = QSplitter(self)
         splitter.addWidget(self.dataWidgetL)
         splitter.addWidget(self.dataWidgetR)
-        layout = QHBoxLayout(self)
+        layout = QVBoxLayout(self)
+        layout.addLayout(cLayout)
         layout.addWidget(splitter)
         splitter.setSizes([10, 10])
 
-        self.dataWidgetL.dataView.verticalScrollBar().valueChanged.connect(
-            self.dataWidgetR.dataView.verticalScrollBar().setValue)
-        self.dataWidgetR.dataView.verticalScrollBar().valueChanged.connect(
-            self.dataWidgetL.dataView.verticalScrollBar().setValue)
-        self.dataWidgetL.dataView.horizontalScrollBar().valueChanged.connect(
-            self.dataWidgetR.dataView.horizontalScrollBar().setValue)
-        self.dataWidgetR.dataView.horizontalScrollBar().valueChanged.connect(
-            self.dataWidgetL.dataView.horizontalScrollBar().setValue)
+        self.scrollTogetherH.toggled.connect(self.lockScrollChangedHorizontal)
+        self.scrollTogetherV.toggled.connect(self.lockScrollChangedVertical)
+
+    @Slot(bool)
+    def lockScrollChangedVertical(self, checked: bool) -> None:
+        self._connectScroll(self.dataWidgetL.dataView.verticalScrollBar(),
+                            self.dataWidgetR.dataView.verticalScrollBar(), checked)
+
+    @Slot(bool)
+    def lockScrollChangedHorizontal(self, checked: bool) -> None:
+        self._connectScroll(self.dataWidgetL.dataView.horizontalScrollBar(),
+                            self.dataWidgetR.dataView.horizontalScrollBar(), checked)
+
+    @staticmethod
+    def _connectScroll(scroll1: QScrollBar, scroll2: QScrollBar, connect: bool) -> None:
+        if connect:
+            scroll1.valueChanged.connect(scroll2.setValue)
+            scroll1.valueChanged.connect(scroll2.setValue)
+            scroll2.valueChanged.connect(scroll1.setValue)
+            scroll2.valueChanged.connect(scroll1.setValue)
+        else:
+            scroll1.valueChanged.disconnect(scroll2.setValue)
+            scroll1.valueChanged.disconnect(scroll2.setValue)
+            scroll2.valueChanged.disconnect(scroll1.setValue)
+            scroll2.valueChanged.disconnect(scroll1.setValue)
 
 
 class DiffDataframeWidget(QWidget):

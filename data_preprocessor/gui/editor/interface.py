@@ -138,7 +138,7 @@ class AbsOperationEditor(QWidget):
     def sizeHint(self) -> QSize:
         if self.__sh:
             return self.__sh
-        return super().sizeHint()
+        return QSize(500, 600)
 
     # ----------------------------------------------------------------------------
     # ------------------------------ VIRTUAL METHODS -----------------------------

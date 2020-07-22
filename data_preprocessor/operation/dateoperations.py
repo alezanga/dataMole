@@ -5,7 +5,7 @@ import pandas as pd
 import prettytable as pt
 from PySide2.QtCore import Slot, QModelIndex, QAbstractItemModel, QDateTime, QDate, QEvent, QObject, \
     QTime
-from PySide2.QtGui import QIcon, Qt
+from PySide2.QtGui import QIcon, Qt, QFontMetrics, QFont
 from PySide2.QtWidgets import QWidget, QDateEdit, QGridLayout, \
     QSpacerItem, QPushButton, QVBoxLayout, QSizePolicy, \
     QStyledItemDelegate, QTimeEdit, QCheckBox, QButtonGroup, QHBoxLayout, QAbstractButton, QHeaderView, \
@@ -296,7 +296,8 @@ class _DateIntervalDelegate(QStyledItemDelegate):
         options = ([pd.Timestamp(date.toPython(), tz='UTC') for date in datetimes], byDate, byTime)
         model.setData(index, options, Qt.EditRole)
         # Resize rows. This assumes that the TableView is the delegate parent
-        rowHeight = 60 * (len(options[0]) - 1)
+        f = QFontMetrics(QFont())
+        rowHeight = f.height() * len(options[0])
         table: QTableView = self.parent()
         table.setRowHeight(index.row(), rowHeight)
         # Close editor. Works because it's the delegate that tells the view to close it with this signal

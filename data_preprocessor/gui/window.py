@@ -111,7 +111,7 @@ class MainWindow(QMainWindow):
         loadCsvAction = OperationAction(CsvLoader, fileMenu, 'Load csv',
                                         self.rect().center(), central_w.workbench_model)
         compareAction = QAction('Compare dataframes', viewMenu)
-        diffAction = QAction('Diff dataframes', viewMenu)
+        # diffAction = QAction('Diff dataframes', viewMenu)
         fileMenu.addAction(addAction)
         fileMenu.addAction(loadCsvAction)
         fileMenu.show()
@@ -121,7 +121,7 @@ class MainWindow(QMainWindow):
         flowMenu.addAction(exec_flow)
         flowMenu.addAction(reset_flow)
         viewMenu.addAction(compareAction)
-        viewMenu.addAction(diffAction)
+        # viewMenu.addAction(diffAction)
         flowMenu.show()
 
         self.setMenuBar(menuBar)
@@ -131,7 +131,7 @@ class MainWindow(QMainWindow):
         exec_flow.triggered.connect(self.centralWidget().controller.executeFlow)
         reset_flow.triggered.connect(self.centralWidget().controller.resetFlowStatus)
         compareAction.triggered.connect(self.openComparePanel)
-        diffAction.triggered.connect(self.openDiffPanel)
+        # diffAction.triggered.connect(self.openDiffPanel)
         loadCsvAction.stateChanged.connect(self.operationStateChanged)
         self.centralWidget().frameInfoPanel.operationRequest.connect(self.executeOperation)
 
@@ -155,6 +155,7 @@ class MainWindow(QMainWindow):
 
     @Slot()
     def openDiffPanel(self) -> None:
+        # TODO: remove this?
         dv = DiffDataframeWidget(self)
         dv.setWindowFlags(Qt.Window)
         dv.setAttribute(Qt.WA_DeleteOnClose)

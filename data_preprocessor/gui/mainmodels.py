@@ -209,7 +209,7 @@ class FrameModel(QAbstractTableModel):
 
 
 class IncrementalRenderFrameModel(QIdentityProxyModel):
-    DEFAULT_COL_BATCH_SIZE = 300
+    DEFAULT_COL_BATCH_SIZE = 50
     DEFAULT_ROW_BATCH_SIZE = 400
 
     def __init__(self, rowBatch: int = DEFAULT_ROW_BATCH_SIZE,
@@ -566,77 +566,6 @@ class AttributeTableModel(AbstractAttributeModel, QAbstractTableModel,
         elif self._checkable and index.column() == self.checkboxColumn:
             flags |= Qt.ItemIsEditable
         return flags
-
-
-class AttributeWithIndexModel(QIdentityProxyModel):
-    # TODO: test this (DRAFT)
-    def mapToSource(self, proxyIndex: QModelIndex) -> QModelIndex:
-        if not proxyIndex.isValid():
-            return QModelIndex()
-        if proxyIndex.model() != self:
-            return QModelIndex()
-        proxyRow = proxyIndex.row()
-        proxyColumn = proxyIndex.column()
-        indexLevels = len(self.sourceModel().frameModel().shape.index)
-        if proxyRow < indexLevels:
-            return QModelIndex()
-        return self.sourceModel().index(proxyRow - indexLevels, proxyColumn, proxyIndex.parent())
-
-    def mapFromSource(self, sourceIndex: QModelIndex) -> QModelIndex:
-        if not sourceIndex.isValid():
-            return QModelIndex()
-        if sourceIndex.model() != self.sourceModel():
-            return QModelIndex()
-        sourceRow = sourceIndex.row()
-        sourceColumn = sourceIndex.column()
-        indexLevels = len(self.sourceModel().frameModel().shape.index)
-        return self.index(sourceRow + indexLevels, sourceColumn, sourceColumn.parent())
-
-    def data(self, proxyIndex: QModelIndex, role: int = Qt.DisplayRole) -> Any:
-        if not proxyIndex.isValid():
-            return None
-
-        if role == Qt.DisplayRole or role == Qt.EditRole:
-            if proxyIndex.column() == self.checkboxColumn:
-                return None
-            proxyRow: int = proxyIndex.row()
-            proxyColumn: int = proxyIndex.column()
-
-            indexes: List[str] = self.sourceModel().frameModel().shape.index
-            indexTypes: List[Type] = self.sourceModel().frameModel().shape.indexTypes
-            indexLevels: int = len(indexes)
-            if proxyRow < indexLevels:
-                if proxyColumn == self.sourceModel().nameColumn:
-                    return indexes[proxyRow]
-                if proxyColumn == self.sourceModel().typeColumn:
-                    return indexTypes[proxyRow]
-        return super().data(proxyIndex, role)
-
-    def rowCount(self, parent: QModelIndex = ...) -> int:
-        if parent.isValid():
-            return 0
-        return self.sourceModel().rowCount(parent) + len(self.sourceModel().frameModel().shape.index)
-
-    def setData(self, index: QModelIndex, value: str, role: int = ...) -> bool:
-        if not index.isValid():
-            return False
-        # indexes: List[str] = self.sourceModel().frameModel().shape.index
-        # indexLevels: int = len(indexes)
-        # if role == Qt.EditRole and index.row() < indexLevels:
-        #     value = value.strip()
-        #     # Edit a index
-        #     if value:
-        #         if indexLevels > 1:
-        #             frame = self.sourceModel().frameModel().frame.getRawFrame() \
-        #                 .index.set_names(value)
-        return super().setData(index, value, role)
-
-    def flags(self, index: QModelIndex) -> Qt.ItemFlags:
-        indexes: List[str] = self.sourceModel().frameModel().shape.index
-        indexLevels: int = len(indexes)
-        if index.row() < indexLevels:
-            return Qt.ItemIsSelectable | Qt.ItemIsEnabled
-        return super().flags(index)
 
 
 class AttributeProxyModel(AbstractAttributeModel, QSortFilterProxyModel,
