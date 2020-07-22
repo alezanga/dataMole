@@ -9,7 +9,7 @@ class ChartPanel(QWidget):
     def __init__(self, workbench, parent: QWidget = None):
         super().__init__(parent)
         self.__currentFrameName: str = None
-        self.workbench_model = workbench
+        self.workbenchModel = workbench
         self.__chartTypeCB = QComboBox(self)
         self.fLayout = QFormLayout(self)
         self.fLayout.addRow('Select the type of chart to draw: ', self.__chartTypeCB)
@@ -24,9 +24,9 @@ class ChartPanel(QWidget):
         if self.fLayout.rowCount() == 2:
             self.fLayout.removeRow(1)
         if text == 'Scatterplot':
-            self.fLayout.addRow(ScatterPlotMatrix(self.workbench_model, self))
+            self.fLayout.addRow(ScatterPlotMatrix(self.workbenchModel, self))
         elif text == 'Time series':
-            self.fLayout.addRow(TimeSeriesPlot(self.workbench_model, self))
+            self.fLayout.addRow(TimeSeriesPlot(self.workbenchModel, self))
         self.onFrameSelectionChanged(self.__currentFrameName)
 
     @Slot(str, str)

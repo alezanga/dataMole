@@ -3,6 +3,7 @@
 - [x] !!! FIX: outputShape is shared in graph !
 - [x] !!! FIX: getOutputShape for some operations does not conform to standard
 - [ ] !! IMPROVE: review operations for inefficiencies
+- [ ] !!!!! FIX: segfault when adding empty frame from time series panel with chart on **values** set
 - [x] ! ADD: fillna operation
     - [x] Add log
 - [x] ! ADD: drop column operation
@@ -12,7 +13,7 @@
 
 - [ ] CHECK: race condition when connecting QRunnable to same slot? (onWorkerSuccess)
 - [x] FIX !!: SEGFAULT in tablemodel/headerview in extracttimeseries.
-- [ ] FIX !!: SEGFAULT in series plot (it seems relative to zoom)
+- [x] FIX !!: SEGFAULT in series plot (it seems relative to zoom)
 - [x] FIX validation in extractseries
 - [x] FIX: gridLayout in graph
 - [x] FIX: toCategory asked options even if it shouldn't (validation problem)

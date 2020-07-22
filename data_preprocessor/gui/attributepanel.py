@@ -154,7 +154,11 @@ class AttributePanel(QWidget):
         w.setWindowFlags(Qt.Window)
         w.setWindowTitle('Dataframe view')
         w.setWorkbench(self._workbench)
-        w.setDataframe(self._frameModel.name)
+        w.inputCB.setCurrentText(self._frameModel.name)
+        if not w.dataView.model() or w.dataView.model().sourceModel() is not self._frameModel:
+            # If the input change was not triggered then you have to update it manually
+            # May happen if currentText == frameModel.name
+            w.setDataframe(self._frameModel.name)
         w.show()
 
 

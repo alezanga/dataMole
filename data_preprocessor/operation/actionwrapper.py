@@ -36,6 +36,8 @@ class OperationAction(QAction):
         super().__init__(actionName, parent)
         self.__args = args
         self.__kwargs = kwargs
+        # Keep a reference to the currently selected frame when an action is created
+        self.__selectedFrame: str = None
         self.__operation: type = op
         self.__editorPosition: QPoint = editorPosition
         self.__results: Dict[int, Any] = dict()  # { op_id: result }
@@ -44,6 +46,10 @@ class OperationAction(QAction):
     def setOperationArgs(self, *args, **kwargs) -> None:
         self.__args = args
         self.__kwargs = kwargs
+
+    def setSelectedFrame(self, name: str) -> None:
+        """ Set the frame to be used as input in the editor when it is shown """
+        self.__selectedFrame = name
 
     def getResult(self, key: int) -> Any:
         """ Pops the result of operation with specified key if it exists. Otherwise returns None """
@@ -56,6 +62,8 @@ class OperationAction(QAction):
                              parent=self,
                              editorPosition=self.__editorPosition)
         w.wrapperStateChanged.connect(self.onStateChanged)
+        # Pass the selected frame name to the wrapper
+        w.selectedFrame = self.__selectedFrame
         w.start()
 
     @Slot(int, str)
@@ -96,6 +104,7 @@ class OperationWrapper(QObject):
         self._inputComboBox: Optional[QComboBox] = None
         self._hasInputOutputOptions: bool = False
         self.__worker: Optional[threads.Worker] = None
+        self.selectedFrame: str = None  # Set by the action
 
     def __setUpInputOutputLayout(self) -> QFormLayout:
         # Add input and output boxes
@@ -103,7 +112,7 @@ class OperationWrapper(QObject):
         self._inputComboBox.setModel(self.operation.workbench)
         self._outputNameBox = TextOptionWidget(parent=self.editor)
         self._outputNameBox.widget.textChanged.connect(self._validateOutputName)
-        self._inputComboBox.currentIndexChanged.connect(self._setInput)
+        self._inputComboBox.currentTextChanged.connect(self._changeInputFrame)
         ioLayout = QFormLayout()
         ioLayout.addRow('Input data:', self._inputComboBox)
         ioLayout.addRow('Output name:', self._outputNameBox)
@@ -113,6 +122,16 @@ class OperationWrapper(QObject):
         completer.setModelSorting(QCompleter.CaseInsensitivelySortedModel)
         completer.setCompletionMode(QCompleter.UnfilteredPopupCompletion)
         self._outputNameBox.widget.setCompleter(completer)
+        if self.selectedFrame:
+            if self.selectedFrame == self._inputComboBox.currentText():
+                # Manually trigger the slot to change input
+                self._changeInputFrame(self.selectedFrame)
+            else:
+                # Set the frame (will trigger _changeInputFrame)
+                self._inputComboBox.setCurrentText(self.selectedFrame)
+        else:
+            # Default to whatever input name is set
+            self._changeInputFrame(self._inputComboBox.currentText())
         return ioLayout
 
     def start(self):
@@ -144,10 +163,6 @@ class OperationWrapper(QObject):
             self._hasInputOutputOptions = True
             ioLayout = self.__setUpInputOutputLayout()
             self.editor.layout().insertLayout(1, ioLayout)
-            # Set input to default value (first entry)
-            self._setInput(0)
-            # Set a default output name (name of input)
-            self._outputNameBox.setData(self._inputComboBox.currentText())
         # Set up editor dependencies
         self.operation.injectEditor(self.editor)
         # Show editor
@@ -228,10 +243,14 @@ class OperationWrapper(QObject):
             label.setStyleSheet('color: orange')
             self._outputNameBox.setError(qlabel=label, style='border: 1px solid orange')
 
-    @Slot(int)
-    def _setInput(self, index: int) -> None:
-        if index is not None and 0 <= index < self.operation.workbench.rowCount():
-            fr = self.operation.workbench.getDataframeModelByIndex(index).frame
+    @Slot(str)
+    def _changeInputFrame(self, frameName: str) -> None:
+        if frameName in self.operation.workbench.names:
+            fr: data.Frame = self.operation.workbench.getDataframeModelByName(frameName).frame
+            outputName: str = self._outputNameBox.getData()
+            if not outputName or outputName in self.operation.workbench.names:
+                # Change with new name
+                self._outputNameBox.setData(frameName)
             self.operation._shapes = [fr.shape]
             self._inputs = (fr,)
             self.operation.injectEditor(self.editor)

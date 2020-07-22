@@ -22,9 +22,6 @@ class DataframeView(QWidget):
         self.inputCB.setModel(w)
         self._workbench = w
         self.inputCB.currentTextChanged.connect(self.setDataframe)
-        if w.rowCount():
-            self.inputCB.setCurrentIndex(0)
-            self.setDataframe(self.inputCB.currentText())
 
     @Slot(str)
     def setDataframe(self, name: str) -> None:
@@ -32,6 +29,7 @@ class DataframeView(QWidget):
             self.dataView.setModel(IncrementalRenderFrameModel(parent=self))
             self.dataView.horizontalScrollBar().valueChanged.connect(self.onHorizontalScroll)
             self.dataView.verticalScrollBar().valueChanged.connect(self.onVerticalScroll)
+        # Get frame model and set it in the table
         frameModel = self._workbench.getDataframeModelByName(name)
         self.dataView.model().setSourceModel(frameModel)
 

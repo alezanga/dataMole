@@ -8,7 +8,7 @@ from PySide2.QtWidgets import QTabWidget, QWidget, QMainWindow, QMenuBar, QActio
 from data_preprocessor import flow
 from data_preprocessor.gui.attributepanel import AttributePanel
 from data_preprocessor.gui.chartpanel import ChartPanel
-from data_preprocessor.gui.diffpanel import DataframeSideBySideView, DiffDataframeWidget
+from data_preprocessor.gui.diffpanel import DataframeSideBySideView
 from data_preprocessor.gui.framepanel import FramePanel
 from data_preprocessor.gui.graph import GraphController, GraphView, GraphScene
 from data_preprocessor.gui.operationmenu import OperationMenu
@@ -20,24 +20,24 @@ from data_preprocessor.operation.loaders import CsvLoader, CsvWriter
 class MainWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.workbench_model = WorkbenchModel(self)
+        self.workbenchModel = WorkbenchModel(self)
         self.graph = flow.dag.OperationDag()
         self.operationMenu = OperationMenu()
         self.frameInfoPanel = FramePanel(parent=self,
-                                         w=self.workbench_model,
+                                         w=self.workbenchModel,
                                          opModel=self.operationMenu.model())
-        workbenchView = WorkbenchView()
-        workbenchView.setModel(self.workbench_model)
-        self.workbench_model.emptyRowInserted.connect(workbenchView.edit)
-        self.workbench_model.emptyRowInserted.connect(workbenchView.setCurrentIndex)
+        self.workbenchView = WorkbenchView()
+        self.workbenchView.setModel(self.workbenchModel)
+        self.workbenchModel.emptyRowInserted.connect(self.workbenchView.edit)
+        self.workbenchModel.emptyRowInserted.connect(self.workbenchView.setCurrentIndex)
 
         tabs = QTabWidget(self)
 
-        attributeTab = AttributePanel(self.workbench_model, self)
-        chartsTab = ChartPanel(self.workbench_model, self)
+        attributeTab = AttributePanel(self.workbenchModel, self)
+        chartsTab = ChartPanel(self.workbenchModel, self)
         scene = GraphScene(self)
         flowTab = GraphView(scene)
-        self.controller = GraphController(self.graph, scene, flowTab, self.workbench_model, self)
+        self.controller = GraphController(self.graph, scene, flowTab, self.workbenchModel, self)
 
         tabs.addTab(attributeTab, '&Attribute')
         tabs.addTab(chartsTab, '&Visualise')
@@ -46,7 +46,7 @@ class MainWidget(QWidget):
 
         self.__leftSide = QSplitter(Qt.Vertical)
         self.__leftSide.addWidget(self.frameInfoPanel)
-        self.__leftSide.addWidget(workbenchView)
+        self.__leftSide.addWidget(self.workbenchView)
 
         # layout = QHBoxLayout()
         # layout.addWidget(leftSplit, 2)
@@ -58,10 +58,11 @@ class MainWidget(QWidget):
         layout.addWidget(splitter)
 
         tabs.currentChanged.connect(self.switch_view)
-        workbenchView.selectedRowChanged[str, str].connect(attributeTab.onFrameSelectionChanged)
-        workbenchView.selectedRowChanged[str, str].connect(chartsTab.onFrameSelectionChanged)
-        workbenchView.selectedRowChanged[str, str].connect(self.frameInfoPanel.onFrameSelectionChanged)
-        workbenchView.rightClick.connect(self.createWorkbenchPopupMenu)
+        self.workbenchView.selectedRowChanged[str, str].connect(attributeTab.onFrameSelectionChanged)
+        self.workbenchView.selectedRowChanged[str, str].connect(chartsTab.onFrameSelectionChanged)
+        self.workbenchView.selectedRowChanged[str, str].connect(
+            self.frameInfoPanel.onFrameSelectionChanged)
+        self.workbenchView.rightClick.connect(self.createWorkbenchPopupMenu)
 
     @Slot(int)
     def switch_view(self, tab_index: int) -> None:
@@ -83,10 +84,10 @@ class MainWidget(QWidget):
         frameName: str = index.data(Qt.DisplayRole)
         pMenu = QMenu(self)
         writeAction = OperationAction(CsvWriter, pMenu, 'To csv', self.rect().center())
-        writeAction.setOperationArgs(w=self.workbench_model, frameName=frameName)
+        writeAction.setOperationArgs(w=self.workbenchModel, frameName=frameName)
         writeAction.stateChanged.connect(self.parentWidget().operationStateChanged)
         deleteAction = QAction('Remove', pMenu)
-        deleteAction.triggered.connect(lambda: self.workbench_model.removeRow(index.row()))
+        deleteAction.triggered.connect(lambda: self.workbenchModel.removeRow(index.row()))
         pMenu.addActions([writeAction, deleteAction])
         pMenu.popup(QtGui.QCursor.pos())
 
@@ -109,7 +110,7 @@ class MainWindow(QMainWindow):
         addAction = QAction('Add frame', fileMenu)
         addAction.setStatusTip('Create an empty dataframe in the workbench')
         loadCsvAction = OperationAction(CsvLoader, fileMenu, 'Load csv',
-                                        self.rect().center(), central_w.workbench_model)
+                                        self.rect().center(), central_w.workbenchModel)
         compareAction = QAction('Compare dataframes', viewMenu)
         # diffAction = QAction('Diff dataframes', viewMenu)
         fileMenu.addAction(addAction)
@@ -127,7 +128,7 @@ class MainWindow(QMainWindow):
         self.setMenuBar(menuBar)
 
         # Connect
-        addAction.triggered.connect(central_w.workbench_model.appendEmptyRow)
+        addAction.triggered.connect(central_w.workbenchModel.appendEmptyRow)
         exec_flow.triggered.connect(self.centralWidget().controller.executeFlow)
         reset_flow.triggered.connect(self.centralWidget().controller.resetFlowStatus)
         compareAction.triggered.connect(self.openComparePanel)
@@ -149,19 +150,19 @@ class MainWindow(QMainWindow):
         dv.setWindowFlags(Qt.Window)
         dv.setAttribute(Qt.WA_DeleteOnClose)
         dv.setWindowTitle('Side by side view')
-        dv.dataWidgetL.setWorkbench(self.centralWidget().workbench_model)
-        dv.dataWidgetR.setWorkbench(self.centralWidget().workbench_model)
+        dv.dataWidgetL.setWorkbench(self.centralWidget().workbenchModel)
+        dv.dataWidgetR.setWorkbench(self.centralWidget().workbenchModel)
         dv.show()
 
-    @Slot()
-    def openDiffPanel(self) -> None:
-        # TODO: remove this?
-        dv = DiffDataframeWidget(self)
-        dv.setWindowFlags(Qt.Window)
-        dv.setAttribute(Qt.WA_DeleteOnClose)
-        dv.setWindowTitle('Diff view')
-        dv.setWorkbench(self.centralWidget().workbench_model)
-        dv.show()
+    # @Slot()
+    # def openDiffPanel(self) -> None:
+    #     TODO: remove this?
+    #     dv = DiffDataframeWidget(self)
+    #     dv.setWindowFlags(Qt.Window)
+    #     dv.setAttribute(Qt.WA_DeleteOnClose)
+    #     dv.setWindowTitle('Diff view')
+    #     dv.setWorkbench(self.centralWidget().workbenchModel)
+    #     dv.show()
 
     @Slot(int, str)
     def operationStateChanged(self, uid: int, state: str) -> None:
@@ -186,7 +187,12 @@ class MainWindow(QMainWindow):
     @Slot(type)
     def executeOperation(self, opType: type) -> None:
         action = OperationAction(opType, self, opType.name(),
-                                 self.rect().center(), self.centralWidget().workbench_model)
+                                 self.rect().center(), self.centralWidget().workbenchModel)
+        # Set selected frame in the input combo box of the action
+        selection = self.centralWidget().workbenchView.selectedIndexes()
+        if selection:
+            selectedFrame: str = selection[0].data(Qt.DisplayRole)
+            action.setSelectedFrame(selectedFrame)
         # Delete action when finished
         action.stateChanged.connect(self.operationStateChanged)
         action.stateChanged.connect(self.deleteAction)
