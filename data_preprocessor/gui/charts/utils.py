@@ -5,6 +5,8 @@ from PySide2.QtCharts import QtCharts
 from PySide2.QtCore import QDateTime
 from PySide2.QtGui import QColor
 
+from data_preprocessor import flogging
+
 
 def randomColors(count: int) -> List[QColor]:
     colors = list()
@@ -22,11 +24,20 @@ def computeAxisValue(axis: Optional[QtCharts.QAbstractAxis], value: float) -> st
         return '-'
     if axis.type() == QtCharts.QAbstractAxis.AxisTypeDateTime:
         axis: QtCharts.QDateTimeAxis
-        qDate = QDateTime.fromMSecsSinceEpoch(int(value))
-        text = qDate.toString(axis.format())
+        try:
+            qDate = QDateTime.fromMSecsSinceEpoch(int(value))
+        except OverflowError as e:
+            flogging.appLogger.warning('Axis value error: {}'.format(str(e)))
+            text = '-'
+        else:
+            text = qDate.toString(axis.format())
     elif axis.type() == QtCharts.QAbstractAxis.AxisTypeBarCategory:
         axis: QtCharts.QBarCategoryAxis
-        text = axis.at(round(value))
+        categories = axis.categories()
+        if 0 <= round(value) < len(categories):
+            text = axis.at(round(value))
+        else:
+            text = '-'
     elif axis.type() == QtCharts.QAbstractAxis.AxisTypeCategory:
         axis: QtCharts.QCategoryAxis
         categories = axis.categoriesLabels()
@@ -49,6 +60,7 @@ def copyAxis(chart: QtCharts.QChart, axis: QtCharts.QAbstractAxis) -> QtCharts.Q
         a_copy = QtCharts.QCategoryAxis(chart)
         labels = axis.categoriesLabels()
         a_copy.setStartValue(axis.startValue(labels[0]))
+        a_copy.setLabelsPosition(axis.labelsPosition())
         for lab in labels:
             a_copy.append(lab, axis.endValue(lab))
     elif axis.type() == QtCharts.QAbstractAxis.AxisTypeValue:

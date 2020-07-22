@@ -1,4 +1,4 @@
-from typing import Any, Set, List
+from typing import Any, Set, List, Tuple
 
 import pandas as pd
 from PySide2.QtCharts import QtCharts
@@ -218,6 +218,7 @@ class TimeSeriesPlot(QWidget):
         p: QSizePolicy = self.chartView.sizePolicy()
         p.setVerticalPolicy(QSizePolicy.Ignored)
         p.setHorizontalPolicy(QSizePolicy.Ignored)
+        p.setHorizontalStretch(20)
         self.chartView.setSizePolicy(p)
         self.workbench = workbench
         self.searchableIndexTableModel: QSortFilterProxyModel = QSortFilterProxyModel(self)
@@ -226,9 +227,6 @@ class TimeSeriesPlot(QWidget):
         self.splitter.addWidget(self.chartView)
         self.splitter.addWidget(self.settingsPanel)
         # Adjust size policies
-        policy = self.chartView.sizePolicy()
-        policy.setHorizontalStretch(20)
-        self.chartView.setSizePolicy(policy)
         policy = self.settingsPanel.sizePolicy()
         policy.setHorizontalStretch(2)
         self.settingsPanel.setSizePolicy(policy)
@@ -250,6 +248,7 @@ class TimeSeriesPlot(QWidget):
                 self.chartView.setBestTickCount(chart.size())
 
     def __createTimeAxis(self, timeSeries: pd.Series, timeType: Type) -> QtCharts.QAbstractAxis:
+        """ Creates a time axis showing 'timeSeries' values of specified type (Ordinal or Datetime) """
         if timeType == Types.Datetime:
             # Time axis is Datetime
             xAxis = QtCharts.QDateTimeAxis()
@@ -265,9 +264,13 @@ class TimeSeriesPlot(QWidget):
         return xAxis
 
     @staticmethod
-    def __createSeriesForAttributes(dataframe: pd.DataFrame, timeIndex: int, timeIndexType: Type):
-        """ Creates a QLineSeries for every column in the dataframe. timeIndex column is used for
-        xAxis """
+    def __createSeriesForAttributes(dataframe: pd.DataFrame, timeIndex: int, timeIndexType: Type) \
+            -> Tuple[List[QtCharts.QLineSeries], float, float]:
+        """ Creates a QLineSeries for every column in the dataframe. 'timeIndex' column is used for
+        xAxis
+
+        :return tuple as (list of series, yMin, yMax)
+        """
         timeIndexName: str = dataframe.columns[timeIndex]
 
         # Convert time values to their numerical equivalent
@@ -277,7 +280,7 @@ class TimeSeriesPlot(QWidget):
             # This may not be super accurate
             dataframe.loc[:, timeIndexName] = pd.to_numeric(dataframe[timeIndexName],
                                                             downcast='integer',
-                                                            errors='coerce').values / 10 ** 6
+                                                            errors='coerce').values / (10 ** 6)
             # dataframe[timeIndexName] \
             #    .map(lambda timestamp: int(timestamp.to_pydatetime().timestamp() * 1000) if )
         else:
@@ -286,19 +289,29 @@ class TimeSeriesPlot(QWidget):
             dataframe.loc[:, timeIndexName] = dataframe[timeIndexName].cat.codes.to_list()
 
         timeValues: pd.Series = dataframe[timeIndexName]
+        # Remove time column since we already used it to create the time points
         dataframe = dataframe.drop(timeIndexName, axis=1)
 
         # Create series for every column (excluding time)
         allSeries: List[QtCharts.QLineSeries] = list()
+        # Also keep track of the range the y axis should have
+        yMin: float = None
+        yMax: float = None
         for colName, valueSeries in dataframe.items():
+            # Compute minimum and maximum of series and update global range
+            smin = valueSeries.min()
+            smax = valueSeries.max()
+            yMin = smin if (yMin is None or yMin > smin) else yMin
+            yMax = smax if (yMax is None or yMax < smax) else yMax
+            # Create series
             qSeries = QtCharts.QLineSeries()
-            points = list(map(lambda t: QPointF(*t), zip(timeValues, valueSeries)))
+            points: List[QPointF] = list(map(lambda t: QPointF(*t), zip(timeValues, valueSeries)))
             qSeries.append(points)
             qSeries.setName(colName)
-            qSeries.setPointsVisible(True)
             qSeries.setUseOpenGL(True)
+            qSeries.setPointsVisible(True)  # This is ignored with OpenGL enabled
             allSeries.append(qSeries)
-        return allSeries
+        return allSeries, yMin, yMax
 
     def __createChartWithValues(self, dataframe: pd.DataFrame, attributes: List[int], timeIndex: int,
                                 timeIndexType: Type) -> QtCharts.QChart:
@@ -321,8 +334,11 @@ class TimeSeriesPlot(QWidget):
         yAxis.setTitleText('Values')
         chart.addAxis(yAxis, Qt.AlignLeft)
 
-        series = self.__createSeriesForAttributes(filteredDf, timeIndex=0, timeIndexType=timeIndexType)
-
+        series: List[QtCharts.QLineSeries]
+        series, yMin, yMax = self.__createSeriesForAttributes(filteredDf, timeIndex=0,
+                                                              timeIndexType=timeIndexType)
+        # Set range to show every point in chart
+        yAxis.setRange(yMin, yMax)
         for s in series:
             chart.addSeries(s)
             s.attachAxis(xAxis)
@@ -331,9 +347,20 @@ class TimeSeriesPlot(QWidget):
 
     def __createChartWithIndexes(self, dataframe: pd.DataFrame, attributes: List[int],
                                  indexes: List[Any], timeIndex: int, timeIndexType: Type,
-                                 indexMean: bool) -> QtCharts.QChart:
-        timeIndexName: str = dataframe.columns[timeIndex]
-        filteredDf = dataframe.loc[indexes, :].iloc[:, [timeIndex, *attributes]] \
+                                 indexMean: bool = False) -> QtCharts.QChart:
+        """ Creates a chart with a series for every 'index' in 'dataframe' showing only column
+        specified in 'attributes'
+
+        :param attributes: the position of the columns to consider to create series
+        :param indexes: the indexes of the dataframe to use
+        :param timeIndex: the index of the column in 'dataframe' which should be considered the time axis
+        :param timeIndexType: the type of column specified in 'timeIndex'. Can be Ordinal or Datetime
+        :param indexMean: ignored for now
+        """
+        columns = dataframe.columns
+        timeIndexName: str = columns[timeIndex]
+        # Get the subset of attribute columns and selected indexes
+        filteredDf = dataframe.loc[indexes, columns[[timeIndex, *attributes]]] \
             .dropna(axis=0, subset=[timeIndexName])
         filteredDf = filteredDf.sort_values(by=timeIndexName, axis=0, ascending=True)
 
@@ -348,7 +375,7 @@ class TimeSeriesPlot(QWidget):
         chart.addAxis(xAxis, Qt.AlignBottom)
 
         # Create the Y axis
-        yAxis = QtCharts.QValueAxis(chart)
+        yAxis = QtCharts.QValueAxis()
         yAxis.setTitleText('Values')
         # Add axis Y to chart
         chart.addAxis(yAxis, Qt.AlignLeft)
@@ -358,7 +385,10 @@ class TimeSeriesPlot(QWidget):
         for group, groupedValues in dfByIndex:
             # Create a series for this 'index'
             groupName: str = str(group)
-            allSeries = self.__createSeriesForAttributes(groupedValues, 0, timeIndexType=timeIndexType)
+            allSeries: List[QtCharts.QLineSeries]
+            allSeries, yMin, yMax = self.__createSeriesForAttributes(groupedValues, 0,
+                                                                     timeIndexType=timeIndexType)
+            yAxis.setRange(yMin, yMax)
             for series in allSeries:
                 chart.addSeries(series)
                 series.attachAxis(xAxis)
@@ -374,7 +404,7 @@ class TimeSeriesPlot(QWidget):
         timeAxis: str = self.settingsPanel.timeAxisAttributeCB.currentText()
         attributes: List[int] = self.settingsPanel.valuesTable.model().checked
         indexes: List[Any] = self.settingsPanel.indexTable.model().sourceModel().checked
-        indexMean: bool = False  # self.settingsPanel.meanCB.isChecked()
+        # indexMean: bool = self.settingsPanel.meanCB.isChecked()
 
         # Possibilities:
         # 1) 0 indexes and 1+ attributes
@@ -413,13 +443,13 @@ class TimeSeriesPlot(QWidget):
             chart = self.__createChartWithValues(dataframe, attributes, timeIndex, timeType)
         elif (len(attributes) == 1 and len(indexes) >= 1) or \
                 (len(attributes) >= 1 and len(indexes) == 1):
-            # Create chart with 1 attribute and many indexes
-            chart = self.__createChartWithIndexes(dataframe, attributes, indexes, timeIndex, timeType,
-                                                  indexMean)
+            # Create chart with 1 attribute and many indexes, or with many attributes and 1 index
+            chart = self.__createChartWithIndexes(dataframe, attributes, indexes, timeIndex, timeType)
         else:
             raise NotImplementedError('Invalid chart parameters')
 
         chart.setDropShadowEnabled(False)
+        chart.setAnimationOptions(QtCharts.QChart.NoAnimation)
         chart.legend().setVisible(True)
         # Set font size for axis
         font: QFont = chart.axisX().labelsFont()
@@ -432,8 +462,11 @@ class TimeSeriesPlot(QWidget):
         self.__setChart(chart)
 
     def __setChart(self, chart: QtCharts.QChart) -> None:
+        """ Set a chart in view, deleting the previous one """
         oldChart = self.chartView.chart()
-        chart.legend().show()
+        # This reset seems to fix a SEGFAULT happening when chart was zoomed/panned and a new
+        # chart was set
+        oldChart.zoomReset()
         self.chartView.setChart(chart)
         self.chartView.setBestTickCount(chart.size())
         safeDelete(oldChart)
@@ -448,7 +481,7 @@ class TimeSeriesPlot(QWidget):
         frameModel = self.workbench.getDataframeModelByName(name)
         self.settingsPanel.valuesTable.setSourceFrameModel(frameModel)
         # Set up combo box for time axis
-        timeAxisModel = AttributeTableModel(None, False, False, False)
+        timeAxisModel = AttributeTableModel(self, False, False, False)
         timeAxisModel.setFrameModel(frameModel)
         filteredModel = AttributeProxyModel(filterTypes=[Types.Datetime, Types.Ordinal], parent=self)
         filteredModel.setSourceModel(timeAxisModel)
@@ -475,10 +508,7 @@ class TimeSeriesPlot(QWidget):
                 indexTableModel.onHeaderClicked)
 
     def clearChart(self) -> None:
-        chart = self.chartView.chart()
-        if chart:
-            self.chartView.setChart(QtCharts.QChart())
-            safeDelete(chart)
+        self.__setChart(QtCharts.QChart())
 
     def reset(self) -> None:
         m = self.settingsPanel.indexTable.model()

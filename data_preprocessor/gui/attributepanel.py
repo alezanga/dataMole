@@ -125,6 +125,8 @@ class AttributePanel(QWidget):
             self._histPanel.slider.setValue(len(hist))
             self._histPanel.slider.blockSignals(False)
             self._histPanel.label.setText('Number of bins: {:d}'.format(len(hist)))
+            if self._histPanel.chart:
+                self._histPanel.chartView.setBestTickCount(self._histPanel.chart.size())
             flogging.appLogger.debug('Histogram data set')
 
     @Slot(tuple)
