@@ -12,17 +12,12 @@
 """Node graph scene manager based on QGraphicsScene
 
 """
-import os
 import random
 
 from PySide2 import QtCore, QtGui, QtWidgets
 
 from .constant import SCENE_WIDTH, SCENE_HEIGHT
 from .node import Node
-
-# from . import QtOpenGL
-
-RESOURCES = os.path.dirname(os.path.realpath(__file__))
 
 
 class GraphView(QtWidgets.QGraphicsView):
@@ -54,17 +49,6 @@ class GraphView(QtWidgets.QGraphicsView):
         self._is_view_initialised = False
         self._is_pan = False
         self._is_zoom = False
-
-        # Custom mouse cursors
-        img = QtGui.QPixmap(
-            os.path.join(RESOURCES, "bitmap", "arrow_plus.png"))
-        self.arrow_plus_cursor = QtGui.QCursor(img, hotX=0, hotY=0)
-        img = QtGui.QPixmap(
-            os.path.join(RESOURCES, "bitmap", "arrow_minus.png"))
-        self.arrow_minus_cursor = QtGui.QCursor(img, hotX=0, hotY=0)
-        img = QtGui.QPixmap(
-            os.path.join(RESOURCES, "bitmap", "arrow_cross.png"))
-        self.arrow_cross_cursor = QtGui.QCursor(img, hotX=0, hotY=0)
 
         # Set scene
         self.setScene(scene)
@@ -206,18 +190,9 @@ class GraphView(QtWidgets.QGraphicsView):
             print("P# CTRL ON")
             self.scene()._is_ctrl_key = True
 
-            if not self._is_pan:
-                self.setCursor(self.arrow_minus_cursor)
-
         if modifiers & QtCore.Qt.ShiftModifier:
             print("P# SHIFT ON")
             self.scene()._is_shift_key = True
-
-            if not self._is_pan:
-                if not self.scene()._is_ctrl_key:
-                    self.setCursor(self.arrow_plus_cursor)
-                else:
-                    self.setCursor(self.arrow_cross_cursor)
 
         if event.key() in [QtCore.Qt.Key_Delete, QtCore.Qt.Key_Backspace]:
             # self.scene().delete_selected()
@@ -284,10 +259,6 @@ class GraphView(QtWidgets.QGraphicsView):
                 self.setRenderHint(QtGui.QPainter.Antialiasing, True)
                 self.setCursor(QtCore.Qt.ArrowCursor)
 
-        if self.scene()._is_shift_key:
-            self.setCursor(self.arrow_plus_cursor)
-        elif self.scene()._is_ctrl_key:
-            self.setCursor(self.arrow_minus_cursor)
         elif not self._is_pan:
             self.setCursor(QtCore.Qt.ArrowCursor)
 
@@ -364,12 +335,6 @@ class GraphView(QtWidgets.QGraphicsView):
         # Update mouse icon
         if scene._is_alt_key:
             self.setCursor(QtCore.Qt.OpenHandCursor)
-        elif scene._is_shift_key and scene._is_ctrl_key:
-            self.setCursor(self.arrow_cross_cursor)
-        elif scene._is_shift_key:
-            self.setCursor(self.arrow_plus_cursor)
-        elif scene._is_ctrl_key:
-            self.setCursor(self.arrow_minus_cursor)
         else:
             self.setCursor(QtCore.Qt.ArrowCursor)
 

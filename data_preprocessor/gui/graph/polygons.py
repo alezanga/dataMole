@@ -16,7 +16,6 @@ Polygons used in Node graph
 
 from PySide2 import QtCore, QtGui
 
-
 height = 4
 width = height * 3 / 4
 thick = height / 2

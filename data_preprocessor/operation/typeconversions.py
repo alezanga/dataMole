@@ -445,8 +445,8 @@ class ToString(GraphOperation, flogging.Loggable):
         if not self.hasOptions() or not self._shapes[0]:
             return None
         s = self._shapes[0].clone()
-        s.colTypes = [Types.String if i in self.__attributes else s.colTypes[i] for i in
-                      self.__attributes]
+        for i in self.__attributes:
+            s.colTypes[i] = Types.String
         return s
 
     @staticmethod

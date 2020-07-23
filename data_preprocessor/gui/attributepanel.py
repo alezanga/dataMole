@@ -2,6 +2,7 @@ from typing import Dict, Optional, Tuple, Any
 
 from PySide2.QtCharts import QtCharts
 from PySide2.QtCore import Slot, Qt
+from PySide2.QtGui import QFont
 from PySide2.QtWidgets import QWidget, QVBoxLayout, QGridLayout, QLabel, QLayoutItem, QSlider, \
     QPushButton, QSizePolicy, QMessageBox
 
@@ -12,6 +13,7 @@ from data_preprocessor.gui.diffpanel import DataframeView
 from data_preprocessor.gui.mainmodels import FrameModel, SearchableAttributeTableWidget
 from data_preprocessor.gui.waitingspinnerwidget import QtWaitingSpinner
 from data_preprocessor.gui.workbench import WorkbenchModel
+from data_preprocessor.operation.utils import isFloat
 
 
 class AttributePanel(QWidget):
@@ -88,14 +90,14 @@ class AttributePanel(QWidget):
         else:
             self.onComputationFinished(identifier=(self.__currentAttributeIndex, attType, 'hist'))
         # Connect slider if type is numeric
-        if attType == Types.Numeric:
+        if attType == Types.Numeric or attType == Types.Datetime:
             self._histPanel.slider.setEnabled(True)
             self._histPanel.label.setEnabled(True)
             self._histPanel.slider.setToolTip('Number of bins')
         else:
             self._histPanel.slider.setDisabled(True)
             self._histPanel.label.setDisabled(True)
-            self._histPanel.slider.setToolTip('Bin number is not allowed for non numeric attributes')
+            self._histPanel.slider.setToolTip('Bin number is not allowed for non continuous attributes')
 
     @Slot(int)
     def recomputeHistogram(self, bins: int) -> None:
@@ -119,7 +121,8 @@ class AttributePanel(QWidget):
         elif mode == 'hist':
             hist: Dict[Any, int] = self._frameModel.histogram.get(attributeIndex)
             self._histPanel.spinner.stop()
-            self._histPanel.setData(hist, asRanges=(identifier[1] == Types.Numeric))
+            self._histPanel.setData(hist, asRanges=(identifier[1] == Types.Numeric or identifier[1] ==
+                                                    Types.Datetime))
             # Ensure slider label and value are correctly set
             self._histPanel.slider.blockSignals(True)
             self._histPanel.slider.setValue(len(hist))
@@ -248,8 +251,10 @@ class Histogram(QWidget):
 
         labels = ['{:.2f}'.format(k) if isinstance(k, float) else str(k) for k in data.keys()]
         if asRanges:
-            lastEnd = float(labels[-1]) + (float(labels[1]) - float(labels[0]))
-            labels.append('{:.2f}'.format(lastEnd))
+            if isFloat(labels[0]):
+                # Assume labels are float
+                lastEnd = float(labels[-1]) + (float(labels[1]) - float(labels[0]))
+                labels.append('{:.2f}'.format(lastEnd))
             axisX = QtCharts.QCategoryAxis()
             for i in range(len(labels) - 1):
                 axisX.append(labels[i + 1], (i + 1) * 2 * series.barWidth())
@@ -258,6 +263,10 @@ class Histogram(QWidget):
         else:
             axisX = QtCharts.QBarCategoryAxis()
             axisX.append(labels)
+        # Set font
+        font: QFont = axisX.labelsFont()
+        font.setPointSize(11)
+        axisX.setLabelsFont(font)
         chart.addAxis(axisX, Qt.AlignBottom)
         series.attachAxis(axisX)
 

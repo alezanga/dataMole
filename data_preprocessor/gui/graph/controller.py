@@ -80,11 +80,14 @@ class GraphController(QWidget):
 
     @Slot(int)
     def startEditNode(self, node_id: int):
+        # TODO: see why this is not called sometimes !!!
+        flogging.appLogger.debug('Edit node slot')
         if self.__executing:
             flogging.appLogger.debug('Flow is executing, don\'t allow edit')
             return
         node: flow.dag.OperationNode = self._operation_dag[node_id]
         if not self.__editor_widget:
+            flogging.appLogger.debug('Creating new editor')
             if not node.operation.needsOptions():
                 msg_noeditor = QMessageBox()
                 msg_noeditor.setWindowTitle(node.operation.name())
@@ -119,6 +122,8 @@ class GraphController(QWidget):
             self.__editor_widget.move(self._view.rect().center())
             self.__editor_widget.show()
         else:
+            flogging.appLogger.debug('Editor already opened {}'.format(type(self.__editor_widget)))
+            # If an editor is currently opened show it, instead of creating a new one
             self.__editor_widget.activateWindow()
             self.__editor_widget.raise_()
 
@@ -154,7 +159,6 @@ class GraphController(QWidget):
     @Slot()
     def cleanupEditor(self) -> None:
         # Do not call close() here, since this function is called after a closeEvent
-        self.__editor_widget.disconnect(self)
         self.__editor_widget.deleteLater()
         self.__editor_node_id = None
         self.__editor_widget = None

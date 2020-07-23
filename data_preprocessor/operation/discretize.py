@@ -102,7 +102,7 @@ class BinsDiscretizer(GraphOperation, flogging.Loggable):
         for r, bins in self.__attributes.items():
             options['attributes'][r] = {'bins': bins}
         options['strategy'] = self.__strategy
-        options['suffix'] = self.__attributeSuffix
+        options['suffix'] = (bool(self.__attributeSuffix), self.__attributeSuffix)
         return options
 
     def setOptions(self, attributes: Dict[int, Dict[str, str]], strategy: BinStrategy,

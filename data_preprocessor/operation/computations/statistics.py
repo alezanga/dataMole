@@ -46,15 +46,19 @@ class Hist(Operation):
 
     def execute(self, df: data.Frame) -> Dict[object, int]:
         col = df.getRawFrame().iloc[:, self.__attribute]
-        if self.__type == Types.Numeric:
+        if self.__type == Types.Numeric or self.__type == Types.Datetime:
             # Differently from value_counts, this handles the case where all values are nan
             cuts = pd.cut(col, bins=self.__nBins, duplicates='drop')
             values = cuts.value_counts(sort=False)
-            # values = col.value_counts(bins=self.__nBins, sort=False)
-            values.index = values.index.map(lambda i: '{:.2f}'.format(i.left))
+            if self.__type == Types.Numeric:
+                values.index = values.index.map(lambda i: '{:.2f}'.format(i.left))
+            else:
+                # Datetime
+                fmt = '%Y-%m-%d %H:%M'
+                values.index = values.index.map(lambda i: i.left.strftime(fmt))
             return values.to_dict()
         else:
-            return col.value_counts().to_dict()
+            return col.value_counts(sort=False).to_dict()
 
     def setOptions(self, attribute: int, attType: Type, bins: int = None) -> None:
         self.__attribute = attribute
