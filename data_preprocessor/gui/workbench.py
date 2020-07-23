@@ -1,11 +1,14 @@
 from typing import Any, List, Optional, Dict
 
 from PySide2 import QtGui
-from PySide2.QtCore import QAbstractListModel, QObject, QModelIndex, Qt, Slot, Signal, QItemSelection
+from PySide2.QtCore import QAbstractListModel, QObject, QModelIndex, Qt, Slot, Signal, QItemSelection, \
+    QItemSelectionModel
 from PySide2.QtWidgets import QListView, QTableView, QHeaderView
 
 import data_preprocessor.data as d
 from data_preprocessor.gui.mainmodels import FrameModel
+
+_EMPTY_ROW_NAME = ' '
 
 
 class WorkbenchModel(QAbstractListModel):
@@ -43,24 +46,23 @@ class WorkbenchModel(QAbstractListModel):
         else:
             return None
 
-    def setData(self, index: QModelIndex, new_name: str, role: int = Qt.EditRole) -> bool:
+    def setData(self, index: QModelIndex, newName: str, role: int = Qt.EditRole) -> bool:
         """ Change name of dataframe """
         if not index.isValid():
             return False
         if role == Qt.EditRole:
-            new_name = new_name.strip()
-            old_name = self.data(index, Qt.DisplayRole)
-            old_model = self.getDataframeModelByIndex(index.row())
-            if not new_name or new_name == old_name or new_name in self.names:
+            newName = newName.strip()
+            oldName = self.data(index, Qt.DisplayRole)
+            if not newName or newName == oldName or newName in self.names:
                 # Name is empty string, value is unchanged or the name already exists
-                if old_name == ' ':
+                if oldName == _EMPTY_ROW_NAME:
                     # Then a dummy entry was set and must be deleted, since user didn't provide a
                     # valid name
                     self.removeRow(index.row())
                 return False  # No changes
             # Edit entry with the new name and the old value
-            self.__workbench[index.row()].name = new_name
-            self.__nameToIndex[new_name] = self.__nameToIndex.pop(old_name)
+            self.__workbench[index.row()].name = newName
+            self.__nameToIndex[newName] = self.__nameToIndex.pop(oldName)
             # Update view
             self.dataChanged.emit(index, index, [Qt.DisplayRole, Qt.EditRole])
             return True
@@ -85,7 +87,7 @@ class WorkbenchModel(QAbstractListModel):
             # nameToIndex is already updated (no change)
             # dataChanged is not emitted because the frame name has not changed
         else:
-            # Name does not exists
+            # Name does not exists, so add as a new row
             row = self.rowCount()
             f = FrameModel(None, value)  # No parent is set
             f.name = name
@@ -124,10 +126,10 @@ class WorkbenchModel(QAbstractListModel):
     @Slot()
     def appendEmptyRow(self) -> bool:
         row = self.rowCount()
-        self.beginInsertRows(QModelIndex(), row, row)
         # Create a dummy entry
         f = FrameModel()
-        f.name = ' '
+        f.name = _EMPTY_ROW_NAME
+        self.beginInsertRows(QModelIndex(), row, row)
         self.__workbench.append(f)
         self.__nameToIndex[f.name] = row
         self.endInsertRows()
@@ -148,13 +150,19 @@ class WorkbenchView(QTableView):
         self.verticalHeader().setSectionResizeMode(QHeaderView.Fixed)
         self.verticalHeader().setSectionsMovable(True)
         self.verticalHeader().setDragEnabled(True)
-        self.verticalHeader().setDragDropMode(QTableView.InternalMove)
+        self.verticalHeader().setDragDropMode(QHeaderView.InternalMove)
         self.verticalHeader().setDragDropOverwriteMode(False)
         self.verticalHeader().setDropIndicatorShown(True)
         self.verticalHeader().hide()
         self._editable = editable
         if not self._editable:
             self.setEditTriggers(QListView.NoEditTriggers)
+
+    @Slot(QModelIndex)
+    def startEditNoSelection(self, index: QModelIndex) -> None:
+        """ Start editing a row without changing the selection """
+        self.selectionModel().setCurrentIndex(index, QItemSelectionModel.NoUpdate)
+        self.edit(index)
 
     def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
         if event.key() == Qt.Key_Delete and self._editable:

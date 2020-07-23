@@ -1,6 +1,6 @@
 import logging
 import os
-from typing import List
+from typing import List, Tuple
 
 import numpy as np
 from PySide2.QtCharts import QtCharts
@@ -124,6 +124,7 @@ class SimpleChartView(QtCharts.QChartView):
             chart = copyChart(self.chart())
             iView = InteractiveChartView(chart=chart, setInWindow=True)
             iView.enableKeySequences(False)
+            iView.setRenderHints(self.renderHints())
             chartWindow.setAttribute(Qt.WA_DeleteOnClose, True)
             chartWindow.setCentralWidget(iView)  # window takes ownership of view
             chartWindow.resize(500, 500)
@@ -200,8 +201,6 @@ class InteractiveChartView(QtCharts.QChartView):
             # s.clicked.connect(self.keepCallout)
             s.hovered.connect(self.tooltip)
 
-        # self.setRenderHint(QPainter.Antialiasing)
-
         if self.__chartIsSet and self.__positionTrackerEnabled:
             self.__coordX = QGraphicsSimpleTextItem(chart)
             self.__coordX.setText("X: ")
@@ -210,7 +209,8 @@ class InteractiveChartView(QtCharts.QChartView):
             self._updateMouseTrackerPosition()  # Show them in the correct place
 
     @staticmethod
-    def _updateAxisTickCount(axis: QtCharts.QAbstractAxis, newSize: QSize) -> None:
+    def _updateAxisTickCount(chart: QtCharts.QChart, axis: QtCharts.QAbstractAxis,
+                             newSize: QSize) -> None:
         """ Given an axis and the size of the view, sets the number of ticks to the best value
         avoiding too many overlapping labels """
         # Get one label as string and the current number of ticks/labels
@@ -228,13 +228,29 @@ class InteractiveChartView(QtCharts.QChartView):
         else:
             return  # Axis type not supported
         # Decide which dimension is relevant for resizing
+        margins = chart.margins()
+        # layoutMargins: (left, top, right, bottom)
+        layoutMargins: Tuple[float, ...] = chart.layout().getContentsMargins()
+        if layoutMargins:
+            layoutMargins = tuple([i if i is not None else 0.0 for i in layoutMargins])
+        offset: int = 0
         if axis.orientation() == Qt.Horizontal:
-            length = newSize.width() - 60
+            if margins:
+                offset += margins.left() + margins.right()
+            if layoutMargins:
+                offset += layoutMargins[0] + layoutMargins[2]
+            # 'length' is the available space for displaying labels, without margins and the space
+            # between every label
+            length = newSize.width() - offset - (ticks * 10)
         else:
-            length = newSize.height() - 50
+            if margins:
+                offset += margins.top() + margins.bottom()
+            if layoutMargins:
+                offset += layoutMargins[1] + layoutMargins[3]
+            length = newSize.height() - offset - (ticks * 10)
         # Compute the optimal width of the label (in pixel)
         metrics = QFontMetrics(axis.labelsFont())
-        optimalWidth: int = metrics.horizontalAdvance(label) * 1.9
+        optimalWidth: int = metrics.horizontalAdvance(label) * 1.9  # not precise, 1.9 is to fix it
 
         # Deal with every type separately
         if axis.type() == QtCharts.QAbstractAxis.AxisTypeDateTime:
@@ -255,9 +271,9 @@ class InteractiveChartView(QtCharts.QChartView):
             xAxis = self.chart().axisX()
             yAxis = self.chart().axisY()
             if xAxis:
-                self._updateAxisTickCount(xAxis, newSize)
+                self._updateAxisTickCount(self.chart(), xAxis, newSize)
             if yAxis:
-                self._updateAxisTickCount(yAxis, newSize)
+                self._updateAxisTickCount(self.chart(), yAxis, newSize)
 
     def _updateMouseTrackerPosition(self, xOffset: int = 50, yOffset: int = 20) -> None:
         if self.__chartIsSet and self.__positionTrackerEnabled:
@@ -374,6 +390,7 @@ class InteractiveChartView(QtCharts.QChartView):
             chart = copyChart(self.chart())
             iView = InteractiveChartView(chart=chart, setInWindow=True)
             iView.enableKeySequences(False)
+            iView.setRenderHints(self.renderHints())
             chartWindow.setAttribute(Qt.WA_DeleteOnClose, True)
             chartWindow.setCentralWidget(iView)  # window takes ownership of view
             chartWindow.resize(600, 500)

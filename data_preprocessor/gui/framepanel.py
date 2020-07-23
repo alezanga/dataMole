@@ -17,6 +17,7 @@ class FramePanel(QWidget):
         labelr = QLabel('Rows:', self)
         labeli = QLabel('Index:', self)
         self.name = QLabel(self)
+        self.name.setWordWrap(True)
         self.rows = QLabel(self)
         self.columns = QLabel(self)
         self.index = QLabel(self)

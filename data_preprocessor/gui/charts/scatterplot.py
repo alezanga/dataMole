@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 from PySide2.QtCharts import QtCharts
 from PySide2.QtCore import Slot, QPointF, Qt, QModelIndex, QMargins
-from PySide2.QtGui import QFont
+from PySide2.QtGui import QFont, QPainter
 from PySide2.QtWidgets import QWidget, QVBoxLayout, QLabel, QGridLayout, QHBoxLayout, QPushButton, \
     QComboBox, QSplitter, QSizePolicy
 
@@ -192,8 +192,12 @@ class ScatterPlotMatrix(QWidget):
                     invertedChart = ScatterPlotMatrix.__setupChartFromSeries(invertedSeriesList,
                                                                              xAxisName=yColName,
                                                                              yAxisName=xColName)
-                    self.__matrixLayout.addWidget(SimpleChartView(plainChart, self), r, c)
-                    self.__matrixLayout.addWidget(SimpleChartView(invertedChart, self), c, r)
+                    view1 = SimpleChartView(plainChart, self)
+                    view2 = SimpleChartView(invertedChart, self)
+                    view1.setRenderHint(QPainter.Antialiasing)
+                    view2.setRenderHint(QPainter.Antialiasing)
+                    self.__matrixLayout.addWidget(view1, r, c)
+                    self.__matrixLayout.addWidget(view2, c, r)
         self.__matrixLayout.setSpacing(2)
 
     def clearScatterPlotMatrix(self) -> None:

@@ -4,7 +4,7 @@ import pandas as pd
 from PySide2.QtCharts import QtCharts
 from PySide2.QtCore import Qt, QAbstractItemModel, Slot, QAbstractTableModel, QModelIndex, \
     QSortFilterProxyModel, QMargins, QPointF, QStringListModel
-from PySide2.QtGui import QFont
+from PySide2.QtGui import QFont, QPainter
 from PySide2.QtWidgets import QWidget, QComboBox, QLineEdit, QLabel, QHBoxLayout, QVBoxLayout, \
     QSplitter, QTableView, QHeaderView, QPushButton, QSizePolicy
 
@@ -180,9 +180,9 @@ class _SettingsPanel(QWidget):
 
         lab = QLabel('Time axis format')
         self.timeAxisFormatCB = QComboBox(self)
-        options = QStringListModel(['dd.MM.yyyy', 'yyyy-MM-dd', 'yyyy-MM', 'yyyy',
+        options = QStringListModel(['dd.MM.yyyy', 'yyyy-MM-dd', 'yyyy-MM', 'yyyy', 'MM', 'dd',
                                     'hh:mm:ss', 'hh:mm', 'hh', 'yyyy-MM-dd HH:mm:ss',
-                                    'ddd MMM dd yyyy', 'ddd', 'MMM', 'dd', 'MMM yyyy'], parent=self)
+                                    'ddd MMM dd yyyy', 'ddd', 'MMM', 'MMM yyyy'], parent=self)
         self.timeAxisFormatCB.setModel(options)
         self.timeAxisFormatCB.setCurrentIndex(0)
         sideLayout.addWidget(lab)
@@ -216,8 +216,6 @@ class TimeSeriesPlot(QWidget):
         self.settingsPanel = _SettingsPanel(self)
         self.chartView = InteractiveChartView(parent=self, setInWindow=False)
         p: QSizePolicy = self.chartView.sizePolicy()
-        p.setVerticalPolicy(QSizePolicy.Ignored)
-        p.setHorizontalPolicy(QSizePolicy.Ignored)
         p.setHorizontalStretch(20)
         self.chartView.setSizePolicy(p)
         self.workbench = workbench
@@ -462,19 +460,15 @@ class TimeSeriesPlot(QWidget):
         self.__setChart(chart)
 
     def __setChart(self, chart: QtCharts.QChart) -> None:
-        """ Set a chart in view, deleting the previous one """
-        oldChart = self.chartView.chart()
-        # This reset seems to fix a SEGFAULT happening when chart was zoomed/panned and a new
-        # chart was set
-        oldChart.zoomReset()
+        """ Creates a new view and set the provided chart in it """
+        self.createChartView()
         self.chartView.setChart(chart)
         self.chartView.setBestTickCount(chart.size())
-        safeDelete(oldChart)
 
     @Slot(str, str)
     def onFrameSelectionChanged(self, name: str, *_) -> None:
         # Reset the ChartView
-        self.clearChart()
+        self.createChartView()
         if not name:
             return
         # Set attribute table
@@ -507,19 +501,12 @@ class TimeSeriesPlot(QWidget):
             self.settingsPanel.indexTable.tableView.horizontalHeader().sectionClicked.connect(
                 indexTableModel.onHeaderClicked)
 
-    def clearChart(self) -> None:
-        self.__setChart(QtCharts.QChart())
-
-    def reset(self) -> None:
-        m = self.settingsPanel.indexTable.model()
-        if m:
-            self.searchableIndexTableModel = QSortFilterProxyModel(self)
-            self.settingsPanel.indexTable.setModel(self.searchableIndexTableModel)
-            safeDelete(m)
-
-        m = self.settingsPanel.timeAxisAttributeCB.model()
-        if m:
-            self.settingsPanel.timeAxisAttributeCB.setModel(QSortFilterProxyModel(self))
-            safeDelete(m)
-
-        self.clearChart()
+    def createChartView(self) -> None:
+        """ Creates a new chart view """
+        # Creating a new view, instead of deleting chart, avoids many problems
+        self.chartView = InteractiveChartView(parent=self, setInWindow=False)
+        oldView = self.splitter.replaceWidget(0, self.chartView)
+        self.chartView.setSizePolicy(oldView.sizePolicy())
+        self.chartView.setRenderHint(QPainter.Antialiasing)  # For better looking charts
+        self.chartView.show()
+        safeDelete(oldView)

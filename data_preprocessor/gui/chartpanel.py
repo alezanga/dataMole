@@ -27,9 +27,9 @@ class ChartPanel(QWidget):
             self.fLayout.addRow(ScatterPlotMatrix(self.workbenchModel, self))
         elif text == 'Time series':
             self.fLayout.addRow(TimeSeriesPlot(self.workbenchModel, self))
-        self.onFrameSelectionChanged(self.__currentFrameName)
+        self.onFrameSelectionChanged(self.__currentFrameName, '')
 
     @Slot(str, str)
-    def onFrameSelectionChanged(self, name: str, *_) -> None:
+    def onFrameSelectionChanged(self, name: str, oldName: str) -> None:
         self.__currentFrameName = name
-        self.fLayout.itemAt(1, QFormLayout.SpanningRole).widget().onFrameSelectionChanged(name)
+        self.fLayout.itemAt(1, QFormLayout.SpanningRole).widget().onFrameSelectionChanged(name, oldName)

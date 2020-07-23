@@ -28,8 +28,7 @@ class MainWidget(QWidget):
                                          opModel=self.operationMenu.model())
         self.workbenchView = WorkbenchView()
         self.workbenchView.setModel(self.workbenchModel)
-        self.workbenchModel.emptyRowInserted.connect(self.workbenchView.edit)
-        self.workbenchModel.emptyRowInserted.connect(self.workbenchView.setCurrentIndex)
+        self.workbenchModel.emptyRowInserted.connect(self.workbenchView.startEditNoSelection)
 
         tabs = QTabWidget(self)
 
