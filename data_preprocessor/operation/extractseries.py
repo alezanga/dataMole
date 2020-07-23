@@ -31,7 +31,8 @@ class ExtractTimeSeries(Operation):
     def name() -> str:
         return 'Extract time series'
 
-    def shortDescription(self) -> str:
+    @staticmethod
+    def shortDescription() -> str:
         return 'Allows to extract a temporal information from dataset in non standard format. A ' \
                'standard dataset should have the temporal labels in a single column. If the dataset ' \
                'contains multiple measurements for every time point, these should be uniquely ' \

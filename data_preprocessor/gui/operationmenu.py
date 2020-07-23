@@ -8,7 +8,7 @@ from PySide2.QtWidgets import QWidget, QTreeWidget, QTreeWidgetItem, QApplicatio
 from data_preprocessor.operation.interface.graph import GraphOperation
 
 
-def _build_item(name: str, data=None) -> QTreeWidgetItem:
+def _build_item(name: str, data: type = None) -> QTreeWidgetItem:
     """
     Build a tree item with a display name, and sets its data
 
@@ -18,6 +18,9 @@ def _build_item(name: str, data=None) -> QTreeWidgetItem:
     flags = Qt.ItemIsSelectable | Qt.ItemIsEnabled
     if data:
         item.setData(1, Qt.UserRole, data)
+        # Show the short description as tooltip of the items
+        if data.shortDescription():
+            item.setData(0, Qt.ToolTipRole, data.shortDescription())
         flags |= Qt.ItemIsDragEnabled
     item.setFlags(flags)
     return item
@@ -82,6 +85,7 @@ class OperationMenu(QTreeWidget):
             s = QStandardItem()
             s.setData(w.data(0, Qt.DisplayRole), Qt.DisplayRole)
             s.setData(w.data(1, Qt.UserRole), Qt.UserRole)
+            s.setData(w.data(0, Qt.ToolTipRole), Qt.ToolTipRole)
             return s
 
         def filterItems(item: QTreeWidgetItem) -> bool:

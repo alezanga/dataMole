@@ -43,7 +43,8 @@ class CsvLoader(Operation):
     def name() -> str:
         return 'Load CSV'
 
-    def shortDescription(self) -> str:
+    @staticmethod
+    def shortDescription() -> str:
         return 'Loads a dataframe from a CSV'
 
     def longDescription(self) -> str:

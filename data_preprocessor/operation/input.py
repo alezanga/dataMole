@@ -21,7 +21,8 @@ class CopyOp(InputGraphOperation, flogging.Loggable):
     def name() -> str:
         return 'Copy operation'
 
-    def shortDescription(self) -> str:
+    @staticmethod
+    def shortDescription() -> str:
         return 'Copy existing dataframe. Should be used as first operation in a pipeline'
 
     def hasOptions(self) -> bool:

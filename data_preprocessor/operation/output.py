@@ -23,7 +23,8 @@ class ToVariableOp(OutputGraphOperation, flogging.Loggable):
     def name() -> str:
         return 'To variable'
 
-    def shortDescription(self) -> str:
+    @staticmethod
+    def shortDescription() -> str:
         return 'Save the output as a variable in the workbench with the given name'
 
     def hasOptions(self) -> bool:

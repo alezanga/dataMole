@@ -73,7 +73,8 @@ class FillNan(GraphOperation, Loggable):
     def name() -> str:
         return 'FillNan'
 
-    def shortDescription(self) -> str:
+    @staticmethod
+    def shortDescription() -> str:
         return 'Fill NaN/NaT values over columns with specified method'
 
     def hasOptions(self) -> bool:

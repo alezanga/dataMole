@@ -43,7 +43,8 @@ class RemoveNanRows(GraphOperation, flogging.Loggable):
     def name() -> str:
         return 'Remove nan rows'
 
-    def shortDescription(self) -> str:
+    @staticmethod
+    def shortDescription() -> str:
         return 'Remove all rows with a specified number or percentage of nan values'
 
     def longDescription(self) -> str:
@@ -137,7 +138,8 @@ class RemoveNanColumns(GraphOperation, flogging.Loggable):
     def name() -> str:
         return 'Remove nan columns'
 
-    def shortDescription(self) -> str:
+    @staticmethod
+    def shortDescription() -> str:
         return 'Remove all columns with a specified number or percentage of nan values'
 
     def hasOptions(self) -> bool:

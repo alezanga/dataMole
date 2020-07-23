@@ -25,7 +25,8 @@ class Drop(GraphOperation):
             raise exp.OptionValidationError([('e', 'Error: no attribute is selected')])
         self.__selected = [self.shapes[0].colNames[i] for i in selected.keys()]
 
-    def shortDescription(self) -> str:
+    @staticmethod
+    def shortDescription() -> str:
         return 'Remove entire columns from dataframe'
 
     def hasOptions(self) -> bool:

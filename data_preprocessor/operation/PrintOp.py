@@ -15,7 +15,8 @@ class PrintOp(OutputGraphOperation):
     def name() -> str:
         return 'Print operation'
 
-    def shortDescription(self) -> str:
+    @staticmethod
+    def shortDescription() -> str:
         return 'Just prints its input'
 
     def setOptions(self, *args, **kwargs) -> None:

@@ -87,7 +87,8 @@ class ReplaceValues(GraphOperation, flogging.Loggable):
     def name() -> str:
         return 'ReplaceValues'
 
-    def shortDescription(self) -> str:
+    @staticmethod
+    def shortDescription() -> str:
         return 'Substitute all specified values in a attribute and substitute them with a single value'
 
     def acceptedTypes(self) -> List[Type]:

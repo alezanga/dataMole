@@ -59,7 +59,8 @@ class ToNumericOp(GraphOperation, flogging.Loggable):
     def name() -> str:
         return 'toNumeric'
 
-    def shortDescription(self) -> str:
+    @staticmethod
+    def shortDescription() -> str:
         return 'Convert one attribute to Numeric values. All types except Datetime can be converted'
 
     def acceptedTypes(self) -> List[Type]:
@@ -174,7 +175,8 @@ class ToCategoricalOp(GraphOperation, flogging.Loggable):
     def name() -> str:
         return 'toCategory'
 
-    def shortDescription(self) -> str:
+    @staticmethod
+    def shortDescription() -> str:
         return 'Convert one attribute to categorical type. Every different value will be considered a ' \
                'new category'
 
@@ -295,7 +297,8 @@ class ToTimestamp(GraphOperation, flogging.Loggable):
     def acceptedTypes(self) -> List[Type]:
         return [Types.String]
 
-    def shortDescription(self) -> str:
+    @staticmethod
+    def shortDescription() -> str:
         return 'Convert columns to datetime objects. Custom format may be specified.'
 
     def longDescription(self) -> str:
@@ -409,7 +412,8 @@ class ToString(GraphOperation, flogging.Loggable):
     def name() -> str:
         return 'toString'
 
-    def shortDescription(self) -> str:
+    @staticmethod
+    def shortDescription() -> str:
         return 'Convert a column of any type to string'
 
     def acceptedTypes(self) -> List[Type]:

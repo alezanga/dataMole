@@ -66,7 +66,8 @@ class JoinOp(GraphOperation, flogging.Loggable):
     def name() -> str:
         return 'Join operation'
 
-    def shortDescription(self) -> str:
+    @staticmethod
+    def shortDescription() -> str:
         return 'Allows to join two tables. Can handle four type of join: left, right, outer and inner'
 
     def acceptedTypes(self) -> List[Type]:

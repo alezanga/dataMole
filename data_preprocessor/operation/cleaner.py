@@ -71,7 +71,8 @@ class RemoveBijections(GraphOperation, flogging.Loggable):
     def name() -> str:
         return 'Remove bijections'
 
-    def shortDescription(self) -> str:
+    @staticmethod
+    def shortDescription() -> str:
         return 'Removes columns with the same values but with different names. Only selected columns ' \
                'will be considered for removal. Match is always performed over all columns'
 

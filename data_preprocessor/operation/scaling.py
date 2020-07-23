@@ -6,12 +6,10 @@ from PySide2.QtCore import QModelIndex, Qt, QAbstractItemModel
 from PySide2.QtWidgets import QStyledItemDelegate, QLineEdit, QHeaderView, QWidget
 from sklearn.preprocessing import minmax_scale, scale
 
-from data_preprocessor import data
-from data_preprocessor import flogging
+from data_preprocessor import data, flogging, exceptions as exp
 from data_preprocessor.data.types import Type, Types
 from data_preprocessor.gui.editor import AbsOperationEditor, OptionsEditorFactory
 from data_preprocessor.gui.mainmodels import FrameModel
-from data_preprocessor import exceptions as exp
 from data_preprocessor.operation.interface.graph import GraphOperation
 from data_preprocessor.operation.utils import isFloat, splitString, NumericListValidator
 
@@ -56,7 +54,8 @@ class MinMaxScaler(GraphOperation, flogging.Loggable):
     def name() -> str:
         return 'MinMaxScaler'
 
-    def shortDescription(self) -> str:
+    @staticmethod
+    def shortDescription() -> str:
         return 'Scales columns as <sup>(X - X_min)</sup>&frasl;<sub>(X_max - ' \
                'X_min)</sub> * (max - min) + min'
 
@@ -88,7 +87,8 @@ class MinMaxScaler(GraphOperation, flogging.Loggable):
             if not vRange:
                 raise exp.OptionValidationError([('nr', 'Error: no range is set at row {:d}'.format(k))])
             if not (len(vRange) == 2 and vRange[0] < vRange[1]):
-                raise exp.OptionValidationError([('ir', 'Error: range is invalid at row {:d}'.format(k))])
+                raise exp.OptionValidationError(
+                    [('ir', 'Error: range is invalid at row {:d}'.format(k))])
             selectedAttributes[k] = vRange
         # Set options
         self.__attributes = selectedAttributes
@@ -166,7 +166,8 @@ class StandardScaler(GraphOperation, flogging.Loggable):
     def name() -> str:
         return 'StandardScaler'
 
-    def shortDescription(self) -> str:
+    @staticmethod
+    def shortDescription() -> str:
         return '<p>Scales columns as (X - &mu;) / &sigma;</p>'
 
     def acceptedTypes(self) -> List[Type]:

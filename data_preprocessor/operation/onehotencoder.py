@@ -42,7 +42,8 @@ class OneHotEncodeOp(GraphOperation, flogging.Loggable):
     def name() -> str:
         return 'One-hot encoder'
 
-    def shortDescription(self) -> str:
+    @staticmethod
+    def shortDescription() -> str:
         return 'Replace every categorical value with a binary attribute'
 
     def longDescription(self) -> str:

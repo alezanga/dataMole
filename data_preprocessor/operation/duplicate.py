@@ -35,7 +35,8 @@ class DuplicateColumn(GraphOperation, flogging.Loggable):
     def name() -> str:
         return 'DuplicateColumn'
 
-    def shortDescription(self) -> str:
+    @staticmethod
+    def shortDescription() -> str:
         return 'Makes duplicates of selected columns, giving them a new name'
 
     def hasOptions(self) -> bool:

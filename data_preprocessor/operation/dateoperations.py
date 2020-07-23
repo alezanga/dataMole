@@ -93,7 +93,8 @@ class DateDiscretizer(GraphOperation, Loggable):
     def name() -> str:
         return 'DateDiscretizer'
 
-    def shortDescription(self) -> str:
+    @staticmethod
+    def shortDescription() -> str:
         return 'Discretize date and times based on ranges'
 
     def acceptedTypes(self) -> List[Type]:

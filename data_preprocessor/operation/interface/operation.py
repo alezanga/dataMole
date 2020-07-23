@@ -52,7 +52,8 @@ class Operation(ABC):
         """
         pass
 
-    def shortDescription(self) -> str:
+    @staticmethod
+    def shortDescription() -> str:
         """
         Provide some information to show for a step. Should be short, since it is always shown in the
         editor widget

@@ -41,7 +41,8 @@ class RenameOp(GraphOperation, flogging.Loggable):
     def name() -> str:
         return 'Rename columns'
 
-    def shortDescription(self) -> str:
+    @staticmethod
+    def shortDescription() -> str:
         return 'This operation can rename the attributes'
 
     def hasOptions(self) -> bool:

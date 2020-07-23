@@ -126,8 +126,9 @@ class GraphOperation(Operation):
         """
         pass
 
+    @staticmethod
     @abstractmethod
-    def shortDescription(self) -> str:
+    def shortDescription() -> str:
         """
         Provide some information to show for a step. Should be short, since it is always shown in the
         editor widget

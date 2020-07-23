@@ -22,7 +22,8 @@ class SetIndex(GraphOperation, flogging.Loggable):
     def name() -> str:
         return 'Set index'
 
-    def shortDescription(self) -> str:
+    @staticmethod
+    def shortDescription() -> str:
         return 'Sets the column index of a table'
 
     def longDescription(self) -> str:
@@ -110,7 +111,8 @@ class ResetIndex(GraphOperation, flogging.Loggable):
     def name() -> str:
         return 'Reset index'
 
-    def shortDescription(self) -> str:
+    @staticmethod
+    def shortDescription() -> str:
         return 'Sets a default numeric index on the dataframe. The old indexes are re-inserted in the ' \
                'dataframe as columns'
 

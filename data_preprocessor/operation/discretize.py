@@ -84,7 +84,8 @@ class BinsDiscretizer(GraphOperation, flogging.Loggable):
     def name() -> str:
         return 'KBinsDiscretizer'
 
-    def shortDescription(self) -> str:
+    @staticmethod
+    def shortDescription() -> str:
         return 'Discretize numeric values into equal sized bins'
 
     def hasOptions(self) -> bool:
@@ -244,7 +245,8 @@ class RangeDiscretizer(GraphOperation, flogging.Loggable):
     def name() -> str:
         return 'RangeDiscretizer'
 
-    def shortDescription(self) -> str:
+    @staticmethod
+    def shortDescription() -> str:
         return 'Discretize numeric attributes in user defined ranges'
 
     def longDescription(self) -> str:
