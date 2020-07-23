@@ -1,9 +1,0 @@
-I added the py4j-x.x.x-src.zip and pyspark.zip under
-$SPARK_HOME/python/lib to the project structure
-(preferences > Project> Project Structure and then do "+ Add Content Root")
-and it worked fine.
-
-PS: Pycharm already had $PYTHONPATH and $SPARK_HOME read from the os env,
-which was set in .bashrc/.bash_profile
-
-source: https://stackoverflow.com/questions/38446913/pycharm-how-do-i-import-pyspark-to-pycharm
