@@ -7,7 +7,7 @@ from PySide2.QtCore import Slot, QModelIndex, QAbstractItemModel, QDateTime, QDa
     QTime
 from PySide2.QtGui import QIcon, Qt, QFontMetrics, QFont
 from PySide2.QtWidgets import QWidget, QDateEdit, QGridLayout, \
-    QSpacerItem, QPushButton, QVBoxLayout, QSizePolicy, \
+    QPushButton, QVBoxLayout, QSizePolicy, \
     QStyledItemDelegate, QTimeEdit, QCheckBox, QButtonGroup, QHBoxLayout, QAbstractButton, QHeaderView, \
     QTableView, QLineEdit
 
@@ -315,7 +315,6 @@ class _DateIntervalDelegate(QStyledItemDelegate):
 
 
 class _IntervalWidget(AbsOperationEditor):
-    _SPACER: int = 40
     DEFAULT_DATE = QDate(1900, 1, 1)
     DEFAULT_TIME = QTime(0, 0, 0, 0)
 
@@ -364,25 +363,21 @@ class _IntervalWidget(AbsOperationEditor):
 
     def showTime(self) -> None:
         for row in self.__layoutRows:
-            self.body.gLayout.addItem(QSpacerItem(self._SPACER, 0), row, 1)
-            self.body.gLayout.itemAtPosition(row, 2).widget().show()
+            self.body.gLayout.itemAtPosition(row, 1).widget().show()
         self.__timeVisible = True
 
     def showDate(self) -> None:
         for row in self.__layoutRows:
-            self.body.gLayout.addItem(QSpacerItem(self._SPACER, 0), row, 1)
             self.body.gLayout.itemAtPosition(row, 0).widget().show()
         self.__dateVisible = True
 
     def hideTime(self) -> None:
         for row in self.__layoutRows:
-            self.body.gLayout.removeItem(self.body.gLayout.itemAtPosition(row, 1))
-            self.body.gLayout.itemAtPosition(row, 2).widget().hide()
+            self.body.gLayout.itemAtPosition(row, 1).widget().hide()
         self.__timeVisible = False
 
     def hideDate(self) -> None:
         for row in self.__layoutRows:
-            self.body.gLayout.removeItem(self.body.gLayout.itemAtPosition(row, 1))
             self.body.gLayout.itemAtPosition(row, 0).widget().hide()
         self.__dateVisible = False
 
@@ -414,22 +409,18 @@ class _IntervalWidget(AbsOperationEditor):
         a.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
         b.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
         self.body.gLayout.addWidget(a, row, 0)
-        self.body.gLayout.addItem(QSpacerItem(self._SPACER, 0), row, 1)
-        self.body.gLayout.addWidget(b, row, 2)
-        self.body.gLayout.addItem(QSpacerItem(self._SPACER, 0), row, 3)
+        self.body.gLayout.addWidget(b, row, 1)
         # Create a button to remove row
         removeBut = QPushButton(QIcon('data_preprocessor/style/icons/close.png'), '', self)
         removeBut.setFixedSize(30, 30)
         removeBut.setToolTip('Remove row')
         # Lambda here is ok since it's called from main thread, so even if it's not a slot it's safe
         removeBut.clicked.connect(lambda: self.removeRow(row))
-        self.body.gLayout.addWidget(removeBut, row, 4)
+        self.body.gLayout.addWidget(removeBut, row, 2)
         # Hide time if it's not wanted
         if not self.__timeVisible:
-            self.body.gLayout.removeItem(self.body.gLayout.itemAtPosition(row, 1))
             b.hide()
         if not self.__dateVisible:
-            self.body.gLayout.removeItem(self.body.gLayout.itemAtPosition(row, 1))
             a.hide()
         self.__layoutRows.append(row)
         return a, b
@@ -437,14 +428,14 @@ class _IntervalWidget(AbsOperationEditor):
     @Slot(int)
     def removeRow(self, row: int) -> None:
         self.body.gLayout.itemAtPosition(row, 0).widget().deleteLater()
-        self.body.gLayout.removeItem(self.body.gLayout.itemAtPosition(row, 1))
+        self.body.gLayout.itemAtPosition(row, 1).widget().deleteLater()
         self.body.gLayout.itemAtPosition(row, 2).widget().deleteLater()
-        self.body.gLayout.removeItem(self.body.gLayout.itemAtPosition(row, 3))
-        self.body.gLayout.itemAtPosition(row, 4).widget().deleteLater()
         self.__layoutRows.remove(row)
 
 
 class _Widget(QWidget):
+    _SPACER: int = 20
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.mainLayout = QVBoxLayout(self)
@@ -462,6 +453,7 @@ class _Widget(QWidget):
         self.mainLayout.addLayout(butLayout)
         self.mainLayout.addWidget(self.addRowBut, 0, Qt.AlignLeft)
         self.mainLayout.addLayout(self.gLayout)
+        self.gLayout.setHorizontalSpacing(self._SPACER)
         self.group.setExclusive(False)
         self.byDate.setChecked(True)
         self.byTime.setChecked(True)
