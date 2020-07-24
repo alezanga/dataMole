@@ -9,9 +9,9 @@ from PySide2.QtWidgets import QWidget, QVBoxLayout, QGridLayout, QLabel, QLayout
 from data_preprocessor import flogging, gui
 from data_preprocessor.data.types import Types, Type
 from data_preprocessor.gui.charts.views import InteractiveChartView
-from data_preprocessor.gui.diffpanel import DataframeView
+from data_preprocessor.gui.widgets.diffpanel import DataframeView
 from data_preprocessor.gui.mainmodels import FrameModel, SearchableAttributeTableWidget
-from data_preprocessor.gui.waitingspinnerwidget import QtWaitingSpinner
+from data_preprocessor.gui.widgets.waitingspinnerwidget import QtWaitingSpinner
 from data_preprocessor.gui.workbench import WorkbenchModel
 from data_preprocessor.operation.utils import isFloat
 

@@ -6,7 +6,7 @@ from PySide2.QtWidgets import QWidget
 from data_preprocessor import data, flogging
 from data_preprocessor.gui.editor.interface import AbsOperationEditor
 from .interface.graph import OutputGraphOperation
-from ..gui import widgetutils as opw
+from ..gui import utils as opw
 
 
 class ToVariableOp(OutputGraphOperation, flogging.Loggable):

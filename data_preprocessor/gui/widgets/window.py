@@ -1,17 +1,19 @@
 import logging
+import os
 
 from PySide2 import QtGui
-from PySide2.QtCore import Slot, QThreadPool, Qt, QModelIndex
+from PySide2.QtCore import Slot, QThreadPool, Qt, QModelIndex, QUrl
+from PySide2.QtGui import QDesktopServices
 from PySide2.QtWidgets import QTabWidget, QWidget, QMainWindow, QMenuBar, QAction, QSplitter, \
     QHBoxLayout, QMenu
 
-from data_preprocessor import flow
-from data_preprocessor.gui.attributepanel import AttributePanel
-from data_preprocessor.gui.chartpanel import ChartPanel
-from data_preprocessor.gui.diffpanel import DataframeSideBySideView
-from data_preprocessor.gui.framepanel import FramePanel
+from data_preprocessor import flow, flogging, gui
+from data_preprocessor.gui.widgets.attributepanel import AttributePanel
+from data_preprocessor.gui.widgets.chartpanel import ChartPanel
+from data_preprocessor.gui.widgets.diffpanel import DataframeSideBySideView
+from data_preprocessor.gui.widgets.framepanel import FramePanel
 from data_preprocessor.gui.graph import GraphController, GraphView, GraphScene
-from data_preprocessor.gui.operationmenu import OperationMenu
+from data_preprocessor.gui.widgets.operationmenu import OperationMenu
 from data_preprocessor.gui.workbench import WorkbenchModel, WorkbenchView
 from data_preprocessor.operation.actionwrapper import OperationAction
 from data_preprocessor.operation.readwrite.csv import CsvLoader, CsvWriter
@@ -121,12 +123,16 @@ class MainWindow(QMainWindow):
 
     @Slot()
     def openComparePanel(self) -> None:
+        w = self.centralWidget().workbenchModel
         dv = DataframeSideBySideView(self)
         dv.setWindowFlags(Qt.Window)
         dv.setAttribute(Qt.WA_DeleteOnClose)
         dv.setWindowTitle('Side by side view')
-        dv.dataWidgetL.setWorkbench(self.centralWidget().workbenchModel)
-        dv.dataWidgetR.setWorkbench(self.centralWidget().workbenchModel)
+        dv.dataWidgetL.setWorkbench(w)
+        dv.dataWidgetR.setWorkbench(w)
+        if w.rowCount():
+            dv.dataWidgetL.setDataframe(dv.dataWidgetL.inputCB.currentText())
+            dv.dataWidgetR.setDataframe(dv.dataWidgetR.inputCB.currentText())
         dv.show()
 
     # @Slot()
@@ -190,10 +196,11 @@ class MainWindow(QMainWindow):
     def setUpMenus(self) -> None:
         menuBar = QMenuBar()
         fileMenu = menuBar.addMenu('File')
-        exportMenu = fileMenu.addMenu('Export')
         importMenu = fileMenu.addMenu('Import')
+        exportMenu = fileMenu.addMenu('Export')
         flowMenu = menuBar.addMenu('Flow')
         viewMenu = menuBar.addMenu('View')
+        helpMenu = menuBar.addMenu('Help')
         aAppendEmpty = QAction('Add frame', fileMenu)
         aAppendEmpty.setStatusTip('Create an empty dataframe in the workbench')
         aQuit = QAction('Quit', fileMenu)
@@ -207,6 +214,8 @@ class MainWindow(QMainWindow):
                                             self.mapToGlobal(self.rect().center()),
                                             w=self.centralWidget().workbenchModel)
         aCompareFrames = QAction('Compare dataframes', viewMenu)
+        aLogDir = QAction('Open log directory', helpMenu)
+        aClearLogs = QAction('Delete old logs', helpMenu)
         fileMenu.addActions([aAppendEmpty, aQuit])
         exportMenu.addActions([self.aWriteCsv, self.aWritePickle])
         importMenu.addActions([aLoadCsv, aLoadPickle])
@@ -216,6 +225,7 @@ class MainWindow(QMainWindow):
         flowMenu.addAction(aStartFlow)
         flowMenu.addAction(aResetFlow)
         viewMenu.addAction(aCompareFrames)
+        helpMenu.addActions([aLogDir, aClearLogs])
 
         self.setMenuBar(menuBar)
 
@@ -227,6 +237,8 @@ class MainWindow(QMainWindow):
         aCompareFrames.setStatusTip('Open two dataframes side by side')
         aStartFlow.setStatusTip('Start flow-graph execution')
         aResetFlow.setStatusTip('Reset the node status in flow-graph')
+        aLogDir.setStatusTip('Open the folder containing all logs')
+        aClearLogs.setStatusTip('Delete older logs and keep the last 5')
 
         # Connect
         aAppendEmpty.triggered.connect(self.centralWidget().workbenchModel.appendEmptyRow)
@@ -234,7 +246,19 @@ class MainWindow(QMainWindow):
         aStartFlow.triggered.connect(self.centralWidget().controller.executeFlow)
         aResetFlow.triggered.connect(self.centralWidget().controller.resetFlowStatus)
         aCompareFrames.triggered.connect(self.openComparePanel)
+        aLogDir.triggered.connect(self.openLogDirectory)
+        aClearLogs.triggered.connect(self.clearLogDir)
+
         aLoadCsv.stateChanged.connect(self.operationStateChanged)
         aLoadPickle.stateChanged.connect(self.operationStateChanged)
         self.aWriteCsv.stateChanged.connect(self.operationStateChanged)
         self.aWritePickle.stateChanged.connect(self.operationStateChanged)
+
+    @Slot()
+    def openLogDirectory(self) -> None:
+        QDesktopServices.openUrl(QUrl(os.path.join(os.getcwd(), 'logs')))
+
+    @Slot()
+    def clearLogDir(self) -> None:
+        flogging.deleteOldLogs()
+        gui.statusBar.showMessage('Logs cleared')

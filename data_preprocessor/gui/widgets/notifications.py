@@ -7,7 +7,7 @@ from PySide2.QtGui import QIcon, Qt
 from PySide2.QtWidgets import QWidget, QGridLayout, QLabel, QPushButton, QVBoxLayout, QMessageBox, \
     QStyle
 
-from data_preprocessor.gui import widgetutils as widgets
+from data_preprocessor.gui import utils as widgets
 
 
 class Notifier:

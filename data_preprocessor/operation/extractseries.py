@@ -14,7 +14,7 @@ from data_preprocessor.data.types import Types
 from data_preprocessor.gui.editor import AbsOperationEditor
 from data_preprocessor.gui.mainmodels import SearchableAttributeTableWidget, AttributeTableModel, \
     SignalTableView
-from data_preprocessor.gui.widgetutils import MessageLabel
+from data_preprocessor.gui.utils import MessageLabel
 from data_preprocessor.gui.workbench import WorkbenchModel, WorkbenchView
 from data_preprocessor.operation.interface.operation import Operation
 

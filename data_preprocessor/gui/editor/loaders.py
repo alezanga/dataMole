@@ -9,7 +9,7 @@ from PySide2.QtWidgets import QWidget, QButtonGroup, QRadioButton, QFileDialog, 
 
 from .interface import AbsOperationEditor
 from ..mainmodels import SearchableAttributeTableWidget, FrameModel
-from ..waitingspinnerwidget import QtWaitingSpinner
+from data_preprocessor.gui.widgets.waitingspinnerwidget import QtWaitingSpinner
 from ...data import Frame
 
 

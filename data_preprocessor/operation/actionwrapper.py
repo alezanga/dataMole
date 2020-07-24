@@ -6,7 +6,7 @@ from PySide2.QtWidgets import QMessageBox, QAction, QComboBox, QFormLayout, QLab
 from data_preprocessor import data, exceptions as exp, flogging, threads, gui
 from data_preprocessor.gui.editor.configuration import configureEditor, configureEditorOptions
 from data_preprocessor.gui.editor.interface import AbsOperationEditor
-from data_preprocessor.gui.widgetutils import TextOptionWidget
+from data_preprocessor.gui.utils import TextOptionWidget
 from data_preprocessor.operation.interface.graph import GraphOperation
 from data_preprocessor.operation.interface.operation import Operation
 from data_preprocessor.utils import UIdGenerator

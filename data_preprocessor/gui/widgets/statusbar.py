@@ -2,7 +2,7 @@ from PySide2.QtCore import Slot, QUrl, QSize
 from PySide2.QtGui import QDesktopServices
 from PySide2.QtWidgets import QStatusBar, QWidget, QPushButton, QLabel
 
-from data_preprocessor.gui.waitingspinnerwidget import QtWaitingSpinner
+from data_preprocessor.gui.widgets.waitingspinnerwidget import QtWaitingSpinner
 
 
 class StatusBar(QStatusBar):

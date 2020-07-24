@@ -18,11 +18,11 @@ if __name__ == "__main__":
     # Initialize globals and mainWindow
     from data_preprocessor import gui
 
-    mw = gui.window.MainWindow()
+    mw = gui.widgets.window.MainWindow()
     # Create status bar
-    gui.statusBar = gui.statusbar.StatusBar(mw)
+    gui.statusBar = gui.widgets.statusbar.StatusBar(mw)
     mw.setStatusBar(gui.statusBar)
-    gui.notifier = gui.notifications.Notifier(mw)
+    gui.notifier = gui.widgets.notifications.Notifier(mw)
     # Set notifier in main window for update
     mw.notifier = gui.notifier
     gui.notifier.mNotifier.updatePosition()

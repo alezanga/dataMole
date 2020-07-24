@@ -9,7 +9,7 @@ from PySide2.QtWidgets import QLineEdit, QCheckBox, \
 from data_preprocessor import flogging
 from data_preprocessor.gui.editor.interface import AbsOperationEditor
 from data_preprocessor.gui.mainmodels import SearchableAttributeTableWidget, AttributeTableModel
-from data_preprocessor.gui.widgetutils import RadioButtonGroup, ReplaceAttributesWidget, FileIODialog
+from data_preprocessor.gui.utils import RadioButtonGroup, ReplaceAttributesWidget, FileIODialog
 from data_preprocessor.utils import singleton
 
 
