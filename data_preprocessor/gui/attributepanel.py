@@ -155,7 +155,7 @@ class AttributePanel(QWidget):
         w = DataframeView(self)
         w.setAttribute(Qt.WA_DeleteOnClose)
         w.setWindowFlags(Qt.Window)
-        w.setWindowTitle('Dataframe view')
+        w.setWindowTitle('Dataframe view (read only)')
         w.setWorkbench(self._workbench)
         w.inputCB.setCurrentText(self._frameModel.name)
         if not w.dataView.model() or w.dataView.model().sourceModel() is not self._frameModel:

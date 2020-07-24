@@ -1,16 +1,15 @@
 import copy
-import os
 from typing import Dict, List, Callable, Tuple, Any, Iterable, Optional
 
 from PySide2.QtCore import Qt, QModelIndex, QAbstractItemModel
 from PySide2.QtGui import QValidator
 from PySide2.QtWidgets import QLineEdit, QCheckBox, \
-    QWidget, QFormLayout, QStyledItemDelegate, QAbstractItemDelegate, QComboBox, QPushButton, QFileDialog
+    QWidget, QFormLayout, QStyledItemDelegate, QAbstractItemDelegate, QComboBox, QPushButton
 
 from data_preprocessor import flogging
 from data_preprocessor.gui.editor.interface import AbsOperationEditor
 from data_preprocessor.gui.mainmodels import SearchableAttributeTableWidget, AttributeTableModel
-from data_preprocessor.gui.widgetutils import RadioButtonGroup, ReplaceAttributesWidget
+from data_preprocessor.gui.widgetutils import RadioButtonGroup, ReplaceAttributesWidget, FileIODialog
 from data_preprocessor.utils import singleton
 
 
@@ -215,7 +214,7 @@ class OptionsEditorFactory:
         elif strings:
             combo.addItems(strings)
         else:
-            raise ValueError('Either "model" or "strings" must be set')
+            flogging.appLogger.warning('Neither "model" nor "strings" are None: creating empty combobox')
         combo.setEditable(editable)
         self.__layout.addRow(label, combo)
         self.__optionsGetter[key] = combo.currentText
@@ -233,17 +232,16 @@ class OptionsEditorFactory:
         self.__optionsSetter[key] = wi.setData
         self.__editorWidgets.append((key, wi))
 
-    def withFileChooser(self, key: str, label: str, extensions: str) -> None:
+    def withFileChooser(self, key: str, label: str, extensions: str, mode: str, **kwargs) -> None:
         openFileChooser = QPushButton('Choose', self.__body)
-        fileChooser = QFileDialog(self.__body, label, str(os.getcwd()), extensions)
-        fileChooser.setFileMode(QFileDialog.AnyFile)
+        fileChooser = FileIODialog(self.__body, mode=mode, caption=label, filter=extensions, **kwargs)
         filePath = QLineEdit(self.__body)
-        openFileChooser.released.connect(fileChooser.show)
+        openFileChooser.clicked.connect(fileChooser.showDialog)
         fileChooser.fileSelected.connect(filePath.setText)
         self.__layout.addRow(openFileChooser, filePath)
         self.__optionsGetter[key] = filePath.text
         self.__optionsSetter[key] = filePath.setText
-        self.__editorWidgets.append((key, fileChooser))
+        self.__editorWidgets.append((key, filePath))
 
     def initEditor(self, subclass: Optional[type] = None) -> None:
         """
@@ -281,7 +279,9 @@ class OptionsEditorFactory:
             return options
 
         def setOptions(*args, **kwargs) -> None:
-            assert bool(kwargs)  # factory editors must use kwargs
+            if args and not kwargs:
+                flogging.appLogger.warning('Editor options ignored. Factory method received empty '
+                                           '"kwargs" options and non empty "args"')
             for k, v in kwargs.items():
                 self.__optionsSetter[k](v)
 

@@ -1,12 +1,13 @@
 from typing import List, Callable
 
-from PySide2.QtCore import Slot, Qt
+from PySide2.QtCore import Slot
 from PySide2.QtWidgets import QWidget, QMessageBox
 
 from data_preprocessor import flow, flogging, gui, exceptions as exp
 from .node import NodeSlot, Node, NodeStatus
 from .scene import GraphScene
 from .view import GraphView
+from ..editor.configuration import configureEditor, configureEditorOptions
 from ..workbench import WorkbenchModel
 from ...flow.dag import OperationDag
 from ...flow.handler import OperationHandler
@@ -102,23 +103,13 @@ class GraphController(QWidget):
             self.__editor_widget = node.operation.getEditor()
             self.__editor_node_id = node.uid
             # Create the central widget and adds options
-            self.__editor_widget.setUpEditor()
+            configureEditor(self.__editor_widget, node.operation, self._view)
             node.operation.injectEditor(self.__editor_widget)
-            self.__editor_widget.setDescription(node.operation.shortDescription(),
-                                                node.operation.longDescription())
-            options = node.operation.getOptions()
-            if isinstance(options, dict):
-                self.__editor_widget.setOptions(**options)
-            else:
-                self.__editor_widget.setOptions(*options)
+            configureEditorOptions(self.__editor_widget, node.operation)
             # Connect editor signals to slots which handle accept/reject
             self.__editor_widget.accept.connect(self.onEditAccept)
             self.__editor_widget.reject.connect(self.cleanupEditor)
-            # Show the editor in new window
-            self.__editor_widget.setParent(self._view)
-            self.__editor_widget.setWindowFlags(Qt.Window)
-            self.__editor_widget.setWindowModality(Qt.ApplicationModal)
-            self.__editor_widget.setWindowTitle(node.operation.name())
+            # Show editor
             self.__editor_widget.move(self._view.rect().center())
             self.__editor_widget.show()
         else:

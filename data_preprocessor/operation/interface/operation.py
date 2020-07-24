@@ -30,9 +30,9 @@ class Operation(ABC):
         existing configuration when an editor is opened
 
         :return: a list or tuple containing all the objects needed by the editor, which will be passed
-            in the same order. By default returns an empty tuple
+            in the same order. By default returns an empty dictionary
         """
-        return tuple()
+        return dict()
 
     @abstractmethod
     def setOptions(self, *args, **kwargs) -> None:

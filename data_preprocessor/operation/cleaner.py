@@ -4,9 +4,9 @@ import pandas as pd
 import prettytable as pt
 
 from data_preprocessor import data, flogging
+from data_preprocessor import exceptions as exp
 from data_preprocessor.gui.editor import AbsOperationEditor, OptionsEditorFactory
 from data_preprocessor.gui.mainmodels import FrameModel
-from data_preprocessor import exceptions as exp
 from data_preprocessor.operation.interface.graph import GraphOperation
 from tests.utilities import numpy_equal
 
@@ -113,8 +113,7 @@ class RemoveBijections(GraphOperation, flogging.Loggable):
         return factory.getEditor()
 
     def injectEditor(self, editor: 'AbsOperationEditor') -> None:
-        editor.acceptedTypes = self.acceptedTypes()
-        editor.workbench = self.workbench
+        editor.setSizeHint(400, 600)
         editor.attributes.setSourceFrameModel(FrameModel(editor, self.shapes[0]))
 
     @staticmethod

@@ -4,6 +4,7 @@ from PySide2.QtCore import Slot, QObject, Signal, QPoint, QThreadPool, Qt
 from PySide2.QtWidgets import QMessageBox, QAction, QComboBox, QFormLayout, QLabel, QCompleter
 
 from data_preprocessor import data, exceptions as exp, flogging, threads, gui
+from data_preprocessor.gui.editor.configuration import configureEditor, configureEditorOptions
 from data_preprocessor.gui.editor.interface import AbsOperationEditor
 from data_preprocessor.gui.widgetutils import TextOptionWidget
 from data_preprocessor.operation.interface.graph import GraphOperation
@@ -48,7 +49,9 @@ class OperationAction(QAction):
         self.__kwargs = kwargs
 
     def setSelectedFrame(self, name: str) -> None:
-        """ Set the frame to be used as input in the editor when it is shown """
+        """ Set the frame to be used as input in the editor when it is shown. This is only relevant
+        for editors built with the factory. If it not the case you should provide your own parameters
+        as operation arguments """
         self.__selectedFrame = name
 
     def getResult(self, key: int) -> Any:
@@ -138,24 +141,11 @@ class OperationWrapper(QObject):
         if self.operation.needsOptions():
             # Get editor from operation
             self.editor = self.operation.getEditor()
-            self.editor.setUpEditor()
-            # Notice that this wrapper does not need options (it sets them if they are present)
-            options = self.operation.getOptions()
-            if options:
-                if isinstance(options, dict):
-                    self.editor.setOptions(**options)
-                else:
-                    self.editor.setOptions(*options)
         else:
             # Create empty editor
             self.editor = AbsOperationEditor()
-        # FIXME: Setting parent causes segfault
-        # self.editor.setParent(self)
-        # self.editor.setWindowFlags(Qt.Window)
-        # self.editor.setWindowModality(Qt.ApplicationModal)
-        # Configure title, description and connect
-        self.editor.setWindowTitle(self.operation.name())
-        self.editor.setDescription(self.operation.shortDescription(), self.operation.longDescription())
+        configureEditor(self.editor, self.operation, None)
+        configureEditorOptions(self.editor, self.operation)
         self.editor.accept.connect(self.onAcceptEditor)
         self.editor.reject.connect(self.editor.close)
         # If it is a GraphOperation or it has no default editor we should add input and output LineEdit

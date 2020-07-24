@@ -1,7 +1,6 @@
 from typing import List, Dict, Optional
 
 from data_preprocessor import data, exceptions as exp
-from data_preprocessor.data.types import Type
 from data_preprocessor.gui.editor import AbsOperationEditor, OptionsEditorFactory
 from data_preprocessor.gui.mainmodels import FrameModel
 from data_preprocessor.operation.interface.graph import GraphOperation
@@ -11,10 +10,11 @@ class Drop(GraphOperation):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # List of selected attributes by column name
-        self.__selected: List[str] = list()
+        self.__selected: List[int] = list()
 
     def execute(self, df: data.Frame) -> data.Frame:
-        return data.Frame(df.getRawFrame().drop(columns=self.__selected))
+        df = df.getRawFrame()
+        return data.Frame(df.drop(columns=df.columns[[self.__selected]]))
 
     @staticmethod
     def name() -> str:
@@ -23,7 +23,7 @@ class Drop(GraphOperation):
     def setOptions(self, selected: Dict[int, None]) -> None:
         if not selected:
             raise exp.OptionValidationError([('e', 'Error: no attribute is selected')])
-        self.__selected = [self.shapes[0].colNames[i] for i in selected.keys()]
+        self.__selected = list(selected.keys())
 
     @staticmethod
     def shortDescription() -> str:
@@ -57,9 +57,9 @@ class Drop(GraphOperation):
         if not self.hasOptions():
             return None
         s = self.shapes[0].clone()
-        colDict: Dict[str, Type] = s.columnsDict
-        s.colNames = [c for c in s.colNames if c not in self.__selected]
-        s.colTypes = [t for c, t in colDict.items() if c not in self.__selected]
+        for i in self.__selected:
+            del s.colNames[i]
+            del s.colTypes[i]
         return s
 
     @staticmethod

@@ -1,11 +1,12 @@
+import re
 from abc import abstractmethod, ABCMeta, ABC
 from typing import Any, List, Optional, Dict, Union, Tuple, Set
 
-from PySide2.QtCore import Slot
+from PySide2.QtCore import Slot, Signal
 from PySide2.QtGui import QIcon, QPixmap, Qt
 from PySide2.QtWidgets import QWidget, QVBoxLayout, QLineEdit, QComboBox, QCompleter, QLabel, \
     QSizePolicy, QButtonGroup, QGridLayout, QRadioButton, QCheckBox, QMessageBox, QStyle, QHBoxLayout, \
-    QApplication
+    QApplication, QFileDialog
 
 from data_preprocessor import data
 from data_preprocessor.data.types import Type
@@ -120,6 +121,8 @@ class TextOptionWidget(OptionWidget):
 
 
 class AttributeComboBox(OptionWidget):
+    """ A combo box for selection of a column, with optional type filter """
+
     def __init__(self, shape: data.Shape, typesFilter: List[Type], label: str = '',
                  parent: QWidget = None):
         super().__init__(label, parent)
@@ -260,6 +263,7 @@ class ReplaceAttributesWidget(QWidget):
         self.__warnLabel.hide()
         self.__selectedNames: Set[str] = set()
         self.__columnNames: Set[str] = set()
+        self.__suffixLE.setDisabled(True)  # By default checkbox is unchecked and field is disabled
         self.__replaceCB.toggled.connect(self.onCBToggle)
 
     # @Slot(int)
@@ -301,3 +305,41 @@ class ReplaceAttributesWidget(QWidget):
     #         self.__warnLabel.show()
     #     elif self.__warnLabel.isVisible():
     #         self.__warnLabel.hide()
+
+
+class FileIODialog(QWidget):
+    """ A file dialog wrapper over Qt functions """
+    fileSelected = Signal(str)
+
+    def __init__(self, parent: QWidget, mode: str, caption: str, filter: str, **kwargs):
+        super().__init__(parent)
+        self._caption = caption
+        self._filter = filter
+        self._mode = mode  # {save, load}
+        self._kwargs = kwargs
+
+    @Slot()
+    def showDialog(self) -> None:
+        if self._mode == 'save':
+            self._showSaveDialog()
+        elif self._mode == 'load':
+            self._showLoadDialog()
+
+    def _showSaveDialog(self) -> None:
+        path, ext = QFileDialog.getSaveFileName(self.parentWidget(), caption=self._caption,
+                                                filter=self._filter, **self._kwargs)
+        # Add extension to filename
+        splitPath = path.split('.')
+        if len(splitPath) == 1:
+            # No extension was added, so use selected extension
+            sel = re.search('\\(.*\\)', ext)
+            if sel:
+                ext = sel.group(0).split('.')[-1][:-1]
+                path += '.' + ext
+        # else: Extension is present, use that
+        self.fileSelected.emit(path)
+
+    def _showLoadDialog(self) -> None:
+        path, ext = QFileDialog.getOpenFileName(self.parentWidget(), caption=self._caption,
+                                                filter=self._filter, **self._kwargs)
+        self.fileSelected.emit(path)

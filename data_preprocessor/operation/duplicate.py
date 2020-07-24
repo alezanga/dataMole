@@ -82,6 +82,7 @@ class DuplicateColumn(GraphOperation, flogging.Loggable):
         return factory.getEditor()
 
     def injectEditor(self, editor: 'AbsOperationEditor') -> None:
+        editor.setSizeHint(400, 600)
         # Set frame model from shape
         editor.table.setSourceFrameModel(FrameModel(editor, self.shapes[0]))
         # Stretch new section

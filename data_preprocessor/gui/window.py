@@ -14,7 +14,8 @@ from data_preprocessor.gui.graph import GraphController, GraphView, GraphScene
 from data_preprocessor.gui.operationmenu import OperationMenu
 from data_preprocessor.gui.workbench import WorkbenchModel, WorkbenchView
 from data_preprocessor.operation.actionwrapper import OperationAction
-from data_preprocessor.operation.loaders import CsvLoader, CsvWriter
+from data_preprocessor.operation.readwrite.csv import CsvLoader, CsvWriter
+from data_preprocessor.operation.readwrite.pickle import PickleLoader, PickleWriter
 
 
 class MainWidget(QWidget):
@@ -82,12 +83,15 @@ class MainWidget(QWidget):
         # Menu display delete and remove options
         frameName: str = index.data(Qt.DisplayRole)
         pMenu = QMenu(self)
-        writeAction = OperationAction(CsvWriter, pMenu, 'To csv', self.rect().center())
-        writeAction.setOperationArgs(w=self.workbenchModel, frameName=frameName)
-        writeAction.stateChanged.connect(self.parentWidget().operationStateChanged)
+        # Reuse MainWindow actions
+        csvAction = self.parentWidget().aWriteCsv
+        pickleAction = self.parentWidget().aWritePickle
+        # Set correct args for the clicked row
+        csvAction.setOperationArgs(w=self.workbenchModel, frameName=frameName)
+        pickleAction.setOperationArgs(w=self.workbenchModel, frameName=frameName)
         deleteAction = QAction('Remove', pMenu)
         deleteAction.triggered.connect(lambda: self.workbenchModel.removeRow(index.row()))
-        pMenu.addActions([writeAction, deleteAction])
+        pMenu.addActions([csvAction, pickleAction, deleteAction])
         pMenu.popup(QtGui.QCursor.pos())
 
 
@@ -95,45 +99,17 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.__activeCount: int = 0  # number of operations in progress
-        central_w = MainWidget()
-        self.setCentralWidget(central_w)
+        centralWidget = MainWidget()
+        self.setCentralWidget(centralWidget)
         self.notifier = None  # Set by main script
         # Initialise a thread pool
         self.threadPool = QThreadPool.globalInstance()
         logging.info('Multithreading with maximum {} threads'.format(self.threadPool.maxThreadCount()))
 
-        menuBar = QMenuBar()
-        fileMenu = menuBar.addMenu('File')
-        flowMenu = menuBar.addMenu('Flow')
-        viewMenu = menuBar.addMenu('View')
-        addAction = QAction('Add frame', fileMenu)
-        addAction.setStatusTip('Create an empty dataframe in the workbench')
-        loadCsvAction = OperationAction(CsvLoader, fileMenu, 'Load csv',
-                                        self.rect().center(), central_w.workbenchModel)
-        compareAction = QAction('Compare dataframes', viewMenu)
-        # diffAction = QAction('Diff dataframes', viewMenu)
-        fileMenu.addAction(addAction)
-        fileMenu.addAction(loadCsvAction)
-        fileMenu.show()
+        self.setUpMenus()
 
-        exec_flow = QAction('Execute', flowMenu)
-        reset_flow = QAction('Reset', flowMenu)
-        flowMenu.addAction(exec_flow)
-        flowMenu.addAction(reset_flow)
-        viewMenu.addAction(compareAction)
-        # viewMenu.addAction(diffAction)
-        flowMenu.show()
-
-        self.setMenuBar(menuBar)
-
-        # Connect
-        addAction.triggered.connect(central_w.workbenchModel.appendEmptyRow)
-        exec_flow.triggered.connect(self.centralWidget().controller.executeFlow)
-        reset_flow.triggered.connect(self.centralWidget().controller.resetFlowStatus)
-        compareAction.triggered.connect(self.openComparePanel)
-        # diffAction.triggered.connect(self.openDiffPanel)
-        loadCsvAction.stateChanged.connect(self.operationStateChanged)
-        self.centralWidget().frameInfoPanel.operationRequest.connect(self.executeOperation)
+        centralWidget.frameInfoPanel.operationRequest.connect(self.executeOperation)
+        centralWidget.workbenchView.selectedRowChanged[str, str].connect(self.changedSelectedFrame)
 
     def moveEvent(self, event: QtGui.QMoveEvent) -> None:
         self.notifier.mNotifier.updatePosition()
@@ -162,6 +138,12 @@ class MainWindow(QMainWindow):
     #     dv.setWindowTitle('Diff view')
     #     dv.setWorkbench(self.centralWidget().workbenchModel)
     #     dv.show()
+
+    @Slot(str, str)
+    def changedSelectedFrame(self, newName: str, _: str) -> None:
+        # Slot called when workbench selection change
+        self.aWriteCsv.setOperationArgs(w=self.centralWidget().workbenchModel, frameName=newName)
+        self.aWritePickle.setOperationArgs(w=self.centralWidget().workbenchModel, frameName=newName)
 
     @Slot(int, str)
     def operationStateChanged(self, uid: int, state: str) -> None:
@@ -204,3 +186,55 @@ class MainWindow(QMainWindow):
             action: QAction = self.sender()
             action.deleteLater()
             logging.info('Action for operation uid={:d} scheduled for deletion'.format(uid))
+
+    def setUpMenus(self) -> None:
+        menuBar = QMenuBar()
+        fileMenu = menuBar.addMenu('File')
+        exportMenu = fileMenu.addMenu('Export')
+        importMenu = fileMenu.addMenu('Import')
+        flowMenu = menuBar.addMenu('Flow')
+        viewMenu = menuBar.addMenu('View')
+        aAppendEmpty = QAction('Add frame', fileMenu)
+        aAppendEmpty.setStatusTip('Create an empty dataframe in the workbench')
+        aQuit = QAction('Quit', fileMenu)
+        aLoadCsv = OperationAction(CsvLoader, fileMenu, 'From csv',
+                                   self.rect().center(), self.centralWidget().workbenchModel)
+        self.aWriteCsv = OperationAction(CsvWriter, fileMenu, 'To csv', self.rect().center(),
+                                         w=self.centralWidget().workbenchModel)
+        aLoadPickle = OperationAction(PickleLoader, fileMenu, 'From pickle', self.rect().center(),
+                                      self.centralWidget().workbenchModel)
+        self.aWritePickle = OperationAction(PickleWriter, fileMenu, 'To pickle',
+                                            self.mapToGlobal(self.rect().center()),
+                                            w=self.centralWidget().workbenchModel)
+        aCompareFrames = QAction('Compare dataframes', viewMenu)
+        fileMenu.addActions([aAppendEmpty, aQuit])
+        exportMenu.addActions([self.aWriteCsv, self.aWritePickle])
+        importMenu.addActions([aLoadCsv, aLoadPickle])
+
+        aStartFlow = QAction('Execute', flowMenu)
+        aResetFlow = QAction('Reset', flowMenu)
+        flowMenu.addAction(aStartFlow)
+        flowMenu.addAction(aResetFlow)
+        viewMenu.addAction(aCompareFrames)
+
+        self.setMenuBar(menuBar)
+
+        # Tips
+        aLoadCsv.setStatusTip('Load a csv file in the workbench')
+        aLoadPickle.setStatusTip('Load a Pickle file in the workbench')
+        self.aWriteCsv.setStatusTip('Write a dataframe to a csv file')
+        self.aWritePickle.setStatusTip('Serializes a dataframe into a pickle file')
+        aCompareFrames.setStatusTip('Open two dataframes side by side')
+        aStartFlow.setStatusTip('Start flow-graph execution')
+        aResetFlow.setStatusTip('Reset the node status in flow-graph')
+
+        # Connect
+        aAppendEmpty.triggered.connect(self.centralWidget().workbenchModel.appendEmptyRow)
+        aQuit.triggered.connect(self.close)
+        aStartFlow.triggered.connect(self.centralWidget().controller.executeFlow)
+        aResetFlow.triggered.connect(self.centralWidget().controller.resetFlowStatus)
+        aCompareFrames.triggered.connect(self.openComparePanel)
+        aLoadCsv.stateChanged.connect(self.operationStateChanged)
+        aLoadPickle.stateChanged.connect(self.operationStateChanged)
+        self.aWriteCsv.stateChanged.connect(self.operationStateChanged)
+        self.aWritePickle.stateChanged.connect(self.operationStateChanged)

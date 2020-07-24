@@ -157,8 +157,7 @@ class BinsDiscretizer(GraphOperation, flogging.Loggable):
         return factory.getEditor()
 
     def injectEditor(self, editor: 'AbsOperationEditor') -> None:
-        editor.inputShapes = self.shapes
-        editor.acceptedTypes = self.acceptedTypes()
+        editor.setSizeHint(500, 600)
         # Set frame model
         editor.attributes.setSourceFrameModel(FrameModel(editor, self.shapes[0]))
         # Stretch new section
@@ -304,8 +303,7 @@ class RangeDiscretizer(GraphOperation, flogging.Loggable):
         return factory.getEditor()
 
     def injectEditor(self, editor: 'AbsOperationEditor') -> None:
-        editor.inputShapes = self.shapes
-        editor.acceptedTypes = self.acceptedTypes()
+        editor.setSizeHint(500, 600)
         # Set frame model
         editor.table.setSourceFrameModel(FrameModel(editor, self.shapes[0]))
         # Stretch new section

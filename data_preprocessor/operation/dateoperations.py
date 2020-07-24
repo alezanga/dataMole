@@ -177,7 +177,7 @@ class DateDiscretizer(GraphOperation, Loggable):
         return factory.getEditor()
 
     def injectEditor(self, editor: 'AbsOperationEditor') -> None:
-        editor.inputShapes = self.shapes
+        editor.setSizeHint(600, 700)
         editor.selected.setSourceFrameModel(FrameModel(editor, frame=self.shapes[0]))
         hh = editor.selected.tableView.horizontalHeader()
         hh.setSectionResizeMode(1, QHeaderView.ResizeToContents)

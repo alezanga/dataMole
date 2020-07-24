@@ -4,9 +4,9 @@ import pandas as pd
 from PySide2.QtCore import Slot
 
 from data_preprocessor import data, exceptions as exp
-from .interface.operation import Operation
-from ..gui.editor import OptionsEditorFactory, AbsOperationEditor
-from ..gui.editor.loaders import LoadCSVEditor
+from data_preprocessor.gui.editor import OptionsEditorFactory, AbsOperationEditor
+from data_preprocessor.gui.editor.loaders import LoadCSVEditor
+from data_preprocessor.operation.interface.operation import Operation
 
 
 class CsvLoader(Operation):
@@ -102,7 +102,7 @@ class CsvWriter(Operation):
         factory = OptionsEditorFactory()
         factory.initEditor(subclass=WriteEditorBase)
         factory.withComboBox('Frame to write', 'frame', False, model=self.workbench)
-        factory.withFileChooser(key='file', label='Choose a file', extensions='Csv (*.csv)')
+        factory.withFileChooser(key='file', label='Choose a file', extensions='Csv (*.csv)', mode='save')
         factory.withAttributeTable(key='sele', checkbox=True, nameEditable=False, showTypes=True,
                                    options=None, types=self.acceptedTypes())
         factory.withTextField('Separator', 'sep')

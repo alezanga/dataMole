@@ -2,7 +2,7 @@ import abc
 from typing import Iterable, List, Optional, Dict, Callable, Tuple
 
 from PySide2.QtCore import Signal, Slot, QSize
-from PySide2.QtGui import QCloseEvent, Qt, QCursor
+from PySide2.QtGui import QCloseEvent, Qt, QCursor, QKeyEvent
 from PySide2.QtWidgets import QWidget, QPushButton, QHBoxLayout, QVBoxLayout, QLabel, QWhatsThis, \
     QSizePolicy
 
@@ -66,6 +66,7 @@ class AbsOperationEditor(QWidget):
         self.setLayout(self._layout)
         self.setFocusPolicy(Qt.StrongFocus)
         self.errorLabel.hide()
+        self.setMinimumWidth(400)
 
         self._butOk.pressed.connect(self.onAcceptSlot)
         butCancel.pressed.connect(self.reject)  # emit reject
@@ -138,7 +139,13 @@ class AbsOperationEditor(QWidget):
     def sizeHint(self) -> QSize:
         if self.__sh:
             return self.__sh
-        return QSize(500, 600)
+        return super().sizeHint()
+
+    def keyPressEvent(self, event: QKeyEvent) -> None:
+        if event.key() == Qt.Key_Escape:
+            self.reject.emit()
+        else:
+            super().keyPressEvent(event)
 
     # ----------------------------------------------------------------------------
     # ------------------------------ VIRTUAL METHODS -----------------------------

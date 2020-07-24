@@ -89,6 +89,7 @@ class DataframeSideBySideView(QWidget):
 
 
 class DiffDataframeWidget(QWidget):
+    # NOTE: NOT USED FOR NOW
     def __init__(self, parent=None):
         super().__init__(parent)
         self._workbench: WorkbenchModel = None
