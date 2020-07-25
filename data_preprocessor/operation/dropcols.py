@@ -57,9 +57,8 @@ class Drop(GraphOperation):
         if not self.hasOptions():
             return None
         s = self.shapes[0].clone()
-        for i in self.__selected:
-            del s.colNames[i]
-            del s.colTypes[i]
+        s.colNames = [n for i, n in enumerate(s.colNames) if i not in self.__selected]
+        s.colTypes = [t for i, t in enumerate(s.colTypes) if i not in self.__selected]
         return s
 
     @staticmethod

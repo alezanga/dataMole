@@ -1,0 +1,275 @@
+<html>
+<style>
+    table, th, td {
+      border: 1px solid black;
+    }
+    th, td {
+      padding: 0.3em;
+    }
+</style>
+<section name="RangeDiscretizer">
+    <h2>RangeDiscretizer</h2>
+    Discretize numeric columns into user specified contiguous ranges <br/>
+    <b>Input types</b>: Numeric<br/>
+    <b>Output type</b>: Ordinal
+    <h3>Table options</h3>
+    Bin edges can be specified in the "Bin edges" column. Bin edges must be numbers and must be
+    separated by a single space. Bin labels must be specified and their number must be exactly the
+    number of intervals specified, which is the number of edges -1.
+    <br/>
+    <em>Example:</em>
+    <br/>
+    <table>
+        <tr>
+            <th>Bin edges</th>
+            <th>Labels</th>
+        </tr>
+        <tr>
+            <td>1.0 1.5 4 5.1</td>
+            <td>Low Medium High</td>
+        </tr>
+    </table>
+    In the example bins are set for intervals: (1.0, 1.5], (1.5, 4.0], (4.0, 5.1]
+    <h3>Create new attribute</h3>
+    If selected the operation will produce one new column for every attribute to be discretized, and
+    each column will have the original name followed by the provided suffix. Notice that if the
+    dataframe contains columns with the exact same name of the new columns, these columns will be
+    replaced.<br/>
+    If the option is selected the original column will not be touched, otherwise it is
+    replaced.
+</section>
+<section name="KBinsDiscretizer">
+    <h2>BinDiscretizer</h2>
+    Discretize a numeric column into a defined number of bins
+    <b>Input types</b>: Numeric<br/>
+    <b>Output type</b>: Ordinal
+    <h3>Table options</h3>
+    The number of bins can be specified in column "K".<br/>
+    <em>Example:</em>
+    <br/>
+    <table>
+        <tr>
+            <th>Column</th>
+            <th>Type</th>
+            <th>K</th>
+        </tr>
+        <tr>
+            <td>Attribute1</td>
+            <td>Numeric</td>
+            <td>6</td>
+        </tr>
+        <tr>
+            <td>Attribute2</td>
+            <td>Numeric</td>
+            <td>9</td>
+        </tr>
+    </table>
+    The above configuration discretize the two attributes with 6 and 9 bins respectively.
+    <h3>Strategy</h3>
+    <ul>
+        <li><b>Uniform</b>: all bins in each feature have identical widths</li>
+        <li><b>Quantile</b>: all bins in each feature have the same number of points</li>
+        <li><b>Kmeans</b>: all bins in each feature have the same nearest center of a 1D k-means
+            cluster
+        </li>
+    </ul>
+    <h3>Create new attribute</h3>
+    If selected the operation will produce one new column for every attribute to be discretized, and
+    each column will have the original name followed by the provided suffix. Notice that if the
+    dataframe contains columns with the exact same name of the new columns, these columns will be
+    replaced.<br/>
+    If the option is selected the original column will not be touched, otherwise it is
+    replaced.
+</section>
+<section name="DateDiscretizer">
+    <h2>DateDiscretizer</h2>
+    Discretize a datetime attribute into user specified contiguous ranges, optionally using both date
+    and time components.<br/>
+    <b>Input types</b>: Datetime<br/>
+    <b>Output type</b>: Ordinal
+    <h3>Table options</h3>
+    Datetime bins can be specified in the "Ranges" column, while "Labels" must contain one string
+    label for every attribute type, each separated by a blank space. To use a string with space
+    inside the string must be double quoted (")<br/>
+    <em>Example:</em>
+    <br/>
+    <table>
+        <tr>
+            <th>Column</th>
+            <th>Type</th>
+            <th>Ranges</th>
+            <th>Labels</th>
+        </tr>
+        <tr>
+            <td>Attribute1</td>
+            <td>Datetime</td>
+            <td>(2000-01-01, 2001-01-01]<br/>(2001-01-01, 2002-01-01]</td>
+            <td>00/01 01/02</td>
+        </tr>
+    </table>
+    The above configuration produce one Ordinal attribute with all dates in (2000-01-01, 2001-01-01]
+    labelled with "00/01" and all dates in (2001-01-01, 2002-01-01] labelled as "01/02". There is no
+    way of excluding an interval from discretization, since all ranges are contiguous. The only way to
+    achieve this is by labelling all the unwanted dates with a specific category and then replacing
+    all the categories values with Nan using the operation <i>ReplaceValues</i>.
+    <h3>Create new attribute</h3>
+    If selected the operation will produce one new column for every attribute to be discretized, and
+    each column will have the original name followed by the provided suffix. Notice that if the
+    dataframe contains columns with the exact same name of the new columns, these columns will be
+    replaced.<br/>
+    If the option is selected the original column will not be touched, otherwise it is
+    replaced.
+</section>
+<section name="RemoveBijections">
+    <h2>RemoveBijections</h2>
+    Removes from selection all columns with the same values but with different names.<br/>
+    <b>Input types</b>: All<br/>
+    <b>Output type</b>: Same
+    <h3>Table options</h3>
+    Column to consider for removal must be selected in the table. Unchecked columns will not be
+    dropped, even if duplicated.
+</section>
+<section name="ExtractTimeSeries">
+    <h2>ExtractTimeSeries</h2>
+    Normalizes a dataset containing time series information. <br/>
+    <h3>Requirements</h3>
+    <h4>Motivation</h4>
+    This feature is tailored for longitudinal datasets, which means dataset in this form:
+    <table>
+        <tr>
+            <th>A_wave1</th>
+            <th>A_wave2</th>
+            <th>A_wave3</th>
+            <th>B_wave1</th>
+            <th>B_wave2</th>
+            <th>B_wave3</th>
+        </tr>
+        <tr>
+            <td>12.1</td>
+            <td>12.4</td>
+            <td>11.0</td>
+            <td>0.10</td>
+            <td>1.23</td>
+            <td>4.53</td>
+        </tr>
+    </table>
+    In this dataset the same attribute "A" and "B" are measured at different times, but each
+    measurement is codified as a different column. This operation allow to obtain a normalised dataset
+    that can be visualised with the time series features. It generates a new dataset with this form:
+    <table>
+        <tr>
+            <th>Time</th>
+            <th>A</th>
+            <th>B</th>
+        </tr>
+        <tr>
+            <td>wave1</td>
+            <td>12.1</td>
+            <td>0.10</td>
+        </tr>
+        <tr>
+            <td>wave2</td>
+            <td>12.4</td>
+            <td>1.23</td>
+        </tr>
+        <tr>
+            <td>wave3</td>
+            <td>11.0</td>
+            <td>4.53</td>
+        </tr>
+    </table>
+    <h4>With ID</h4>
+    It's also possible that a measurement is performed at the same time for many individuals. In this
+    case every individual must be identifiable by an ID which remains consistent through time. The
+    dataset will look like this:
+    <table>
+        <tr>
+            <th>Id</th>
+            <th>A_wave1</th>
+            <th>A_wave2</th>
+            <th>A_wave3</th>
+            <th>B_wave1</th>
+            <th>B_wave2</th>
+            <th>B_wave3</th>
+        </tr>
+        <tr>
+            <td>id1</td>
+            <td>12.1</td>
+            <td>12.4</td>
+            <td>11.0</td>
+            <td>0.10</td>
+            <td>1.23</td>
+            <td>4.53</td>
+        </tr>
+        <tr>
+            <td>id2</td>
+            <td>1.02</td>
+            <td>12.4</td>
+            <td>1.02</td>
+            <td>3.45</td>
+            <td>2.31</td>
+            <td>4.99</td>
+        </tr>
+    </table>
+    In this case this operation can transform the dataset in this fashion:
+    <table>
+        <tr>
+            <th>Id</th>
+            <th>Time</th>
+            <th>A</th>
+            <th>B</th>
+        </tr>
+        <tr>
+            <td>id1</td>
+            <td>wave1</td>
+            <td>12.1</td>
+            <td>0.10</td>
+        </tr>
+        <tr>
+            <td>id1</td>
+            <td>wave2</td>
+            <td>12.4</td>
+            <td>1.23</td>
+        </tr>
+        <tr>
+            <td>id1</td>
+            <td>wave3</td>
+            <td>11.0</td>
+            <td>4.53</td>
+        </tr>
+        <tr>
+            <td>id2</td>
+            <td>wave1</td>
+            <td>1.02</td>
+            <td>3.45</td>
+        </tr>
+        <tr>
+            <td>id2</td>
+            <td>wave2</td>
+            <td>12.4</td>
+            <td>2.31</td>
+        </tr>
+        <tr>
+            <td>id2</td>
+            <td>wave2</td>
+            <td>1.02</td>
+            <td>4.99</td>
+        </tr>
+    </table>
+    <h3>Usage</h3>
+    <h4>Table options</h4>
+    The first step is the specification of the attributes (series) to create. This must be done in the
+    "Series name" table. Then you must define how to create every series: from every relevant dataset
+    you must select which attribute represent the time measurements of the series you are building.
+    With respect to the previous example (which had only one dataset) for time series "A" you should
+    have selected attributes "A_wave1", "A_wave2", "A_wave3" and for series "B" you should have selected
+    "B_wave1", "B_wave2", "B_wave3". After this, you must associate every time entry (in this case for
+    wave1, wave2 and wave3) with a label, which should be something that easily identifies a time
+    point, like a time or a date. To do this we must add to the "Time labels" 3 labels: "wave1",
+    "wave2" and "wave3". Be careful! Labels <em>order matters</em>. Labels will be added to an Ordinal
+    column, ordered exactly as shown in list. For this reason it's possible to drag labels to reorder
+    them as required. After that every selected attribute must be associated with the defined time
+    labels. In this example "A_wave1" will be placed at time "wave1", "A_wave2" at time "wave2",
+    "B_wave1" at "wave1", "B_wave3" at "wave3" and so on.
+</section>
+</html>

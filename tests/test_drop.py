@@ -23,7 +23,7 @@ def test_drop_columns():
     assert op.getOutputShape() is None
     op.setOptions(selected={0: None, 2: None})
     assert op.getOptions() == {
-        'selected': {'col2': None, 'date': None}
+        'selected': {0: None, 2: None}
     }
 
     s = data.Shape()

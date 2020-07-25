@@ -3,11 +3,11 @@ from typing import Iterable, List, Optional, Dict, Callable, Tuple
 
 from PySide2.QtCore import Signal, Slot, QSize
 from PySide2.QtGui import QCloseEvent, Qt, QCursor, QKeyEvent
-from PySide2.QtWidgets import QWidget, QPushButton, QHBoxLayout, QVBoxLayout, QLabel, QWhatsThis, \
-    QSizePolicy
+from PySide2.QtWidgets import QWidget, QPushButton, QHBoxLayout, QVBoxLayout, QLabel, QSizePolicy
 
 from data_preprocessor import data
 from data_preprocessor.data.types import Type
+from data_preprocessor.gui.editor.infoballoon import InfoBalloon
 
 
 class AbsOperationEditor(QWidget):
@@ -71,6 +71,7 @@ class AbsOperationEditor(QWidget):
         self._butOk.pressed.connect(self.onAcceptSlot)
         butCancel.pressed.connect(self.reject)  # emit reject
         self.__sh: Optional[QSize] = None  # Qt sizeHint property
+        self._infoBalloon = None
 
     def setDescription(self, short: str, long: str) -> None:
         self.__descLabel.setText(short)
@@ -79,9 +80,18 @@ class AbsOperationEditor(QWidget):
             whatsThisButton = QPushButton('More')
             whatsThisButton.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Maximum)
             self.__helpLayout.addWidget(whatsThisButton, 1)
-            self.setWhatsThis(long)
-            whatsThisButton.clicked.connect(
-                lambda: QWhatsThis.showText(QCursor.pos(), long, self))
+            whatsThisButton.clicked.connect(lambda: self.showInfoBalloon(long))
+            # self.setWhatsThis(long)
+            # whatsThisButton.clicked.connect(
+            #     lambda: QWhatsThis.showText(QCursor.pos(), long, self))
+
+    @Slot(str)
+    def showInfoBalloon(self, long: str) -> None:
+        if not self._infoBalloon:
+            self._infoBalloon = InfoBalloon(self)
+        self._infoBalloon.setText(long)
+        self._infoBalloon.show()
+        self._infoBalloon.move(QCursor.pos())
 
     def closeEvent(self, event: QCloseEvent) -> None:
         """ Reject changes and close editor if the close button is pressed """

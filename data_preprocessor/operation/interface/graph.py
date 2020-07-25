@@ -126,27 +126,6 @@ class GraphOperation(Operation):
         """
         pass
 
-    @staticmethod
-    @abstractmethod
-    def shortDescription() -> str:
-        """
-        Provide some information to show for a step. Should be short, since it is always shown in the
-        editor widget
-
-        :return a string also with html formatting
-        """
-        pass
-
-    def longDescription(self) -> str:
-        """
-        A textual description which may be useful to configure the options. It is shown on demand
-        if the user needs further information over the short description. May be long and include html
-        tags
-
-        :return: a string also with html formatting
-        """
-        return None
-
     @abstractmethod
     def hasOptions(self) -> bool:
         """

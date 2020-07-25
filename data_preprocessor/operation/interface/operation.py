@@ -1,6 +1,7 @@
 from abc import abstractmethod, ABC
 from typing import Any, Iterable, List
 
+from data_preprocessor import operation
 from data_preprocessor.data.types import ALL_TYPES, Type
 
 
@@ -70,7 +71,7 @@ class Operation(ABC):
 
         :return: a string also with html formatting
         """
-        return None
+        return operation.descriptions.get(self.name(), None)
 
     def hasOptions(self) -> bool:
         """

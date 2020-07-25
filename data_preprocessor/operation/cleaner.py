@@ -69,7 +69,7 @@ class RemoveBijections(GraphOperation, flogging.Loggable):
 
     @staticmethod
     def name() -> str:
-        return 'Remove bijections'
+        return 'RemoveBijections'
 
     @staticmethod
     def shortDescription() -> str:

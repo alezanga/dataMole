@@ -248,27 +248,6 @@ class RangeDiscretizer(GraphOperation, flogging.Loggable):
     def shortDescription() -> str:
         return 'Discretize numeric attributes in user defined ranges'
 
-    def longDescription(self) -> str:
-        return '<h4>Table options</h4>' \
-               'Bin edges can be specified in the \'Bin edges\' column. Bin edges must be numbers and ' \
-               'must be separated by a single space. Bin labels must be specified and their number ' \
-               'must be exactly the number of intervals specified, which is the number of edges ' \
-               '-1.<br> ' \
-               '<em>Example:</em><table><tr>' \
-               '    <th>Bin edges</th>' \
-               '    <th>Labels</th>' \
-               '</tr>' \
-               '<tr>' \
-               '    <td>1.0 1.5 4 5.1</td>' \
-               '    <td>Low Medium High</td> ' \
-               '</tr></table>' \
-               'In the example bins are set for intervals:<br>(1.0, 1.5], (1.5, 4.0], (4.0, 5.1]' \
-               '<h4>Drop attribute</h4>' \
-               'It\'s possible to replace the original attribute with the ' \
-               'discretization or preserve it, adding the discretized attribute as a new one. In this ' \
-               'last case the new attribute will have the same name as the original with \'_bins\' ' \
-               'suffix.'
-
     def acceptedTypes(self) -> List[Type]:
         return [Types.Numeric]
 

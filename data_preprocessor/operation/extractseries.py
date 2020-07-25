@@ -29,7 +29,7 @@ class ExtractTimeSeries(Operation):
 
     @staticmethod
     def name() -> str:
-        return 'Extract time series'
+        return 'ExtractTimeSeries'
 
     @staticmethod
     def shortDescription() -> str:
