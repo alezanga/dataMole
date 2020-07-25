@@ -1,4 +1,3 @@
-import logging
 import os
 from typing import List, Tuple
 
@@ -10,6 +9,7 @@ from PySide2.QtGui import QFont, QFontMetrics, QPainterPath, QColor, QKeyEvent, 
 from PySide2.QtWidgets import QGraphicsSimpleTextItem, \
     QGraphicsItem, QWidget, QMainWindow, QMenuBar, QAction, QGraphicsView, QApplication, QFileDialog
 
+from data_preprocessor import flogging
 from data_preprocessor.gui.charts.utils import copyChart, computeAxisValue
 
 
@@ -134,24 +134,26 @@ class SimpleChartView(QtCharts.QChartView):
 
 
 class InteractiveChartView(QtCharts.QChartView):
+    """ A ChartView which optionally supports value tooltip, mouse position tracker, zoom and pan """
+
     def __init__(self, chart: QtCharts.QChart = None, parent: QWidget = None, setInWindow: bool = False):
         super().__init__(parent)
-        self.__setInWindow: bool = setInWindow
-        self.__coordX: QGraphicsItem = None
-        self.__coordY: QGraphicsItem = None
+        self._setInWindow: bool = setInWindow
+        self._coordX: QGraphicsItem = None
+        self._coordY: QGraphicsItem = None
         # self.__callouts: List[Callout] = None # Disabled for now
-        self.__tooltip: Callout = None
+        self._tooltip: Callout = None
         # Internal fields
-        self.__mousePressEventPos: QPointF = None
-        self.__panOn: bool = False
-        self.__chartIsSet: bool = False  # True iff a valid (i.e. non empty) chart is set in this view
+        self._mousePressEventPos: QPointF = None
+        self._panOn: bool = False
+        self._chartIsSet: bool = False  # True iff a valid (i.e. non empty) chart is set in this view
         # Option enable flags
-        self.__panEnabled: bool = True
-        self.__zoomEnabled: bool = True
-        self.__keySeqEnabled: bool = True
-        self.__calloutEnabled: bool = True
-        self.__positionTrackerEnabled: bool = True
-        self.__openInWindowDoubleClick: bool = True
+        self._panEnabled: bool = True
+        self._zoomEnabled: bool = True
+        self._keySeqEnabled: bool = True
+        self._calloutEnabled: bool = True
+        self._positionTrackerEnabled: bool = True
+        self._openInWindowDoubleClick: bool = True
 
         self.setDragMode(QGraphicsView.NoDrag)
         self.setRubberBand(QtCharts.QChartView.RectangleRubberBand)
@@ -161,26 +163,26 @@ class InteractiveChartView(QtCharts.QChartView):
             self.setChart(chart)
 
     def enablePan(self, value: bool) -> None:
-        self.__panEnabled = value
+        self._panEnabled = value
 
     def enableZoom(self, value: bool) -> None:
-        self.__zoomEnabled = value
+        self._zoomEnabled = value
         if value:
             self.setRubberBand(QtCharts.QChartView.RectangleRubberBand)
         else:
             self.setRubberBand(QtCharts.QChartView.NoRubberBand)
 
     def enableKeySequences(self, value: bool) -> None:
-        self.__keySeqEnabled = value
+        self._keySeqEnabled = value
 
     def enableCallout(self, value: bool) -> None:
-        self.__calloutEnabled = value
+        self._calloutEnabled = value
 
     def enablePositionTracker(self, value: bool) -> None:
-        self.__positionTrackerEnabled = value
+        self._positionTrackerEnabled = value
 
     def enableInWindow(self, value: bool) -> None:
-        self.__openInWindowDoubleClick = value
+        self._openInWindowDoubleClick = value
 
     def setChart(self, chart: QtCharts.QChart) -> None:
         """ Sets a new chart in the view. Doesn't delete the previous chart """
@@ -190,22 +192,22 @@ class InteractiveChartView(QtCharts.QChartView):
         series: List[QtCharts.QAbstractSeries] = chart.series()
         if not series:
             # Empty chart
-            self.__chartIsSet = False
+            self._chartIsSet = False
         else:
-            self.__chartIsSet = True
+            self._chartIsSet = True
 
         # self.__callouts = list()
-        self.__tooltip = Callout(chart)
+        self._tooltip = Callout(chart)
         chart.setAcceptHoverEvents(True)
         for s in series:
             # s.clicked.connect(self.keepCallout)
             s.hovered.connect(self.tooltip)
 
-        if self.__chartIsSet and self.__positionTrackerEnabled:
-            self.__coordX = QGraphicsSimpleTextItem(chart)
-            self.__coordX.setText("X: ")
-            self.__coordY = QGraphicsSimpleTextItem(chart)
-            self.__coordY.setText("Y: ")
+        if self._chartIsSet and self._positionTrackerEnabled:
+            self._coordX = QGraphicsSimpleTextItem(chart)
+            self._coordX.setText("X: ")
+            self._coordY = QGraphicsSimpleTextItem(chart)
+            self._coordY.setText("Y: ")
             self._updateMouseTrackerPosition()  # Show them in the correct place
 
     @staticmethod
@@ -267,7 +269,7 @@ class InteractiveChartView(QtCharts.QChartView):
                 axis.setLabelsAngle(0)
 
     def setBestTickCount(self, newSize: QSize) -> None:
-        if self.__chartIsSet:
+        if self._chartIsSet:
             xAxis = self.chart().axisX()
             yAxis = self.chart().axisY()
             if xAxis:
@@ -276,17 +278,17 @@ class InteractiveChartView(QtCharts.QChartView):
                 self._updateAxisTickCount(self.chart(), yAxis, newSize)
 
     def _updateMouseTrackerPosition(self, xOffset: int = 50, yOffset: int = 20) -> None:
-        if self.__chartIsSet and self.__positionTrackerEnabled:
+        if self._chartIsSet and self._positionTrackerEnabled:
             # Update coordinates tracker position
-            self.__coordX.setPos(
+            self._coordX.setPos(
                 self.chart().size().width() / 2 - xOffset,
                 self.chart().size().height() - yOffset)
-            self.__coordY.setPos(
+            self._coordY.setPos(
                 self.chart().size().width() / 2 + xOffset,
                 self.chart().size().height() - yOffset)
 
     def resizeEvent(self, event: QResizeEvent):
-        if self.scene() and self.__chartIsSet:
+        if self.scene() and self._chartIsSet:
             self.scene().setSceneRect(QRectF(QPointF(0, 0), event.size()))
             self.chart().resize(event.size())
             # Update axis
@@ -296,20 +298,20 @@ class InteractiveChartView(QtCharts.QChartView):
         super().resizeEvent(event)
 
     def mousePressEvent(self, event: QMouseEvent) -> None:
-        if self.__chartIsSet and self.__panEnabled and event.button() == Qt.MiddleButton:
-            self.__mousePressEventPos = event.pos()
-            self.__panOn = True
+        if self._chartIsSet and self._panEnabled and event.button() == Qt.MiddleButton:
+            self._mousePressEventPos = event.pos()
+            self._panOn = True
             QApplication.setOverrideCursor(QCursor(Qt.ClosedHandCursor))
         super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event: QMouseEvent) -> None:
-        if self.__panEnabled and self.__panOn:
-            offset = event.pos() - self.__mousePressEventPos
+        if self._panEnabled and self._panOn:
+            offset = event.pos() - self._mousePressEventPos
             self.chart().scroll(-offset.x(), offset.y())
-            self.__mousePressEventPos = event.pos()
+            self._mousePressEventPos = event.pos()
             event.accept()
-        elif self.__chartIsSet and self.__positionTrackerEnabled:
-            metrics = QFontMetrics(self.__coordX.font())
+        elif self._chartIsSet and self._positionTrackerEnabled:
+            metrics = QFontMetrics(self._coordX.font())
             xVal = self.chart().mapToValue(event.pos()).x()
             yVal = self.chart().mapToValue(event.pos()).y()
             # if self.chart().axisX().type() == QtCharts.QAbstractAxis.AxisTypeDateTime:
@@ -319,18 +321,18 @@ class InteractiveChartView(QtCharts.QChartView):
             ySize = metrics.width(yText, -1)
             totSize = xSize + ySize
             self._updateMouseTrackerPosition(xOffset=(totSize // 2))
-            self.__coordX.setText(xText)
-            self.__coordY.setText(yText)
+            self._coordX.setText(xText)
+            self._coordY.setText(yText)
         super().mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event: QMouseEvent) -> None:
-        if self.__panEnabled and self.__panOn:
-            self.__panOn = False
+        if self._panEnabled and self._panOn:
+            self._panOn = False
             QApplication.restoreOverrideCursor()
         super().mouseReleaseEvent(event)
 
     def keyPressEvent(self, event: QKeyEvent) -> None:
-        if not self.__chartIsSet:
+        if not self._chartIsSet:
             return
         if event.key() == Qt.Key_Left:
             self.chart().scroll(-10, 0)
@@ -340,13 +342,13 @@ class InteractiveChartView(QtCharts.QChartView):
             self.chart().scroll(0, +10)
         elif event.key() == Qt.Key_Down:
             self.chart().scroll(0, -10)
-        elif self.__keySeqEnabled and event.key() == Qt.Key_R and event.modifiers() & Qt.ControlModifier:
+        elif self._keySeqEnabled and event.key() == Qt.Key_R and event.modifiers() & Qt.ControlModifier:
             self.chart().zoomReset()
         else:
             super().keyPressEvent(event)
 
     def wheelEvent(self, event: QWheelEvent) -> None:
-        if self.__chartIsSet and self.__zoomEnabled:
+        if self._chartIsSet and self._zoomEnabled:
             delta: int = event.angleDelta().y()
             factor = pow(1.25, delta / 240.0)
             self.chart().zoom(factor)
@@ -354,10 +356,10 @@ class InteractiveChartView(QtCharts.QChartView):
 
     # @Slot() # Disabled because it causes too many problems
     # def keepCallout(self):
-    #     if not self.__calloutEnabled:
+    #     if not self._calloutEnabled:
     #         return
-    #     self.__callouts.append(self.__tooltip)
-    #     self.__tooltip = Callout(self.chart())
+    #     self.__callouts.append(self._tooltip)
+    #     self._tooltip = Callout(self.chart())
 
     # @Slot()  # Disabled because it causes too many problems
     # def clearCallouts(self) -> None:
@@ -367,23 +369,23 @@ class InteractiveChartView(QtCharts.QChartView):
 
     @Slot(QPointF, bool)
     def tooltip(self, point: QPointF, state: bool):
-        if not self.__calloutEnabled:
+        if not self._calloutEnabled:
             return
-        if not self.__tooltip:
-            self.__tooltip = Callout(self.chart())
+        if not self._tooltip:
+            self._tooltip = Callout(self.chart())
         if state:
-            self.__tooltip.setText('X: {} \nY: {} '
-                                   .format(computeAxisValue(self.chart().axisX(), point.x()),
-                                           computeAxisValue(self.chart().axisY(), point.y())))
-            self.__tooltip.setAnchor(point)
-            self.__tooltip.setZValue(11)
-            self.__tooltip.updateGeometry()
-            self.__tooltip.show()
+            self._tooltip.setText('X: {} \nY: {} '
+                                  .format(computeAxisValue(self.chart().axisX(), point.x()),
+                                          computeAxisValue(self.chart().axisY(), point.y())))
+            self._tooltip.setAnchor(point)
+            self._tooltip.setZValue(11)
+            self._tooltip.updateGeometry()
+            self._tooltip.show()
         else:
-            self.__tooltip.hide()
+            self._tooltip.hide()
 
     def mouseDoubleClickEvent(self, event: QMouseEvent) -> None:
-        if self.__chartIsSet and self.__openInWindowDoubleClick and not self.__setInWindow and \
+        if self._chartIsSet and self._openInWindowDoubleClick and not self._setInWindow and \
                 event.button() == Qt.LeftButton:
             chartWindow = InteractiveChartWindow(self)  # needs a parent to be kept alive
             # Open widget with plot
@@ -397,6 +399,30 @@ class InteractiveChartView(QtCharts.QChartView):
             chartWindow.show()
             event.accept()
         super().mouseDoubleClickEvent(event)
+
+
+class BarsInteractiveChartView(InteractiveChartView):
+    """ Reimplementation of InteractiveChartView specific for bar charts """
+
+    @Slot(bool, int, QtCharts.QBarSet)
+    def tooltip(self, status: bool, index: int, barSet: QtCharts.QBarSet) -> None:
+        if not self._calloutEnabled:
+            return
+        if not self._tooltip:
+            self._tooltip = Callout(self.chart())
+        if status:
+            # Compute chart position
+            pos = QCursor.pos()
+            scenePos = self.mapToScene(self.mapFromGlobal(pos))
+            chartPos = self.chart().mapFromScene(scenePos)
+            pos = self.chart().mapToValue(chartPos, self.chart().series()[0])
+            self._tooltip.setText('N: {:g}'.format((barSet.at(index))))
+            self._tooltip.setAnchor(pos)
+            self._tooltip.setZValue(11)
+            self._tooltip.updateGeometry()
+            self._tooltip.show()
+        else:
+            self._tooltip.hide()
 
 
 class InteractiveChartWindow(QMainWindow):
@@ -455,4 +481,4 @@ class InteractiveChartWindow(QMainWindow):
         name, ext = filename
         f: str = name.strip() + '.' + ext.strip().split(' ')[0]
         saved: bool = p.save(f)
-        logging.info('Image saved: {}'.format(saved))
+        flogging.appLogger.info('Image saved: {}'.format(saved))
