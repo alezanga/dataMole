@@ -1,3 +1,4 @@
+import importlib.resources as res
 from datetime import datetime
 from typing import Union
 
@@ -43,7 +44,9 @@ class _Message(QWidget):
             'font-family: Roboto, sans-serif; font-size: 12px; font-weight: normal; padding: 0;')
         self.messageLabel.setWordWrap(True)
         self.buttonClose = QPushButton(self)
-        self.buttonClose.setIcon(QIcon('data_preprocessor/style/icons/close.png'))
+        with res.path('data_preprocessor.resources.icons', 'close.png') as pPath:
+            closeI = str(pPath)
+            self.buttonClose.setIcon(QIcon(closeI))
         self.buttonClose.setFixedSize(18, 18)
         nextColumn: int = 0
         if icon:

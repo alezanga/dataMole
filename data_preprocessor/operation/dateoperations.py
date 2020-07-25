@@ -1,4 +1,5 @@
 import datetime as dt
+import importlib.resources as res
 from typing import List, Tuple, Optional, Dict, Set, Union
 
 import pandas as pd
@@ -411,7 +412,9 @@ class _IntervalWidget(AbsOperationEditor):
         self.body.gLayout.addWidget(a, row, 0)
         self.body.gLayout.addWidget(b, row, 1)
         # Create a button to remove row
-        removeBut = QPushButton(QIcon('data_preprocessor/style/icons/close.png'), '', self)
+        with res.path('data_preprocessor.resources.icons', 'close.png') as pPath:
+            closeI = str(pPath)
+            removeBut = QPushButton(QIcon(closeI), '', self)
         removeBut.setFixedSize(30, 30)
         removeBut.setToolTip('Remove row')
         # Lambda here is ok since it's called from main thread, so even if it's not a slot it's safe
