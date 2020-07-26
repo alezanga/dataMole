@@ -311,7 +311,7 @@ class TimeSeriesPlot(QWidget):
             allSeries.append(qSeries)
         return allSeries, yMin, yMax
 
-    def __createChartWithValues(self, dataframe: pd.DataFrame, attributes: List[int], timeIndex: int,
+    def __createChartWithValues(self, dataframe: pd.DataFrame, attributes: Set[int], timeIndex: int,
                                 timeIndexType: Type) -> QtCharts.QChart:
         chart = QtCharts.QChart()
         # Sort by time
@@ -343,7 +343,7 @@ class TimeSeriesPlot(QWidget):
             s.attachAxis(yAxis)
         return chart
 
-    def __createChartWithIndexes(self, dataframe: pd.DataFrame, attributes: List[int],
+    def __createChartWithIndexes(self, dataframe: pd.DataFrame, attributes: Set[int],
                                  indexes: List[Any], timeIndex: int, timeIndexType: Type,
                                  indexMean: bool = False) -> QtCharts.QChart:
         """ Creates a chart with a series for every 'index' in 'dataframe' showing only column
@@ -400,7 +400,7 @@ class TimeSeriesPlot(QWidget):
     def createChart(self) -> None:
         # Get options
         timeAxis: str = self.settingsPanel.timeAxisAttributeCB.currentText()
-        attributes: List[int] = self.settingsPanel.valuesTable.model().checked
+        attributes: Set[int] = self.settingsPanel.valuesTable.model().checked
         indexes: List[Any] = self.settingsPanel.indexTable.model().sourceModel().checked
         # indexMean: bool = self.settingsPanel.meanCB.isChecked()
 

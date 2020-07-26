@@ -119,7 +119,7 @@ class _SelectAttribute(AbsOperationEditor):
         self.__searchableTable.setSourceFrameModel(FrameModel(self, self.inputShapes[0]))
 
     def getOptions(self) -> Tuple[List[int], bool]:
-        return self.__searchableTable.model().checked, self.__nancol.isChecked()
+        return list(self.__searchableTable.model().checked), self.__nancol.isChecked()
 
     def setOptions(self, selected_indexes: List[int], nancol: bool) -> None:
         self.__searchableTable.model().setChecked(selected_indexes, True)

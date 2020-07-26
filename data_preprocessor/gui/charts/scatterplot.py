@@ -1,4 +1,4 @@
-from typing import List, Optional, Union, Tuple
+from typing import List, Optional, Union, Tuple, Set
 
 import numpy as np
 import pandas as pd
@@ -141,7 +141,7 @@ class ScatterPlotMatrix(QWidget):
         # Clear eventual existing plots
         self.clearScatterPlotMatrix()
         # Create plot with selected attributes
-        attributes: List[int] = self.__matrixAttributes.model().checked
+        attributes: Set[int] = self.__matrixAttributes.model().checked
         if len(attributes) < 2:
             self.errorLabel.setText('Select at least 2 attributes')
             self.errorLabel.setStyleSheet('color: red')
@@ -158,7 +158,7 @@ class ScatterPlotMatrix(QWidget):
             group = index.row() if index.isValid() else None
 
         # Get attributes of interest
-        toKeep: List[int] = attributes if group is None else [group, *attributes]
+        toKeep: List[int] = list(attributes) if group is None else [group, *attributes]
         filterDf = self.__frameModel.frame.getRawFrame().iloc[:, toKeep]
         groupName: Optional[str] = filterDf.columns[0] if group is not None else None
         # Convert categories to numeric, but exclude groupBy attributes since categories are needed there

@@ -129,7 +129,7 @@ class _EditableAttributeTable(AttributeTableModel):
             return None
 
         name, col_type = self._frameModel.headerData(index.row(), orientation=Qt.Horizontal,
-                                                     role=FrameModel.DataRole.value)
+                                                     role=FrameModel.DataRole)
         if index.column() == self.nameColumn:
             # Gets updated value or None
             new_name: str = self._edits.get(index.row(), None)

@@ -1,4 +1,4 @@
-from typing import Iterable, List, Dict
+from typing import Iterable, List, Dict, Set
 
 import pandas as pd
 from PySide2.QtCore import Slot
@@ -16,7 +16,7 @@ class CsvLoader(Operation):
         self.__separator: str = None
         self.__wName: str = None
         self.__splitByRowN: int = None
-        self.__selectedColumns: List[int] = list()
+        self.__selectedColumns: Set[int] = set()
 
     def hasOptions(self) -> bool:
         return self.__file is not None and self.__separator is not None and self.__wName
@@ -53,7 +53,7 @@ class CsvLoader(Operation):
                'too memory consuming to load with pandas'
 
     def setOptions(self, file: str, separator: str, name: str, splitByRow: int,
-                   selectedCols: List[int]) -> None:
+                   selectedCols: Set[int]) -> None:
         errors = list()
         if not name:
             errors.append(('nameError', 'Error: a valid name must be specified'))

@@ -69,7 +69,7 @@ class AttributePanel(QWidget):
             self._histPanel.setData(dict())
             return
         attType = self._frameModel.headerData(attributeIndex, Qt.Horizontal,
-                                              FrameModel.DataRole.value)[1]
+                                              FrameModel.DataRole)[1]
         stat: Optional[Dict[str, object]] = self._frameModel.statistics.get(
             self.__currentAttributeIndex, None)
         if not stat:

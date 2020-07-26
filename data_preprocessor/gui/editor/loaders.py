@@ -1,5 +1,5 @@
 import os
-from typing import Iterable, Optional, List
+from typing import Iterable, Optional, Set
 
 import pandas as pd
 from PySide2.QtCore import Slot, Qt, QThread, Signal
@@ -7,9 +7,9 @@ from PySide2.QtGui import QIntValidator
 from PySide2.QtWidgets import QWidget, QButtonGroup, QRadioButton, QFileDialog, QLineEdit, QHBoxLayout, \
     QPushButton, QLabel, QVBoxLayout, QCheckBox
 
+from data_preprocessor.gui.widgets.waitingspinnerwidget import QtWaitingSpinner
 from .interface import AbsOperationEditor
 from ..mainmodels import SearchableAttributeTableWidget, FrameModel
-from data_preprocessor.gui.widgets.waitingspinnerwidget import QtWaitingSpinner
 from ...data import Frame
 
 
@@ -166,11 +166,11 @@ class LoadCSVEditor(AbsOperationEditor):
         chunksize = int(self.mywidget.numberRowsChunk.text()) if self.mywidget.checkSplit.isChecked() \
             else None
         varName: str = self.mywidget.nameField.text()
-        selectedColumns = self.mywidget.tablePreview.model().checked
+        selectedColumns: Set[int] = self.mywidget.tablePreview.model().checked
         return path, sep_s, varName, chunksize, selectedColumns
 
     def setOptions(self, path: Optional[str], sep: Optional[str], name: Optional[str],
-                   splitByRow: Optional[int], selectedColumns: List[int]) -> None:
+                   splitByRow: Optional[int], selectedColumns: Set[int]) -> None:
         # Filepath
         # self.mywidget.filePath.setText(path if path else '')
         # # Separator
