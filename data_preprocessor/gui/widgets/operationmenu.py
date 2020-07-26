@@ -1,10 +1,10 @@
-import importlib
 from typing import Callable, List
 
 from PySide2.QtCore import Qt, QPoint, QMimeData, Slot
 from PySide2.QtGui import QMouseEvent, QDrag, QStandardItem, QStandardItemModel
 from PySide2.QtWidgets import QWidget, QTreeWidget, QTreeWidgetItem, QApplication
 
+from data_preprocessor.operation.__all__ import ops
 from data_preprocessor.operation.interface.graph import GraphOperation
 
 
@@ -57,10 +57,8 @@ class OperationMenu(QTreeWidget):
         top_items = list(map(_build_item, ['Input', 'Output', 'All']))
         self.addTopLevelItems(top_items)
         # Import everything in operations directory
-        from data_preprocessor.operation import __all__
         var_export = 'export'
-        for module_name in __all__:
-            module = importlib.import_module('.' + module_name, package='data_preprocessor.operation')
+        for module in ops:
             if not hasattr(module, var_export):
                 continue
             op_class = getattr(module, var_export)
@@ -75,6 +73,7 @@ class OperationMenu(QTreeWidget):
         self.header().setSectionsClickable(True)
         self.header().sectionClicked.connect(self.toggleExpansion)
         self.setUniformRowHeights(True)
+        self.sortItems(0, Qt.SortOrder.AscendingOrder)
 
     def model(self) -> QStandardItemModel:
         items: List[QTreeWidgetItem] = \

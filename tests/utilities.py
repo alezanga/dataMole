@@ -1,12 +1,7 @@
 import collections
 from typing import Any, Dict, List
 
-import numpy
 import pandas as pd
-
-
-def numpy_equal(a: numpy.array, b: numpy.array) -> bool:
-    return ((a == b) | ((a != a) & (b != b))).all()
 
 
 def roundValues(val: Dict[Any, List], decimals: int) -> Dict[Any, List]:

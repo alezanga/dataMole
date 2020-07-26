@@ -77,7 +77,7 @@ def setUpRootLogger() -> None:
     """ Sets up a root logger with everything """
     log_path = os.path.join(os.getcwd(), LOG_FOLDER, 'root')
     if not os.path.exists(log_path):
-        os.mkdir(log_path)
+        os.makedirs(log_path)
     timestamp = str(datetime.datetime.now()).replace(' ', '_')
     global LOG_PATH
     LOG_PATH = os.path.join(log_path, timestamp + '.log')
@@ -91,7 +91,7 @@ def setUpRootLogger() -> None:
 def setUpLogger(name: str, folder: str, fmt: str, level: int) -> logging.Logger:
     log_path = os.path.join(os.getcwd(), LOG_FOLDER, folder)
     if not os.path.exists(log_path):
-        os.mkdir(log_path)
+        os.makedirs(log_path)
     timestamp = str(datetime.datetime.now()).replace(' ', '_')
     log_path = os.path.join(log_path, timestamp + '.log')
     handler = logging.FileHandler(log_path)

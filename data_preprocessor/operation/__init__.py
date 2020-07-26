@@ -1,14 +1,6 @@
-import glob
 import importlib.resources as res
-import os
 import xml.etree.ElementTree as eTree
 from typing import Dict
-
-# Dynamically load operation modules
-modules = glob.glob(os.path.join(os.path.dirname(__file__), "*.py"))
-
-__all__ = [os.path.basename(f)[:-3] for f in modules if
-           os.path.isfile(f) and not f.endswith(('__init__.py', 'interface.py'))]
 
 # Read operation description file
 with res.path('data_preprocessor.resources', 'descriptions.html') as p:

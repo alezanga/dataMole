@@ -6,8 +6,9 @@ from PySide2.QtWidgets import QApplication
 from data_preprocessor import flogging
 
 if __name__ == "__main__":
+    print('dataMole v. 0.1')
+    print('Built on Python', sys.version)
     # Set up logger, QApp
-    print('Python', sys.version)
     app = QApplication([])
     flogging.setUpRootLogger()
     rootFmt = '%(asctime)s:%(levelname)s:%(module)s.%(funcName)s:%(lineno)d:%(message)s'

@@ -9,6 +9,10 @@ from PySide2.QtGui import QValidator, QIntValidator, QDoubleValidator
 # doubleListValidator = QRegExpValidator(QRegExp('(\\d+(\\.\\d)?\\d*)(\\,\\s?(\\d+(\\.\\d)?\\d*))*'))
 
 
+def numpy_equal(a: np.array, b: np.array) -> bool:
+    return ((a == b) | ((a != a) & (b != b))).all()
+
+
 def splitString(string: str, sep: str) -> List[str]:
     """
     Split a string on a separator, trimming spaces. Parts within double quotes are not parsed

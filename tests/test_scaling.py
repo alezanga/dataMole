@@ -2,7 +2,8 @@ import numpy as np
 
 from data_preprocessor import data
 from data_preprocessor.operation.scaling import MinMaxScaler, StandardScaler
-from tests.utilities import nan_to_None, roundValues, numpy_equal
+from data_preprocessor.operation.utils import numpy_equal
+from tests.utilities import nan_to_None, roundValues
 
 
 def test_minMaxScale():

@@ -8,7 +8,7 @@ from data_preprocessor import exceptions as exp
 from data_preprocessor.gui.editor import AbsOperationEditor, OptionsEditorFactory
 from data_preprocessor.gui.mainmodels import FrameModel
 from data_preprocessor.operation.interface.graph import GraphOperation
-from tests.utilities import numpy_equal
+from .utils import numpy_equal
 
 
 def find_duplicates(df: pd.DataFrame) -> List[str]:
