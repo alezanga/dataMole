@@ -48,11 +48,13 @@ class AttributeTableWithOptions(AttributeTableModel):
         return self._optionsDesc[self._optionsPos[column]][2]
 
     def options(self) -> Dict[int, Dict[str, Any]]:
+        """ Getter method for factory table options """
         selectedRows = self.checked
         opt = {k: self._options.get(k, dict()) for k in selectedRows}
         return opt
 
     def setOptions(self, opt: Dict[int, Dict[str, Any]]) -> None:
+        """ Setter method for factory table """
         self._options = copy.deepcopy(opt)
         self.setChecked(list(self._options.keys()), True)
 
@@ -206,8 +208,7 @@ class OptionsEditorFactory:
         self.__editorWidgets.append((key, group))
 
     def withComboBox(self, label: str, key: str, editable: bool,
-                     model: QAbstractItemModel = None, strings: List[str] = None) -> \
-            None:
+                     model: QAbstractItemModel = None, strings: List[str] = None) -> None:
         combo = QComboBox(self.__body)
         if model:
             combo.setModel(model)

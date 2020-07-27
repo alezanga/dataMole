@@ -55,7 +55,7 @@ class RenameOp(GraphOperation, flogging.Loggable):
         s = self.getOutputShape()
         if s and len(set(s.colNames)) < s.nColumns:
             raise exp.OptionValidationError([('dup', 'Error: new names contain duplicates')])
-        self.__names = names
+        self.__names = copy.deepcopy(names)
 
     def unsetOptions(self) -> None:
         self.__names = dict()
@@ -67,7 +67,6 @@ class RenameOp(GraphOperation, flogging.Loggable):
         return _RenameEditor()
 
     def injectEditor(self, editor: '_RenameEditor') -> None:
-        editor.inputShapes = self.shapes
         editor.refresh()
 
     def getOutputShape(self) -> Union[data.Shape, None]:

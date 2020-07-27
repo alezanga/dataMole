@@ -30,6 +30,10 @@ class WorkbenchModelMock:
         return self.__workbench
 
     @property
+    def modelDict(self) -> Dict[str, FrameModelMock]:
+        return {n: self.__workbench[i] for n, i in self.__nameToIndex.items()}
+
+    @property
     def names(self) -> List[str]:
         return list(self.__nameToIndex.keys())
 
@@ -72,7 +76,8 @@ class WorkbenchModelMock:
         # Now delete row
         rowName: str = self.__workbench[row].name
         del self.__workbench[row]
-        del self.__nameToIndex[rowName]
+        self.__nameToIndex = {name: (i if i < row else i - 1)
+                              for name, i in self.__nameToIndex.items() if i != row}
         return True
 
     def appendEmptyRow(self) -> bool:

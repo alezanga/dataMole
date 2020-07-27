@@ -1,3 +1,4 @@
+import copy
 from typing import Any, Dict, List, Tuple, Iterable, Optional
 
 import pandas as pd
@@ -110,15 +111,14 @@ class ExtractTimeSeries(Operation):
                 errors.append(('duplicates', 'Error: some series contain duplicated time labels'))
         if errors:
             raise exp.OptionValidationError(errors)
-        self.__series = series
+        self.__series = copy.deepcopy(series)
         self.__outputName = outName
-        self.__timeLabels = time
+        self.__timeLabels = copy.deepcopy(time)
 
     def getEditor(self) -> AbsOperationEditor:
         return _ExtractSeriesEditor()
 
     def injectEditor(self, editor: 'AbsOperationEditor') -> None:
-        editor.workbench = self.workbench
         editor.refresh()
 
 

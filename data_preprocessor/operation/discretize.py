@@ -98,10 +98,11 @@ class BinsDiscretizer(GraphOperation, flogging.Loggable):
         return True
 
     def getOptions(self) -> Iterable:
-        options = dict()
+        options: Dict[
+            str, Union[Dict[int, Dict[str, str]], BinStrategy, Tuple[bool, Optional[str]]]] = dict()
         options['attributes'] = dict()
         for r, bins in self.__attributes.items():
-            options['attributes'][r] = {'bins': bins}
+            options['attributes'][r] = {'bins': str(bins)}
         options['strategy'] = self.__strategy
         options['suffix'] = (bool(self.__attributeSuffix), self.__attributeSuffix)
         return options
@@ -226,7 +227,7 @@ class RangeDiscretizer(GraphOperation, flogging.Loggable):
         return data.Frame(f)
 
     def getOutputShape(self) -> Optional[data.Shape]:
-        if self.shapes[0] is None and not self.hasOptions():
+        if self.shapes[0] is None or not self.hasOptions():
             return None
         s = self.shapes[0].clone()
         if not self.__attributeSuffix:
@@ -267,7 +268,7 @@ class RangeDiscretizer(GraphOperation, flogging.Loggable):
             options['table'][row] = {'bins': opt[0],  # List[float]
                                      'labels': joinList(opt[1], sep=' ')  # str
                                      }
-            options['suffix'] = (bool(self.__attributeSuffix), self.__attributeSuffix)
+        options['suffix'] = (bool(self.__attributeSuffix), self.__attributeSuffix)
         return options
 
     def getEditor(self) -> AbsOperationEditor:

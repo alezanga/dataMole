@@ -1,13 +1,14 @@
-import importlib.resources as res
 from datetime import datetime
 from typing import Union
 
 from PySide2 import QtGui
 from PySide2.QtCore import Slot
-from PySide2.QtGui import QIcon, Qt
+from PySide2.QtGui import QIcon, Qt, QPixmap
 from PySide2.QtWidgets import QWidget, QGridLayout, QLabel, QPushButton, QVBoxLayout, QMessageBox, \
     QStyle
 
+# noinspection PyUnresolvedReferences
+from data_preprocessor import qt_resources
 from data_preprocessor.gui import utils as widgets
 
 
@@ -44,9 +45,7 @@ class _Message(QWidget):
             'font-family: Roboto, sans-serif; font-size: 12px; font-weight: normal; padding: 0;')
         self.messageLabel.setWordWrap(True)
         self.buttonClose = QPushButton(self)
-        with res.path('data_preprocessor.resources.icons', 'close.png') as pPath:
-            closeI = str(pPath)
-            self.buttonClose.setIcon(QIcon(closeI))
+        self.buttonClose.setIcon(QIcon(QPixmap(':/resources/icons/close.png')))
         self.buttonClose.setFixedSize(18, 18)
         nextColumn: int = 0
         if icon:

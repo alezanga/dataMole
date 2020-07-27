@@ -41,6 +41,15 @@ def test_execute():
 
     op.setOptions(series=options, time=timeLabels, outName='frameR')
 
+    # Check for side effects
+    options['diab'] = []
+    assert op._ExtractTimeSeries__timeLabels is not timeLabels
+    assert op._ExtractTimeSeries__series is not options
+    assert op._ExtractTimeSeries__series == {
+        'diab': [('frameG', 0, 3), ('frameF', 1, 1), ('frameF', 0, 0), ('frameG', 1, 2)],
+        'other': [('frameF', 2, 0), ('frameF', 1, 1), ('frameG', 2, 2), ('frameF', 0, 3)]
+    }
+
     op.execute()
 
     assert w.getDataframeModelByName('frameF').frame.shape == fShape

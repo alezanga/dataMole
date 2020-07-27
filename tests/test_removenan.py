@@ -14,7 +14,10 @@ def test_nan_noremove():
     f = data.Frame(d)
 
     op = RemoveNanRows()
-    op.setOptions(number=1, percentage=None)
+    assert op.getOptions() == (None, None)
+    op.setOptions(percentage=None, number=1)
+
+    assert op.getOptions() == (None, 1)
 
     op.addInputShape(f.shape, 0)
     s = f.shape.clone()
@@ -51,7 +54,9 @@ def test_nan_removerows_byperc():
     f = data.Frame(d)
 
     op = RemoveNanRows()
+    assert op.getOutputShape() is None
     op.setOptions(number=12121, percentage=0.3)
+    assert op.getOptions() == (0.3, None)
 
     op.addInputShape(f.shape, 0)
     s = f.shape.clone()
@@ -104,7 +109,9 @@ def test_remove_column():
     f = data.Frame(d)
     f = f.setIndex('col1')
 
+    assert op.getOutputShape() is None
     op.setOptions(number=1, percentage=0.3)
+    assert op.getOptions() == (0.3, None)
 
     op.addInputShape(f.shape, 0)
 

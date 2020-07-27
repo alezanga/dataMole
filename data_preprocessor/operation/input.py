@@ -1,14 +1,12 @@
-from typing import Optional, List, Union
-
-from PySide2.QtCore import Qt
-from PySide2.QtWidgets import QComboBox, QWidget
+from typing import Optional, Union, Dict
 
 from data_preprocessor import data, flogging
 from data_preprocessor.gui.editor.interface import AbsOperationEditor
 from .interface.graph import InputGraphOperation
+from ..gui.editor import OptionsEditorFactory
 
 
-class CopyOp(InputGraphOperation, flogging.Loggable):
+class SetInput(InputGraphOperation, flogging.Loggable):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._frame_name: Optional[str] = None
@@ -28,11 +26,11 @@ class CopyOp(InputGraphOperation, flogging.Loggable):
     def hasOptions(self) -> bool:
         return bool(self._frame_name)
 
-    def setOptions(self, selected_frame: str) -> None:
-        self._frame_name = selected_frame
+    def setOptions(self, inputF: str) -> None:
+        self._frame_name = inputF
 
-    def getOptions(self) -> List[Optional[str]]:
-        return [self._frame_name]
+    def getOptions(self) -> Dict[str, Optional[str]]:
+        return {'inputF': self._frame_name}
 
     def getOutputShape(self) -> Union[data.Shape, None]:
         if not self.hasOptions():
@@ -44,27 +42,10 @@ class CopyOp(InputGraphOperation, flogging.Loggable):
         return True
 
     def getEditor(self) -> AbsOperationEditor:
-        class SelectFrame(AbsOperationEditor):
-            def getOptions(self) -> List[str]:
-                name = self.__selection_box.currentText() if self.__selection_box.currentText() else None
-                return [name]
-
-            def setOptions(self, selected_name: Optional[str]) -> None:
-                self.__selection_box.setModel(self.workbench)
-                if selected_name is not None:
-                    self.__selection_box.setCurrentIndex(
-                        self.__selection_box.findText(selected_name, Qt.MatchExactly))
-                else:
-                    self.__selection_box.setCurrentIndex(0)
-
-            def editorBody(self) -> QWidget:
-                self.__selection_box = QComboBox(self)
-                return self.__selection_box
-
-        return SelectFrame()
-
-    def injectEditor(self, editor: 'AbsOperationEditor') -> None:
-        editor.workbench = self._workbench
+        factory = OptionsEditorFactory()
+        factory.initEditor()
+        factory.withComboBox(key='inputF', label='Input frame', editable=False, model=self._workbench)
+        return factory.getEditor()
 
 
-export = CopyOp
+export = SetInput

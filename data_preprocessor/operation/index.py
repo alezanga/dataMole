@@ -67,8 +67,6 @@ class SetIndex(GraphOperation, flogging.Loggable):
         return factory.getEditor()
 
     def injectEditor(self, editor: 'AbsOperationEditor') -> None:
-        editor.inputShapes = self.shapes
-        editor.acceptedTypes = self.acceptedTypes()
         # Set frame model
         editor.selected.setSourceFrameModel(FrameModel(editor, self.shapes[0]))
 

@@ -168,8 +168,6 @@ class FillNan(GraphOperation, Loggable):
         return factory.getEditor()
 
     def injectEditor(self, editor: 'AbsOperationEditor') -> None:
-        editor.inputShapes = self.shapes
-        editor.workbench = self.workbench
         # Connect and set frame
         editor.selected.setSourceFrameModel(FrameModel(editor, self.shapes[0]))
 

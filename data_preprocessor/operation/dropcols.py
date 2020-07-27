@@ -49,8 +49,6 @@ class Drop(GraphOperation):
         return factory.getEditor()
 
     def injectEditor(self, editor: 'AbsOperationEditor') -> None:
-        editor.inputShapes = self.shapes
-        editor.workbench = self.workbench
         editor.selected.setSourceFrameModel(FrameModel(editor, self.shapes[0]))
 
     def getOutputShape(self) -> Optional[data.Shape]:

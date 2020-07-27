@@ -4,6 +4,7 @@ from data_preprocessor import data
 from data_preprocessor.data import Shape
 from data_preprocessor.data.types import Types, IndexType
 from data_preprocessor.operation.index import SetIndex, ResetIndex
+from tests.utilities import isDictDeepCopy
 
 
 def test_set_index_num():
@@ -14,7 +15,12 @@ def test_set_index_num():
     g = data.Frame(e)
 
     op = SetIndex()
-    op.setOptions(selected={0: None})
+    assert op.getOptions() == {'selected': dict()}
+    ops = {'selected': {0: None}}
+    op.setOptions(**ops)
+
+    assert op.getOptions() == ops
+    assert isDictDeepCopy(op.getOptions(), ops)
 
     assert op.getOutputShape() is None
 
@@ -53,6 +59,7 @@ def test_set_index_cat():
 
     op = SetIndex()
     op.setOptions(selected={1: None, 2: None})
+    assert op.getOptions() == {'selected': {1: None, 2: None}}
 
     assert op.getOutputShape() is None
 

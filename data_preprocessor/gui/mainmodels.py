@@ -877,7 +877,6 @@ class BooleanBoxDelegate(QStyledItemDelegate):
 
 
 class TableHeader(QHeaderView):
-    # TODO: use this to paint a checkbox in header
     def __init__(self, checkboxSection: Optional[int], orientation: Qt.Orientation, parent=None):
         super().__init__(orientation, parent)
         self.__checkboxSection = checkboxSection
@@ -888,8 +887,15 @@ class TableHeader(QHeaderView):
         super().paintSection(painter, rect, logicalIndex)
         painter.restore()
         if self.__checkboxSection == logicalIndex:
+            # Compute checkbox position
+            checkboxSize: int = 15
+            width: int = self.sectionSize(logicalIndex)
+            height: int = self.height()
+            cbStartWidth: int = max(0, (width - checkboxSize) // 2)
+            cbStartHeight: int = max(0, (height - checkboxSize) // 2)
+
             option = QStyleOptionButton()
-            option.rect = QRect(20, 4, 15, 15)
+            option.rect = QRect(cbStartWidth, cbStartHeight, 15, 15)
             if self.__isChecked:
                 option.state |= QStyle.State_On
             else:

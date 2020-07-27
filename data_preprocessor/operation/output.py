@@ -42,31 +42,27 @@ class ToVariableOp(OutputGraphOperation, flogging.Loggable):
     def getEditor(self) -> AbsOperationEditor:
         class WriteEditor(AbsOperationEditor):
             def editorBody(self) -> QWidget:
-                self.__write_box = opw.TextOptionWidget()
-                return self.__write_box
+                self.__outputBox = opw.TextOptionWidget()
+                return self.__outputBox
 
             def getOptions(self) -> Iterable:
-                text = self.__write_box.getData()
+                text = self.__outputBox.getData()
                 return [text]
 
             def setOptions(self, var_name: str) -> None:
-                self.__write_box.widget.textChanged.connect(self.testInput)
+                self.__outputBox.widget.textChanged.connect(self.testInput)
                 if var_name:
-                    self.__write_box.setData(var_name)
+                    self.__outputBox.setData(var_name)
 
             @Slot(str)
-            def testInput(self, new_text: str):
-                if new_text not in self.workbench.names:
-                    self.__write_box.unsetError()
-                    self.enableOkButton()
+            def testInput(self, name: str):
+                if name not in self.workbench.names:
+                    self.__outputBox.unsetError()
                 else:
-                    self.__write_box.setError('Variable name is already present')
-                    self.disableOkButton()
+                    self.__outputBox.setError('Variable "{:s}" will be replaced'.format(name),
+                                              style='border: 1px solid orange')
 
         return WriteEditor()
-
-    def injectEditor(self, editor: 'AbsOperationEditor') -> None:
-        editor.workbench = self._workbench
 
 
 export = ToVariableOp

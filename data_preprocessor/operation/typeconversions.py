@@ -97,8 +97,6 @@ class ToNumericOp(GraphOperation, flogging.Loggable):
         return factory.getEditor()
 
     def injectEditor(self, editor: 'AbsOperationEditor') -> None:
-        editor.acceptedTypes = self.acceptedTypes()
-        editor.inputShapes = self._shapes
         # Set frame model
         editor.attributes.setSourceFrameModel(FrameModel(editor, self.shapes[0]))
 
@@ -221,8 +219,6 @@ class ToCategoricalOp(GraphOperation, flogging.Loggable):
         return factory.getEditor()
 
     def injectEditor(self, editor: 'AbsOperationEditor') -> None:
-        editor.acceptedTypes = self.acceptedTypes()
-        editor.inputShapes = self._shapes
         # Set frame model
         editor.attributes.setSourceFrameModel(FrameModel(editor, self.shapes[0]))
         # Fixed width to bool column
@@ -346,8 +342,6 @@ class ToTimestamp(GraphOperation, flogging.Loggable):
         return factory.getEditor()
 
     def injectEditor(self, editor: AbsOperationEditor) -> None:
-        editor.acceptedTypes = self.acceptedTypes()
-        editor.inputShapes = self._shapes
         # Set frame model
         editor.attributes.setSourceFrameModel(FrameModel(editor, self.shapes[0]))
         # Stretch new section
@@ -440,8 +434,6 @@ class ToString(GraphOperation, flogging.Loggable):
         return factory.getEditor()
 
     def injectEditor(self, editor: 'AbsOperationEditor') -> None:
-        editor.acceptedTypes = self.acceptedTypes()
-        editor.inputShapes = self._shapes
         # Set frame model
         editor.attributes.setSourceFrameModel(FrameModel(editor, self.shapes[0]))
 

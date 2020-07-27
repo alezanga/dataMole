@@ -1,14 +1,13 @@
 from operator import itemgetter
-from typing import Iterable, List, Union, Tuple
+from typing import List, Union, Dict
 
 import pandas as pd
 import prettytable as pt
-from PySide2.QtWidgets import QWidget, QCheckBox, QVBoxLayout
 
 from data_preprocessor import data, flogging
 from data_preprocessor.data.types import Types, Type
-from data_preprocessor.gui.editor import AbsOperationEditor
-from data_preprocessor.gui.mainmodels import SearchableAttributeTableWidget, FrameModel
+from data_preprocessor.gui.editor import AbsOperationEditor, OptionsEditorFactory
+from data_preprocessor.gui.mainmodels import FrameModel
 from data_preprocessor.operation.interface.graph import GraphOperation
 
 
@@ -29,12 +28,14 @@ class OneHotEncodeOp(GraphOperation, flogging.Loggable):
 
     def execute(self, df: data.Frame) -> data.Frame:
         pdf = df.getRawFrame().copy(deep=True)
-        columns = pdf.columns
         prefixes = itemgetter(*self.__attributes)(self.shapes[0].colNames)
         npdf = pd.get_dummies(pdf.iloc[:, self.__attributes], prefix=prefixes,
                               dummy_na=self.__includeNan, dtype=int)
         npdf = npdf.astype('category', copy=False)
-        pdf = pdf.drop(columns[self.__attributes], axis=1, inplace=False)
+        # Replace eventual duplicate columns
+        pdf = pdf.drop(columns=npdf.columns, errors='ignore')
+        # Avoid dropping original columns (just append)
+        # pdf = pdf.drop(columns[self.__attributes], axis=1, inplace=False)
         pdf = pd.concat([pdf, npdf], axis=1)
         return data.Frame(pdf)
 
@@ -64,19 +65,25 @@ class OneHotEncodeOp(GraphOperation, flogging.Loggable):
     def acceptedTypes(self) -> List[Type]:
         return [Types.Ordinal, Types.Nominal, Types.String]
 
-    def getOptions(self) -> Iterable:
-        return self.__attributes, self.__includeNan
+    def getOptions(self) -> Dict[str, Union[Dict[int, None], bool]]:
+        return {
+            'attributes': {k: None for k in self.__attributes},
+            'includeNan': self.__includeNan
+        }
 
-    def setOptions(self, attributes: List[int], includeNan: bool) -> None:
-        self.__attributes = attributes
+    def setOptions(self, attributes: Dict[int, None], includeNan: bool) -> None:
+        self.__attributes = list(attributes.keys())
         self.__includeNan = includeNan
 
     def getEditor(self) -> AbsOperationEditor:
-        return _SelectAttribute()
+        factory = OptionsEditorFactory()
+        factory.initEditor()
+        factory.withAttributeTable('attributes', True, False, True, None, self.acceptedTypes())
+        factory.withCheckBox('Column for nan', 'includeNan')
+        return factory.getEditor()
 
     def injectEditor(self, editor: 'AbsOperationEditor') -> None:
-        editor.inputShapes = self.shapes
-        editor.refresh()
+        editor.attributes.setSourceFrameModel(FrameModel(editor, self._shapes[0]))
 
     def getOutputShape(self) -> Union[data.Shape, None]:
         return None
@@ -100,30 +107,6 @@ class OneHotEncodeOp(GraphOperation, flogging.Loggable):
     @staticmethod
     def maxOutputNumber() -> int:
         return -1
-
-
-class _SelectAttribute(AbsOperationEditor):
-    def editorBody(self) -> QWidget:
-        self.__searchableTable = SearchableAttributeTableWidget(checkable=True,
-                                                                showTypes=True,
-                                                                filterTypes=self.acceptedTypes)
-        self.__nancol = QCheckBox('Column for nan?', self)
-        layout = QVBoxLayout()
-        layout.addWidget(self.__searchableTable)
-        layout.addWidget(self.__nancol)
-        w = QWidget(self)
-        w.setLayout(layout)
-        return w
-
-    def refresh(self) -> None:
-        self.__searchableTable.setSourceFrameModel(FrameModel(self, self.inputShapes[0]))
-
-    def getOptions(self) -> Tuple[List[int], bool]:
-        return list(self.__searchableTable.model().checked), self.__nancol.isChecked()
-
-    def setOptions(self, selected_indexes: List[int], nancol: bool) -> None:
-        self.__searchableTable.model().setChecked(selected_indexes, True)
-        self.__nancol.setChecked(nancol if nancol is not None else False)
 
 
 export = OneHotEncodeOp

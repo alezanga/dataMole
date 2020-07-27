@@ -82,8 +82,9 @@ class RemoveNanRows(GraphOperation, flogging.Loggable):
         return _RemoveNanEditor('row')
 
     def injectEditor(self, editor: 'AbsOperationEditor') -> None:
-        editor.inputShapes = self.shapes
-        editor.refresh()
+        if self.shapes[0]:
+            # If no shape is set update is not needed
+            editor.refresh()
 
     @staticmethod
     def isOutputShapeKnown() -> bool:
@@ -166,7 +167,6 @@ class RemoveNanColumns(GraphOperation, flogging.Loggable):
         return _RemoveNanEditor('col')
 
     def injectEditor(self, editor: 'AbsOperationEditor') -> None:
-        editor.inputShapes = self.shapes
         editor.refresh()
 
     @staticmethod

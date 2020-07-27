@@ -137,3 +137,4 @@ logs/
 libs/*
 /dask-worker-space/
 /venv2/
+/data_preprocessor/qt_resources.py

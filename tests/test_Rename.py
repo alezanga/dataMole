@@ -8,7 +8,9 @@ def test_rename():
 
     op = RenameOp()
     op.addInputShape(f.shape, pos=0)
+    assert op.getOutputShape() is None
     op.setOptions(names={0: 'col4', 2: 'col1'})
+    assert op.getOptions() == [{0: 'col4', 2: 'col1'}]
 
     os = f.shape.clone()
     os.colNames = ['col4', 'col2', 'col1']

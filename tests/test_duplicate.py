@@ -1,3 +1,5 @@
+from copy import deepcopy
+
 from data_preprocessor import data
 from data_preprocessor.operation.duplicate import DuplicateColumn
 
@@ -10,9 +12,16 @@ def test_duplicate_columns():
 
     op = DuplicateColumn()
     assert op.getOutputShape() is None
-    op.setOptions(table={0: {'rename': 'a name'}, 2: {'rename': 'new'}})
+    opt = {'table': {0: {'rename': 'a name'}, 2: {'rename': 'new'}}}
+    op.setOptions(**opt)
     assert op.getOutputShape() is None
     op.addInputShape(f.shape, 0)
+
+    assert op.getOptions() == opt
+    copt = deepcopy(opt)
+    opt['table'][0]['rename'] = 'newnn'
+    assert op.getOptions() == copt and op.getOptions() != opt
+
     s = f.shape.clone()
     s.colNames.append('a name')
     s.colNames.append('new')

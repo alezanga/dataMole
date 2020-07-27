@@ -116,7 +116,6 @@ class CsvWriter(Operation):
         return factory.getEditor()
 
     def injectEditor(self, editor: 'AbsOperationEditor') -> None:
-        editor.workbench = self.workbench
         # Make editor react to frame change
         editor.frame.currentTextChanged.connect(editor.inputFrameChanged)
         ct = editor.frame.currentText()

@@ -1,18 +1,18 @@
 import datetime as dt
-import importlib.resources as res
 from typing import List, Tuple, Optional, Dict, Set, Union
 
 import pandas as pd
 import prettytable as pt
 from PySide2.QtCore import Slot, QModelIndex, QAbstractItemModel, QDateTime, QDate, QEvent, QObject, \
     QTime
-from PySide2.QtGui import QIcon, Qt, QFontMetrics, QFont
+from PySide2.QtGui import QIcon, Qt, QFontMetrics, QFont, QPixmap
 from PySide2.QtWidgets import QWidget, QDateEdit, QGridLayout, \
     QPushButton, QVBoxLayout, QSizePolicy, \
     QStyledItemDelegate, QTimeEdit, QCheckBox, QButtonGroup, QHBoxLayout, QAbstractButton, QHeaderView, \
     QTableView, QLineEdit
 
-from data_preprocessor import data, exceptions as exp, flogging
+# noinspection PyUnresolvedReferences
+from data_preprocessor import data, exceptions as exp, flogging, qt_resources
 from data_preprocessor.data.types import Types, Type
 from data_preprocessor.flogging import Loggable
 from data_preprocessor.gui.editor import AbsOperationEditor, OptionsEditorFactory
@@ -178,7 +178,6 @@ class DateDiscretizer(GraphOperation, Loggable):
         return factory.getEditor()
 
     def injectEditor(self, editor: 'AbsOperationEditor') -> None:
-        editor.setSizeHint(600, 700)
         editor.selected.setSourceFrameModel(FrameModel(editor, frame=self.shapes[0]))
         hh = editor.selected.tableView.horizontalHeader()
         hh.setSectionResizeMode(1, QHeaderView.ResizeToContents)
@@ -412,9 +411,7 @@ class _IntervalWidget(AbsOperationEditor):
         self.body.gLayout.addWidget(a, row, 0)
         self.body.gLayout.addWidget(b, row, 1)
         # Create a button to remove row
-        with res.path('data_preprocessor.resources.icons', 'close.png') as pPath:
-            closeI = str(pPath)
-            removeBut = QPushButton(QIcon(closeI), '', self)
+        removeBut = QPushButton(QIcon(QPixmap(':/resources/icons/close.png')), '', self)
         removeBut.setFixedSize(30, 30)
         removeBut.setToolTip('Remove row')
         # Lambda here is ok since it's called from main thread, so even if it's not a slot it's safe

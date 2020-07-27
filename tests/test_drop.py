@@ -1,7 +1,8 @@
 import numpy as np
 import pandas as pd
+import pytest
 
-from data_preprocessor import data
+from data_preprocessor import data, exceptions as exc
 from data_preprocessor.data.types import Types, IndexType
 from data_preprocessor.operation.dropcols import Drop
 from tests.utilities import nan_to_None
@@ -21,10 +22,20 @@ def test_drop_columns():
     assert op.getOutputShape() is None
     op.addInputShape(g.shape, 0)
     assert op.getOutputShape() is None
-    op.setOptions(selected={0: None, 2: None})
     assert op.getOptions() == {
-        'selected': {0: None, 2: None}
+        'selected': dict()
     }
+
+    selOpts = {0: None, 2: None}
+    op.setOptions(selected={0: None, 2: None})
+    opts = op.getOptions()
+    assert opts['selected'] == selOpts
+    opts['selected'] = {}
+    assert op.getOptions()['selected'] == selOpts
+    assert op.getOptions() != opts
+
+    with pytest.raises(exc.OptionValidationError) as e:
+        op.setOptions(selected={})
 
     s = data.Shape()
     s.colNames = ['col3']

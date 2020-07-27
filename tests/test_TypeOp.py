@@ -2,11 +2,12 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from data_preprocessor import exceptions as exp
 from data_preprocessor.data import Frame
 from data_preprocessor.data.types import Types
-from data_preprocessor import exceptions as exp
-from data_preprocessor.operation.typeconversions import ToNumericOp, ToCategoricalOp, ToTimestamp
-from tests.utilities import nan_to_None, roundValues
+from data_preprocessor.operation.typeconversions import ToNumericOp, ToCategoricalOp, ToTimestamp, \
+    ToString
+from tests.utilities import nan_to_None, roundValues, isDictDeepCopy
 
 
 def test_cat_toNumeric():
@@ -20,12 +21,15 @@ def test_cat_toNumeric():
 
     op = ToNumericOp()
     op.addInputShape(f.shape, pos=0)
+    assert op.getOutputShape() is None
+    assert op.getOptions() == {'attributes': {}, 'errors': 'raise'}
     op.setOptions(attributes={0: None}, errors='coerce')
+    assert op.getOptions() == {'attributes': {0: None}, 'errors': 'coerce'}
 
     # Predict output shape
-    os = f.shape.columnsDict
-    os['col1'] = Types.Numeric
-    assert op.getOutputShape().columnsDict == os
+    os = f.shape.clone()
+    os.colTypes[0] = Types.Numeric
+    assert op.getOutputShape() == os
 
     # Removing options/input_shape causes None to be returned
     op.removeInputShape(0)
@@ -34,25 +38,23 @@ def test_cat_toNumeric():
     op.unsetOptions()
     assert op.getOutputShape() is None
     op.setOptions(attributes={0: dict()}, errors='raise')
-    assert op.getOutputShape().columnsDict == os  # Re-adding everything
+    assert op.getOutputShape() == os  # Re-adding everything
 
     g = op.execute(f)
     gd = {'col1': [3.0, 0.0, 5.0, 6.0, 0.0],
           'col2': [3, 4, 5, 6, 0],
           'col3': ['123', '2', '0.43', '4', '90']}
     assert g.to_dict() == gd
-    assert g.shape.columnsDict == os
-    assert g.shape.indexDict == f.shape.indexDict
+    assert g.shape == os
 
     # Coerce is the same
 
     op.setOptions(attributes={0: dict()}, errors='coerce')
-    assert op.getOutputShape().columnsDict == os
+    assert op.getOutputShape() == os
 
     g = op.execute(f)
     assert g.to_dict() == gd
-    assert g.shape.columnsDict == os
-    assert g.shape.indexDict == f.shape.indexDict
+    assert g.shape == os
 
 
 def test_str_toNumeric():
@@ -434,10 +436,21 @@ def test_str_to_Timestamp_coerce():
     assert op.getOutputShape() is None
     op.addInputShape(f.shape, 0)
     assert op.getOutputShape() is None
+
+    assert op.getOptions() == {
+        'attributes': {},
+        'errors': 'raise'
+    }
+
     op.setOptions(attributes={0: dict(), 2: {'format': '%Y %B'}, 3: {'format': '%d%m%Y'}},
                   errors='raise')
     assert op.getOutputShape().colTypes == [Types.Datetime, Types.Numeric, Types.Datetime,
                                             Types.Datetime]
+
+    assert op.getOptions() == {
+        'attributes': {0: {'format': ''}, 2: {'format': '%Y %B'}, 3: {'format': '%d%m%Y'}},
+        'errors': 'raise'
+    }
 
     # Raise exception since pandas cannot convert all values to datetime
     with pytest.raises(Exception):
@@ -475,3 +488,32 @@ def test_str_to_Timestamp_validation():
     assert op.hasOptions()
     assert op.getOutputShape().colTypes == [Types.Datetime, Types.Numeric, Types.String,
                                             Types.String]
+
+
+def test_toString():
+    d = {'col1': ['3', '0', '5', '6', '0'],
+         'col2': [3, 4, 5.1, 6, 0],
+         'col3': ['123', '2', '0.43', '4', '2021 January'],
+         'cold': ['05091988', '22121994', '21111995', '22061994', '12122012']
+         }
+
+    f = Frame(d)
+
+    op = ToString()
+    assert op.getOutputShape() is None
+    op.addInputShape(f.shape, 0)
+    assert op.getOutputShape() is None
+
+    opts = {
+        'attributes': {1: None}
+    }
+    assert op.getOptions() == {'attributes': dict()}
+
+    op.setOptions(**opts)
+    assert op.getOutputShape().colTypes == [Types.String, Types.String, Types.String, Types.String]
+
+    assert op.getOptions() == opts
+    assert isDictDeepCopy(op.getOptions(), opts)
+
+    g = op.execute(f)
+    assert op.getOutputShape() == g.shape

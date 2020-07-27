@@ -33,3 +33,15 @@ def nan_to_None(val: Any) -> Any:
         return {nan_to_None(v) for v in val}
     else:
         raise NotImplementedError('Object \'{}\' of type \'{}\' is not supported'.format(val, type(val)))
+
+
+def isDictDeepCopy(a: Dict, b: Dict) -> bool:
+    if a != b or (a is b and not isinstance(a, (dict, list, set, tuple)) and \
+                  not isinstance(b, (dict, list, set, tuple))):
+        return True
+    if a is b:
+        return False
+    fieldsA = set(a.keys())
+    fieldsB = set(b.keys())
+    intersection = fieldsA & fieldsB
+    return all([isDictDeepCopy(a[name], b[name]) for name in intersection])

@@ -7,7 +7,7 @@ from data_preprocessor.data import Shape
 from data_preprocessor.data.types import Types, IndexType
 from data_preprocessor.exceptions import OptionValidationError
 from data_preprocessor.operation.fill import FillNan
-from tests.utilities import nan_to_None, roundValues
+from tests.utilities import nan_to_None, roundValues, isDictDeepCopy
 
 
 def mapDate(df: dict) -> dict:
@@ -36,6 +36,13 @@ def test_fillnan_mean():
     assert op.getOutputShape() is None
     op.addInputShape(g.shape, 0)
     op.setOptions(selected={0: None, 2: None}, fillMode='mean')
+    opts = op.getOptions()
+    expOpts = {
+        'selected': {0: None, 2: None},
+        'fillMode': 'mean'
+    }
+    assert opts == expOpts
+    assert isDictDeepCopy(opts, expOpts)
 
     s = Shape()
     s.colNames = ['col3', 'col1', 'date']
@@ -68,7 +75,18 @@ def test_fillnan_bfill():
     op = FillNan()
     assert op.getOutputShape() is None
     op.addInputShape(g.shape, 0)
+    assert op.getOptions() == {
+        'selected': dict(),
+        'fillMode': 'value'  # special option is set at the beginning
+    }
     op.setOptions(selected={0: None, 1: None, 2: None}, fillMode='bfill')
+    opts = op.getOptions()
+    expOpts = {
+        'selected': {0: None, 1: None, 2: None},
+        'fillMode': 'bfill'
+    }
+    assert opts == expOpts
+    assert isDictDeepCopy(opts, expOpts)
 
     s = Shape()
     s.colNames = ['col3', 'col2', 'date']

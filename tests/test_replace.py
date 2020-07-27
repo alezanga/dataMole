@@ -4,7 +4,7 @@ import pytest
 from data_preprocessor import data, exceptions as exp
 from data_preprocessor.data.types import Types
 from data_preprocessor.operation.replacevalues import ReplaceValues
-from tests.utilities import nan_to_None
+from tests.utilities import nan_to_None, isDictDeepCopy
 
 
 def test_exception():
@@ -37,11 +37,18 @@ def test_merge_numeric():
          'date': ['05-09-1988', '22-12-1994', '21-11-1995', '22-06-1994', '12-12-2012']}
     f = data.Frame(d)
     op = ReplaceValues()
-
+    assert op.getOptions() == {'table': dict(), 'inverted': False}
     op.addInputShape(f.shape, 0)
-    op.setOptions(table={1: {'values': '1.0 3.0 4.0;  6  0', 'replace': '-1;-2'},
-                         0: {'values': '1 4', 'replace': '7'}},
-                  inverted=False)
+    tOps = {1: {'values': '1.0 3.0 4.0;  6  0.0', 'replace': '-1.0;-2.0'},
+            0: {'values': '1.0 4.0', 'replace': '7.0'}}
+    op.setOptions(table=tOps, inverted=False)
+    dOps = op.getOptions()
+    assert dOps == {
+        'table': {1: {'values': '1.0 3.0 4.0; 6.0 0.0', 'replace': '-1.0; -2.0'},
+                  0: {'values': '1.0 4.0', 'replace': '7.0'}},
+        'inverted': False
+    }
+    assert isDictDeepCopy(tOps, dOps['table'])
     s = f.shape.clone()
     assert op.getOutputShape() == s
 
@@ -91,6 +98,16 @@ def test_merge_category():
             'replace': '0;  1; nan'
         }},
         inverted=False)
+
+    assert op.getOptions() == {
+        'table': {
+            1: {
+                'values': '4 0; 3; 6',
+                'replace': '0; 1; nan'
+            }
+        },
+        'inverted': False
+    }
 
     s = f.shape.clone()
     assert op.getOutputShape() == s
