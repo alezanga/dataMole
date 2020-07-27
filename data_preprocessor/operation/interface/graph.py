@@ -19,6 +19,12 @@ class GraphOperation(Operation):
         super().__init__(w)
         self._shapes: List[Optional[data.Shape]] = [None] * self.maxInputNumber()
 
+    def __getstate__(self):
+        return self._shapes
+
+    def __setstate__(self, state):
+        self._shapes = state
+
     # ----------------------------------------------------------------------------
     # ---------------------- FINAL METHODS (PLS NO OVERRIDE) ---------------------
     # ----------------------------------------------------------------------------

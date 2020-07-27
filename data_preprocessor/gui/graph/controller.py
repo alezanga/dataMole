@@ -1,4 +1,4 @@
-from typing import List, Callable
+from typing import List, Callable, Optional, Dict
 
 from PySide2.QtCore import Slot
 from PySide2.QtWidgets import QWidget, QMessageBox

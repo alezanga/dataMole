@@ -78,7 +78,7 @@ def setUpRootLogger() -> None:
     log_path = os.path.join(os.getcwd(), LOG_FOLDER, 'root')
     if not os.path.exists(log_path):
         os.makedirs(log_path)
-    timestamp = str(datetime.datetime.now()).replace(' ', '_')
+    timestamp = datetime.datetime.now().strftime('%Y-%m-%d_%H.%M.%S.%f')
     global LOG_PATH
     LOG_PATH = os.path.join(log_path, timestamp + '.log')
     logging.basicConfig(filename=LOG_PATH, level=LEVEL,

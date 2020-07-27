@@ -12,8 +12,8 @@ class OperationDag:
     is deleted or updated and removes in/out edges when a node is deleted. It also checks if
     connections can be added with respect to the operation settings. """
 
-    def __init__(self):
-        self.__G = nx.DiGraph()
+    def __init__(self, graph: nx.DiGraph = None):
+        self.__G = nx.DiGraph() if not graph else graph
 
     def getNxGraph(self) -> nx.DiGraph:
         """ Returns a reference to the NetworkX graph """
@@ -181,6 +181,10 @@ class OperationNode:
         self.__inputs: List = [None] * operation.maxInputNumber()
         # Input mapper { operation_id: position }
         self.__input_order: Dict[int, int] = dict()
+
+    @property
+    def inputOrder(self) -> Dict[int, int]:
+        return self.__input_order
 
     @property
     def uid(self) -> int:

@@ -38,12 +38,12 @@ class MainWidget(QWidget):
         attributeTab = AttributePanel(self.workbenchModel, self)
         chartsTab = ChartPanel(self.workbenchModel, self)
         scene = GraphScene(self)
-        flowTab = GraphView(scene)
-        self.controller = GraphController(self.graph, scene, flowTab, self.workbenchModel, self)
+        self._flowView = GraphView(scene, self)
+        self.controller = GraphController(self.graph, scene, self._flowView, self.workbenchModel, self)
 
         tabs.addTab(attributeTab, '&Attribute')
         tabs.addTab(chartsTab, '&Visualise')
-        tabs.addTab(flowTab, 'F&low')
+        tabs.addTab(self._flowView, 'F&low')
         self.__curr_tab = tabs.currentIndex()
 
         self.__leftSide = QSplitter(Qt.Vertical)
@@ -59,7 +59,7 @@ class MainWidget(QWidget):
         layout = QHBoxLayout(self)
         layout.addWidget(splitter)
 
-        tabs.currentChanged.connect(self.switch_view)
+        tabs.currentChanged.connect(self.changeTabsContext)
         self.workbenchView.selectedRowChanged[str, str].connect(attributeTab.onFrameSelectionChanged)
         self.workbenchView.selectedRowChanged[str, str].connect(chartsTab.onFrameSelectionChanged)
         self.workbenchView.selectedRowChanged[str, str].connect(
@@ -67,7 +67,7 @@ class MainWidget(QWidget):
         self.workbenchView.rightClick.connect(self.createWorkbenchPopupMenu)
 
     @Slot(int)
-    def switch_view(self, tab_index: int) -> None:
+    def changeTabsContext(self, tab_index: int) -> None:
         if tab_index == 2:
             self.__leftSide.replaceWidget(0, self.operationMenu)
             self.frameInfoPanel.hide()
