@@ -89,10 +89,19 @@ def setUpRootLogger() -> None:
 
 
 def setUpLogger(name: str, folder: str, fmt: str, level: int) -> logging.Logger:
+    """
+    Creates a logger with specified name, format and level in folder
+
+    :param name: log name
+    :param folder: the name of the folder (not path). Path will be "logs/{folder}"
+    :param fmt: format as for logging
+    :param level: level as for logging
+    :return: the created logger
+    """
     log_path = os.path.join(os.getcwd(), LOG_FOLDER, folder)
     if not os.path.exists(log_path):
         os.makedirs(log_path)
-    timestamp = str(datetime.datetime.now()).replace(' ', '_')
+    timestamp = datetime.datetime.now().strftime('%Y-%m-%d_%H.%M.%S.%f')
     log_path = os.path.join(log_path, timestamp + '.log')
     handler = logging.FileHandler(log_path)
     formatter = logging.Formatter(fmt)

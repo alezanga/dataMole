@@ -7,56 +7,52 @@ from PySide2.QtWidgets import QWidget, QCheckBox, QVBoxLayout, QGroupBox, QGridL
 
 from data_preprocessor import data, flogging
 from data_preprocessor import exceptions as exp
-from data_preprocessor.data.types import Types, Type
+from data_preprocessor.data.types import Types, Type, IndexType
 from data_preprocessor.gui.editor.interface import AbsOperationEditor
 from data_preprocessor.gui.utils import AttributeComboBox, TextOptionWidget, RadioButtonGroup
 from .interface.graph import GraphOperation
 
 
-@unique
-class JoinType(Enum):
-    Left = 'left'
-    Right = 'right'
-    Inner = 'inner'
-    Outer = 'outer'
+class Join(GraphOperation, flogging.Loggable):
+    @unique
+    class JoinType(Enum):
+        Left = 'left'
+        Right = 'right'
+        Inner = 'inner'
+        Outer = 'outer'
 
-
-jt = JoinType
-
-
-class JoinOp(GraphOperation, flogging.Loggable):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.__lsuffix: str = '_l'
-        self.__rsuffix: str = '_r'
-        self.__on_index: bool = True
-        self.__left_on: int = None
-        self.__right_on: int = None
-        self.__type: JoinType = jt.Left
+        self.__lSuffix: str = '_l'
+        self.__rSuffix: str = '_r'
+        self.__onIndex: bool = True
+        self.__leftOn: int = None
+        self.__rightOn: int = None
+        self.__type: Join.JoinType = Join.JoinType.Left
 
     def logOptions(self) -> str:
         tt = pt.PrettyTable(field_names=['Option', 'Value'], print_empty=False)
         tt.align = 'l'
         tt.add_row(['Join type', self.__type.value])
-        tt.add_row(['By index', self.__on_index])
-        tt.add_row(['Left column', self.__left_on if not self.__on_index else '-'])
-        tt.add_row(['Right column', self.__right_on if not self.__on_index else '-'])
-        tt.add_row(['Suffix left', self.__lsuffix])
-        tt.add_row(['Suffix right', self.__rsuffix])
+        tt.add_row(['By index', self.__onIndex])
+        tt.add_row(['Left column', self.__leftOn if not self.__onIndex else '-'])
+        tt.add_row(['Right column', self.__rightOn if not self.__onIndex else '-'])
+        tt.add_row(['Suffix left', self.__lSuffix])
+        tt.add_row(['Suffix right', self.__rSuffix])
         return tt.get_string(vrules=pt.ALL, border=True)
 
     def execute(self, dfl: data.Frame, dfr: data.Frame) -> data.Frame:
-        # sr = dfr.shape
-        # sl = dfl.shape
-        if self.__on_index:
+        if self.__onIndex:
+            # Join on indexes
             return data.Frame(dfl.getRawFrame().join(dfr.getRawFrame(), how=self.__type.value,
-                                                     lsuffix=self.__lsuffix,
-                                                     rsuffix=self.__rsuffix))
+                                                     lsuffix=self.__lSuffix,
+                                                     rsuffix=self.__rSuffix))
         else:
+            # Join (merge) on columns
             # onleft and onright must be set
-            suffixes = (self.__lsuffix, self.__rsuffix)
-            l_col = dfl.shape.colNames[self.__left_on]
-            r_col = dfr.shape.colNames[self.__right_on]
+            suffixes = (self.__lSuffix, self.__rSuffix)
+            l_col = dfl.shape.colNames[self.__leftOn]
+            r_col = dfr.shape.colNames[self.__rightOn]
             return data.Frame(dfl.getRawFrame().merge(dfr.getRawFrame(), how=self.__type.value,
                                                       left_on=l_col,
                                                       right_on=r_col,
@@ -64,17 +60,17 @@ class JoinOp(GraphOperation, flogging.Loggable):
 
     @staticmethod
     def name() -> str:
-        return 'Join operation'
+        return 'Join'
 
     @staticmethod
     def shortDescription() -> str:
-        return 'Allows to join two tables. Can handle four type of join: left, right, outer and inner'
+        return 'Join two tables on indexes or columns. Supports left, right, outer and inner join'
 
     def acceptedTypes(self) -> List[Type]:
         return [Types.Numeric, Types.Ordinal, Types.Nominal, Types.String]
 
     def setOptions(self, ls: str, rs: str, onindex: bool, onleft: int, onright: int,
-                   join_type: JoinType) -> None:
+                   joinType: JoinType) -> None:
         errors = list()
         ls = ls.strip()
         rs = rs.strip()
@@ -82,48 +78,84 @@ class JoinOp(GraphOperation, flogging.Loggable):
             errors.append(('suffix', 'Error: both suffixes are required'))
         elif ls == rs:
             errors.append(('suffixequals', 'Error: suffixes must be different'))
-        if onindex and all(self.shapes) and \
-                (not self.shapes[0].index or not self.shapes[1].index):
-            errors.append(('index', 'Error: join on indices require both indices to be set'))
-        if not onindex and all(self.shapes):
-            type_l = self.shapes[0].colTypes[onleft]
-            type_r = self.shapes[1].colTypes[onright]
-            if type_l != type_r:
-                errors.append(('type_mismatch',
-                               'Error: column types must match. Instead got \'{}\' and \'{}\''
-                               .format(type_l.name, type_r.name)))
+        if not joinType:
+            errors.append(('jointype', 'Error: join type is not set'))
+        if not all(self.shapes):
+            errors.append(('shape', 'Error: some input is missing. Connect all source inputs before '
+                                    'setting options'))
+        else:
+            if onindex:
+                # Check index types
+                if not self.shapes[0].index or not self.shapes[1].index:
+                    errors.append(('index', 'Error: join on indices require both indices to be set'))
+                else:
+                    llen = self.shapes[0].nIndexLevels
+                    rlen = self.shapes[1].nIndexLevels
+                    if llen == rlen == 1:
+                        # Single index join
+                        tl = self.shapes[0].indexTypes[0]
+                        tr = self.shapes[1].indexTypes[0]
+                        if not self._checkColumnTypes(tl, tr):
+                            errors.append(('type', 'Error: type "{}" and "{}" are not '
+                                                   'compatible'.format(tl.name, tr.name)))
+                    else:
+                        # Multiindex join, check that name intersection in compatible
+                        indexNamesL = set(self.shapes[0].index)
+                        indexNamesR = set(self.shapes[1].index)
+                        indexDictL = self.shapes[0].indexDict
+                        indexDictR = self.shapes[1].indexDict
+                        for name in indexNamesL:
+                            if name in indexNamesR:
+                                tl = indexDictL[name]
+                                tr = indexDictR[name]
+                                if not self._checkColumnTypes(tl, tr):
+                                    errors.append(('type', 'Error: common index level "{}" has '
+                                                           'different types "{}" and "{}" which are not '
+                                                           'compatible'.format(name, tl.name, tr.name)))
+                                    break
+            else:
+                # Merge on columns: check types
+                tl: Type = self.shapes[0].colTypes[onleft]
+                tr: Type = self.shapes[1].colTypes[onright]
+                if not self._checkColumnTypes(tl, tr):
+                    errors.append(('type', 'Error: column types "{}" and "{}" are not compatible'
+                                   .format(tl.name, tr.name)))
         if errors:
             raise exp.OptionValidationError(errors)
 
-        self.__lsuffix = ls
-        self.__rsuffix = rs
-        self.__on_index = onindex
-        self.__left_on = onleft
-        self.__right_on = onright
-        self.__type = join_type
+        self.__lSuffix = ls
+        self.__rSuffix = rs
+        self.__onIndex = onindex
+        self.__leftOn = onleft
+        self.__rightOn = onright
+        self.__type = joinType
+
+    @staticmethod
+    def _checkColumnTypes(lt: Type, rt: Type) -> bool:
+        if isinstance(lt, IndexType) and isinstance(rt, IndexType):
+            lt = lt.type
+            rt = rt.type
+        return lt == rt or {lt, rt} <= {Types.String, Types.Ordinal, Types.Nominal}
 
     def unsetOptions(self) -> None:
-        self.__left_on: int = None
-        self.__right_on: int = None
+        self.__leftOn: int = None
+        self.__rightOn: int = None
 
     def getOptions(self) -> Tuple[str, str, bool, int, int, JoinType]:
-        return (self.__lsuffix, self.__rsuffix, self.__on_index, self.__left_on, self.__right_on,
-                self.__type)
-
-    def needsOptions(self) -> bool:
-        return True
+        return self.__lSuffix, self.__rSuffix, self.__onIndex, self.__leftOn, self.__rightOn, self.__type
 
     def getEditor(self) -> AbsOperationEditor:
         return _JoinEditor()
 
     def injectEditor(self, editor: 'AbsOperationEditor') -> None:
-        editor.inputShapes = self.shapes
-        editor.acceptedTypes = self.acceptedTypes()
         editor.refresh()
 
     def hasOptions(self) -> bool:
-        on = self.__on_index is True or (self.__left_on is not None and self.__right_on is not None)
-        return self.__lsuffix and self.__rsuffix and on and self.__type in JoinType
+        modeOk = self.__onIndex is True or (self.__leftOn is not None and self.__rightOn is not None)
+        return self.__lSuffix and self.__rSuffix and modeOk and self.__type in Join.JoinType
+
+    def needsOptions(self) -> bool:
+        return True
 
     @staticmethod
     def isOutputShapeKnown() -> bool:
@@ -146,13 +178,13 @@ class JoinOp(GraphOperation, flogging.Loggable):
         return -1
 
 
-export = JoinOp
+export = Join
 
 
 class _JoinEditor(AbsOperationEditor):
     def editorBody(self) -> QWidget:
         self.__g = RadioButtonGroup('Select join type:', self)
-        for j in JoinType:
+        for j in Join.JoinType:
             self.__g.addRadioButton(j.name, j, False)
 
         self.__onIndex = QCheckBox('Join on index?', self)
@@ -209,7 +241,7 @@ class _JoinEditor(AbsOperationEditor):
         return suffL, suffR, onIndex, attrL, attrR, jtype
 
     def setOptions(self, lsuffix: str, rsuffix: str, on_index: bool, left_on: int, right_on: int,
-                   type: JoinType) -> None:
+                   type: Join.JoinType) -> None:
         self.__jpl.setData(left_on, lsuffix)
         self.__jpr.setData(right_on, rsuffix)
         self.__onIndex.setChecked(on_index)

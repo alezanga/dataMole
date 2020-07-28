@@ -256,7 +256,7 @@ class MainWindow(QMainWindow):
 
     @Slot()
     def openLogDirectory(self) -> None:
-        QDesktopServices.openUrl(QUrl(os.path.join(os.getcwd(), 'logs')))
+        QDesktopServices.openUrl(QUrl(os.path.join(os.getcwd(), flogging.LOG_FOLDER)))
 
     @Slot()
     def clearLogDir(self) -> None:

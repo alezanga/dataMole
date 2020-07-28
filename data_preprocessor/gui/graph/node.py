@@ -59,7 +59,7 @@ class Node(QtWidgets.QGraphicsItem):
         # Set font used for label (operation name)
         self._title_font = QtGui.QFont("Arial", 14)
         # Compute size of label to display
-        self._width = Node.__headerSize(self._name, self._title_font).width()
+        self._width = max(130, Node.__headerSize(self._name, self._title_font).width())
         self._height = 130
         self._outline = 6
         self._slot_radius = 10

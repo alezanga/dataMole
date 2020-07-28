@@ -241,6 +241,6 @@ class OperationWrapper(QObject):
             if not outputName or outputName in self.operation.workbench.names:
                 # Change with new name
                 self._outputNameBox.setData(frameName)
-            self.operation._shapes = [fr.shape]
+            self.operation._shapes = self.editor.inputShapes = [fr.shape]
             self._inputs = (fr,)
             self.operation.injectEditor(self.editor)
