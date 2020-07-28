@@ -8,11 +8,11 @@ from PySide2.QtWidgets import QTabWidget, QWidget, QMainWindow, QMenuBar, QActio
     QHBoxLayout, QMenu
 
 from data_preprocessor import flow, flogging, gui
+from data_preprocessor.gui.graph import GraphController, GraphView, GraphScene
 from data_preprocessor.gui.widgets.attributepanel import AttributePanel
 from data_preprocessor.gui.widgets.chartpanel import ChartPanel
 from data_preprocessor.gui.widgets.diffpanel import DataframeSideBySideView
 from data_preprocessor.gui.widgets.framepanel import FramePanel
-from data_preprocessor.gui.graph import GraphController, GraphView, GraphScene
 from data_preprocessor.gui.widgets.operationmenu import OperationMenu
 from data_preprocessor.gui.workbench import WorkbenchModel, WorkbenchView
 from data_preprocessor.operation.actionwrapper import OperationAction
@@ -107,6 +107,7 @@ class MainWindow(QMainWindow):
         # Initialise a thread pool
         self.threadPool = QThreadPool.globalInstance()
         logging.info('Multithreading with maximum {} threads'.format(self.threadPool.maxThreadCount()))
+        self.setWindowTitle('dataMole')
 
         self.setUpMenus()
 

@@ -297,9 +297,6 @@ class ToTimestamp(GraphOperation, flogging.Loggable):
     def shortDescription() -> str:
         return 'Convert columns to datetime objects. Custom format may be specified.'
 
-    def longDescription(self) -> str:
-        pass
-
     def hasOptions(self) -> bool:
         return self.__attributes and self.__errorMode is not None
 

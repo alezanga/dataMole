@@ -1,6 +1,6 @@
 from data_preprocessor import data
 from data_preprocessor.data.types import Types
-from data_preprocessor.operation.onehotencoder import OneHotEncodeOp
+from data_preprocessor.operation.onehotencoder import OneHotEncoder
 
 
 def test_ohe():
@@ -10,7 +10,7 @@ def test_ohe():
     f = data.Frame(d)
     f = f.setIndex(['col1', 'date'])
 
-    op = OneHotEncodeOp()
+    op = OneHotEncoder()
     opts = {1: None, 0: None}
     op.setOptions(attributes=opts, includeNan=True)
     opts[2] = [1, 2, 3]

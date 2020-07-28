@@ -6,12 +6,26 @@
     th, td {
       padding: 0.3em;
     }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 </style>
 <section name="RangeDiscretizer">
     <h2>RangeDiscretizer</h2>
     Discretize numeric columns into user specified contiguous ranges <br/>
     <b>Input types</b>: Numeric<br/>
-    <b>Output type</b>: Ordinal
+    <b>Output types</b>: Ordinal
     <h3>Table options</h3>
     Bin edges can be specified in the "Bin edges" column. Bin edges must be numbers and must be
     separated by a single space. Bin labels must be specified and their number must be exactly the
@@ -86,7 +100,7 @@
     Discretize a datetime attribute into user specified contiguous ranges, optionally using both date
     and time components.<br/>
     <b>Input types</b>: Datetime<br/>
-    <b>Output type</b>: Ordinal
+    <b>Output types</b>: Ordinal
     <h3>Table options</h3>
     Datetime bins can be specified in the "Ranges" column, while "Labels" must contain one string
     label for every attribute type, each separated by a blank space. To use a string with space
@@ -271,5 +285,118 @@
     them as required. After that every selected attribute must be associated with the defined time
     labels. In this example "A_wave1" will be placed at time "wave1", "A_wave2" at time "wave2",
     "B_wave1" at "wave1", "B_wave3" at "wave3" and so on.
+</section>
+<section name="Drop">
+    <h2>Drop</h2>
+    Remove columns from dataframe<br/>
+    <b>Input types</b>: All<br/>
+    <b>Output types</b>: Same
+    <h3>Table options</h3>
+    All selected columns will be removed from dataframe.
+</section>
+<section name="DuplicateColumn">
+    <h2>DuplicateColumn</h2>
+    Duplicate dataframe columns<br/>
+    <b>Input types</b>: All<br/>
+    <b>Output types</b>: Same
+    <h3>Table options</h3>
+    Select the columns to duplicate and specify their new name. Only non existing column names can be
+    used, otherwise an error will be shown.
+</section>
+<section name="FillNan">
+    <h2>FillNan</h2>
+    Fill NaN/NaT values over columns with specified method<br/>
+    <b>Input types</b>: All<br/>
+    <b>Output types</b>: Same
+    <h3>Table options</h3>
+    Columns to be processed must be selected. The "Fill value" column is relevant only if the selected
+    strategy is "Values", in which case it can not be empty.
+    <h3>Strategy</h3>
+    <ul>
+        <li><b>Backfill</b>: fill with next valid observation</li>
+        <li><b>Pad</b>: propagate last valid observation forward up to the next one</li>
+        <li><b>Mean</b>: fill gaps with the mean of column (only for Numeric and Datetime)</li>
+        <li>Value: fill gaps in every column with a specified value</li>
+    </ul>
+</section>
+<section name="SetIndex">
+    <h2>SetIndex</h2>
+    Set an index to the dataframe<br/>
+    <h3>Table options</h3>
+    Selected columns will replace the current index column(s). After this, they will not be visible as
+    columns, but they can be reinserted in the dataframe with the ResetIndex operation.
+</section>
+<section name="ResetIndex">
+    <h2>ResetIndex</h2>
+    Reset the index of the dataframe. All named index levels will be inserted in the dataframe as
+    columns. Unnamed index levels are dropped.
+</section>
+<section name="Join">
+    <h2>Join</h2>
+    Join two dataframes on index or columns.
+    <h3>Join type</h3>
+    Supports all SQL-style join: left, right, inner, outer.
+    <h3>Join on index</h3>
+    If selected the two dataframes will be joined over their index, which will be preserved. Otherwise
+    it's necessary to select one column from both dataframe and the join will be done on those
+    columns. In this case the index is not preserved, and a default one will be set.
+    <h3>Suffixes</h3>
+    If some columns have the same name in both dataframes they will be renamed with these suffixes to
+    distinguish them.
+</section>
+<section name="OneHotEncoder">
+    <h2>One-hot encoder</h2>
+    Encode categorical or string column as a one-hot array<br/>
+    <b>Input types</b>: Category, String<br/>
+    <b>Output types</b>: Nominal
+    <h3>Table options</h3>
+    For every selected column a set of new columns will be appended to the dataframe, one for every
+    distinct category or string value found in the original column. These columns will have the same
+    original name, with the distinct value as suffix. The new columns will have type Nominal
+    and will contain binary values.
+    <h3>Column for nan</h3>
+    Whether to add a column also for nan values. If selected it is added regardless of the presence of
+    nan values.
+</section>
+<section name="RemoveNanColumns">
+    <h2>RemoveNanColumns</h2>
+    Remove columns with nan values.<br/>
+    <b>Input types</b>: All<br/>
+    <b>Output types</b>: Same
+</section>
+<section name="RemoveNanRows">
+    <h2>RemoveNanColumns</h2>
+    Remove columns with nan values.<br/>
+    <b>Input types</b>: All<br/>
+    <b>Output types</b>: Same
+    Can operate in two modes:
+    <ul>
+        <li>By removing rows with more than a minimum number of nan values </li>
+        <li>By removing rows with more than a ratio of nana values over all the attributes</li>
+    </ul>
+    Only one modality may be chosen
+</section>
+<section name="Rename">
+    <h2>Rename column</h2>
+    Rename columns of the dataframe<br/>
+    <b>Input types</b>: All<br/>
+    <b>Output types</b>: Same
+    <h3>Usage</h3>
+    Double click a column name to start editing and insert the new name. All column names should be
+    unique.
+</section>
+<section name="ReplaceValues">
+    <h2>Replace values</h2>
+    Replace values in dataframe columns<br/>
+    <b>Input types</b>: String, Ordinal, Nominal, Numeric<br/>
+    <b>Output types</b>: Same
+    Replace values in the dataframe.
+</section>
+<section name="ReplaceValues">
+    <h2>Replace values</h2>
+    Replace values in dataframe columns<br/>
+    <b>Input types</b>: String, Ordinal, Nominal, Numeric<br/>
+    <b>Output types</b>: Same
+    Replace values in the dataframe.
 </section>
 </html>

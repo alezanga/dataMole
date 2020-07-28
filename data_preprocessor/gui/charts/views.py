@@ -446,6 +446,7 @@ class InteractiveChartWindow(QMainWindow):
         fileMenu.addActions([self._saveAc, self._closeAc])
         viewMenu.addActions([self._zoomInAc, self._zoomOutAc, self._resetAc])
         self.setMenuBar(menuBar)
+        self.setWindowTitle('dataMole - Plot')
 
     def setCentralWidget(self, widget: InteractiveChartView) -> None:
         super().setCentralWidget(widget)

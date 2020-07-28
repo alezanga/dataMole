@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import Union, List, Optional, Iterable, final
+from typing import Union, List, Optional, Iterable
 
 from data_preprocessor import data
 from data_preprocessor.data.types import ALL_TYPES, Type
@@ -18,12 +18,6 @@ class GraphOperation(Operation):
         # Holds the input shapes
         super().__init__(w)
         self._shapes: List[Optional[data.Shape]] = [None] * self.maxInputNumber()
-
-    def __getstate__(self):
-        return self._shapes
-
-    def __setstate__(self, state):
-        self._shapes = state
 
     # ----------------------------------------------------------------------------
     # ---------------------- FINAL METHODS (PLS NO OVERRIDE) ---------------------
@@ -240,7 +234,6 @@ class InputGraphOperation(GraphOperation):
     variables to use as input
     """
 
-    @final
     def addInputShape(self, shape: data.Shape, pos: int) -> None:
         """ It intentionally is a no-op, because input-operations has no input argument. Instead the
         input shape should be inferred using method
