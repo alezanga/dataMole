@@ -7,7 +7,6 @@ from data_preprocessor.operation.interface.operation import Operation
 
 def configureEditor(editor: AbsOperationEditor, op: Operation, parent: QWidget = None):
     """ Configure an editor with standard fields and window size """
-    editor.setUpEditor()
     # Configure standard fields
     editor.setWindowTitle(op.name())
     editor.setDescription(op.shortDescription(), op.longDescription())

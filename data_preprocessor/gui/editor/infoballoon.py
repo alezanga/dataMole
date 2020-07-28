@@ -8,14 +8,13 @@ class InfoBalloon(QFrame):
         super().__init__(parent)
         self.setWindowTitle('Operation helper')
         self.body = QTextBrowser(self)
-        # self.body.setWordWrap(True)
-        # self.body.setTextFormat(Qt.RichText)
         closeButton = QPushButton('Close', self)
         self.body.setBackgroundRole(QLabel().backgroundRole())
         self.setWindowFlags(Qt.Tool)
         self.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.MinimumExpanding)
         self.body.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.MinimumExpanding)
-        self.setMaximumWidth(400)
+        self.setMinimumWidth(500)
+        self.setMaximumWidth(1000)
         closeButton.clicked.connect(self.close)
         layout = QVBoxLayout(self)
         layout.addWidget(self.body)
@@ -23,3 +22,6 @@ class InfoBalloon(QFrame):
 
     def setText(self, text: str) -> None:
         self.body.setHtml(text)
+        self.body.document().setTextWidth(500)
+        self.body.document().adjustSize()
+        self.resize(500, self.body.document().size().height())

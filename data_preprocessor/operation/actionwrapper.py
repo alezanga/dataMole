@@ -141,6 +141,7 @@ class OperationWrapper(QObject):
         if self.operation.needsOptions():
             # Get editor from operation
             self.editor = self.operation.getEditor()
+            self.editor.setUpEditor()
         else:
             # Create empty editor
             self.editor = AbsOperationEditor()

@@ -103,6 +103,8 @@ class GraphController(QWidget):
             self.__editor_widget = node.operation.getEditor()
             self.__editor_node_id = node.uid
             # Create the central widget and adds options
+            if node.operation.needsOptions():
+                self.__editor_widget.setUpEditor()
             configureEditor(self.__editor_widget, node.operation, self._view)
             node.operation.injectEditor(self.__editor_widget)
             configureEditorOptions(self.__editor_widget, node.operation)

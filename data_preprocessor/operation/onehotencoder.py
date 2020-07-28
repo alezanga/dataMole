@@ -15,7 +15,7 @@ class OneHotEncodeOp(GraphOperation, flogging.Loggable):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.__attributes: List[int] = list()
-        self.__includeNan: bool = None
+        self.__includeNan: bool = False
 
     def logOptions(self) -> None:
         columns = self.shapes[0].colNames

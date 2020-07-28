@@ -129,7 +129,7 @@ class ResetIndex(GraphOperation, flogging.Loggable):
         pass
 
     def getOptions(self) -> Iterable:
-        pass
+        return tuple()
 
     def unsetOptions(self) -> None:
         pass

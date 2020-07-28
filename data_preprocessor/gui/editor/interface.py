@@ -66,7 +66,7 @@ class AbsOperationEditor(QWidget):
         self.setLayout(self._layout)
         self.setFocusPolicy(Qt.StrongFocus)
         self.errorLabel.hide()
-        self.setMinimumWidth(400)
+        self.setMinimumWidth(500)
 
         self._butOk.pressed.connect(self.onAcceptSlot)
         butCancel.pressed.connect(self.reject)  # emit reject
