@@ -94,16 +94,16 @@ def test_merge_category():
     op.addInputShape(f.shape, 0)
     op.setOptions(table={
         1: {
-            'values': '4 0; 3; 6',
-            'replace': '0;  1; nan'
+            'values': '4 " 4 e sp" 0; 3; 6',
+            'replace': '0; "e 1"; nan'
         }},
         inverted=False)
 
     assert op.getOptions() == {
         'table': {
             1: {
-                'values': '4 0; 3; 6',
-                'replace': '0; 1; nan'
+                'values': '4 "4 e sp" 0; 3; 6',
+                'replace': '0; e 1; nan'
             }
         },
         'inverted': False
@@ -116,7 +116,7 @@ def test_merge_category():
     g = op.execute(f)
 
     assert nan_to_None(g.to_dict()) == {'col1': [1, 2, 3, 4.0, 10],
-                                        'col2': ["1", "0", "5", None, "0"],
+                                        'col2': ["e 1", "0", "5", None, "0"],
                                         'col3': ['q', '2', 'c', '4', 'x'],
                                         'date': ['05-09-1988', '22-12-1994', '21-11-1995', '22-06-1994',
                                                  '12-12-2012']}
