@@ -17,7 +17,7 @@ Base node definition including:
 
 """
 # import sha
-from typing import Union, Set, List
+from typing import Union, Set, List, Tuple
 
 from PySide2 import QtCore, QtGui, QtWidgets
 
@@ -117,8 +117,9 @@ class Node(QtWidgets.QGraphicsItem):
         return set(outputs + inputs)
 
     @property
-    def slots(self) -> List['NodeSlot']:
-        return self._inputs + ([self._output] if self._output else [])
+    def slots(self) -> Tuple[List['NodeSlot'], List['NodeSlot']]:
+        """ Return tuple with input slots and output slots (input first) """
+        return self._inputs, [self._output] if self._output else []
 
     def _update(self):
         """Update slots internal properties

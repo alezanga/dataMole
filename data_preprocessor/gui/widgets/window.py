@@ -1,18 +1,20 @@
 import logging
 import os
+import pickle
 
+import networkx as nx
 from PySide2 import QtGui
 from PySide2.QtCore import Slot, QThreadPool, Qt, QModelIndex, QUrl
 from PySide2.QtGui import QDesktopServices
 from PySide2.QtWidgets import QTabWidget, QWidget, QMainWindow, QMenuBar, QAction, QSplitter, \
-    QHBoxLayout, QMenu
+    QHBoxLayout, QMenu, QFileDialog, QMessageBox
 
 from data_preprocessor import flow, flogging, gui
+from data_preprocessor.gui.graph import GraphController, GraphView, GraphScene
 from data_preprocessor.gui.widgets.attributepanel import AttributePanel
 from data_preprocessor.gui.widgets.chartpanel import ChartPanel
 from data_preprocessor.gui.widgets.diffpanel import DataframeSideBySideView
 from data_preprocessor.gui.widgets.framepanel import FramePanel
-from data_preprocessor.gui.graph import GraphController, GraphView, GraphScene
 from data_preprocessor.gui.widgets.operationmenu import OperationMenu
 from data_preprocessor.gui.workbench import WorkbenchModel, WorkbenchView
 from data_preprocessor.operation.actionwrapper import OperationAction
@@ -95,6 +97,17 @@ class MainWidget(QWidget):
         deleteAction.triggered.connect(lambda: self.workbenchModel.removeRow(index.row()))
         pMenu.addActions([csvAction, pickleAction, deleteAction])
         pMenu.popup(QtGui.QCursor.pos())
+
+    def createNewFlow(self, graph: nx.DiGraph) -> None:
+        self.graph = flow.dag.OperationDag(graph)
+        oldScene = self._flowView.scene()
+        newScene = GraphScene(self)
+        self._flowView.setScene(newScene)
+        oldScene.deleteLater()
+        self.controller.deleteLater()
+        self.controller = GraphController(self.graph, newScene, self._flowView, self.workbenchModel,
+                                          self)
+        self.controller.updateFromGraph()
 
 
 class MainWindow(QMainWindow):
@@ -222,8 +235,9 @@ class MainWindow(QMainWindow):
 
         aStartFlow = QAction('Execute', flowMenu)
         aResetFlow = QAction('Reset', flowMenu)
-        flowMenu.addAction(aStartFlow)
-        flowMenu.addAction(aResetFlow)
+        aSaveFlow = QAction('Save', flowMenu)
+        aLoadFlow = QAction('Load', flowMenu)
+        flowMenu.addActions([aStartFlow, aResetFlow, aSaveFlow, aLoadFlow])
         viewMenu.addAction(aCompareFrames)
         helpMenu.addActions([aLogDir, aClearLogs])
 
@@ -248,6 +262,8 @@ class MainWindow(QMainWindow):
         aCompareFrames.triggered.connect(self.openComparePanel)
         aLogDir.triggered.connect(self.openLogDirectory)
         aClearLogs.triggered.connect(self.clearLogDir)
+        aSaveFlow.triggered.connect(self.saveFlow)
+        aLoadFlow.triggered.connect(self.readFlow)
 
         aLoadCsv.stateChanged.connect(self.operationStateChanged)
         aLoadPickle.stateChanged.connect(self.operationStateChanged)
@@ -262,3 +278,20 @@ class MainWindow(QMainWindow):
     def clearLogDir(self) -> None:
         flogging.deleteOldLogs()
         gui.statusBar.showMessage('Logs cleared')
+
+    @Slot()
+    def saveFlow(self):
+        path, ext = QFileDialog.getSaveFileName(self, 'Save flow graph')
+        nx.write_gpickle(self.centralWidget().graph.getNxGraph(), path)
+
+    @Slot()
+    def readFlow(self):
+        path, ext = QFileDialog.getOpenFileName(self, 'Open flow graph', filter='Pickle (*.pickle)')
+        try:
+            graph: nx.DiGraph = nx.read_gpickle(path)
+        except pickle.PickleError as e:
+            gui.notifier.addMessage('Pickle error', str(e), QMessageBox.Critical)
+        else:
+            for node_id in graph.nodes:
+                graph.nodes[node_id]['op'].operation._workbench = self.centralWidget().workbenchModel
+            self.centralWidget().createNewFlow(graph)

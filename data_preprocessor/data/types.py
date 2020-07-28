@@ -13,6 +13,15 @@ class Type(abc.ABC):
     def name(self) -> str:
         pass
 
+    @property
+    @abc.abstractmethod
+    def code(self) -> int:
+        pass
+
+    @staticmethod
+    def fromCode(code: int) -> 'Type':
+        return {v.code: v for k, v in Types.__dict__.items() if hasattr(v, 'code')}[code]
+
     def __eq__(self, other) -> bool:
         return self is other
 
@@ -37,12 +46,20 @@ class Datetime(Type):
     def name(self) -> str:
         return 'Datetime'
 
+    @property
+    def code(self) -> int:
+        return 4
+
 
 @singleton
 class Ordinal(Categorical):
     @property
     def name(self) -> str:
         return 'Ordinal'
+
+    @property
+    def code(self) -> int:
+        return 3
 
 
 @singleton
@@ -51,6 +68,10 @@ class Nominal(Categorical):
     def name(self) -> str:
         return 'Nominal'
 
+    @property
+    def code(self) -> int:
+        return 2
+
 
 @singleton
 class Numeric(Type):
@@ -58,12 +79,20 @@ class Numeric(Type):
     def name(self) -> str:
         return 'Numeric'
 
+    @property
+    def code(self) -> int:
+        return 1
+
 
 @singleton
 class String(Type):
     @property
     def name(self) -> str:
         return 'String'
+
+    @property
+    def code(self) -> int:
+        return 0
 
 
 class IndexType(Type):
@@ -78,6 +107,10 @@ class IndexType(Type):
     @property
     def type(self) -> Type:
         return self.__type
+
+    @property
+    def code(self) -> int:
+        return self.__type.code
 
     def __eq__(self, other) -> bool:
         return isinstance(other, IndexType) and self.__type is other.__type

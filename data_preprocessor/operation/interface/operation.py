@@ -13,6 +13,15 @@ class Operation(ABC):
         super().__init__()
         self._workbench = w
 
+    def __getstate__(self):
+        d = self.__dict__
+        d.pop('_workbench')
+        return d
+
+    def __setstate__(self, state):
+        self.__dict__ = state
+        self.__dict__['_workbench'] = None
+
     @property
     def workbench(self) -> 'WorkbenchModel':
         return self._workbench

@@ -275,7 +275,7 @@ class GraphScene(QtWidgets.QGraphicsScene):
         # Update existing nodes' slots if edges were removed
         if edges_to_delete:
             for node in self._nodes:
-                for slot in node.slots:
+                for slot in (*node.slots[0], *node.slots[1]):
                     slot.remove_edge(edges_to_delete)
 
     def mousePressEvent(self, event):

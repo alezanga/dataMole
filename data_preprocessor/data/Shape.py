@@ -26,6 +26,19 @@ class Shape:
     def __str__(self):
         return str(self.__dict__)
 
+    def __getstate__(self):
+        s = self.__dict__
+        s['colTypes'] = [t.code for t in self.colTypes]
+        s['indexTypes'] = [t.code for t in self.indexTypes]
+        # s.colNames = [n for n in self.colNames]
+        # s.index = [n for n in self.index]
+        return s
+
+    def __setstate__(self, state):
+        self.__dict__ = state
+        self.colTypes = [Type.fromCode(c) for c in state['colTypes']]
+        self.indexTypes = [IndexType(Type.fromCode(c)) for c in state['indexTypes']]
+
     def clone(self) -> 'Shape':
         return copy.deepcopy(self)
 
