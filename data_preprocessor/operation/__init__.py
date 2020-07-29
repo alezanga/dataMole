@@ -1,3 +1,4 @@
+import html
 import xml.etree.ElementTree as eTree
 from typing import Dict
 
@@ -10,7 +11,8 @@ from data_preprocessor import qt_resources
 descFile = QFile(':/resources/descriptions.html')
 descFile.open(QFile.ReadOnly)
 fileStr: str = str(descFile.readAll(), encoding='utf-8')
-root = eTree.fromstring(fileStr)
+parsedStr = html.unescape(fileStr)
+root = eTree.fromstring(parsedStr)
 descFile.close()
 
 # Take first element (which must be style) and put it inside every section

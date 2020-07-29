@@ -1,4 +1,5 @@
 <html>
+<!-- @formatter:off -->
 <style>
     table, th, td {
       border: 1px solid black;
@@ -6,21 +7,8 @@
     th, td {
       padding: 0.3em;
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 </style>
+<!-- @formatter:on -->
 <section name="RangeDiscretizer">
     <h2>RangeDiscretizer</h2>
     Discretize numeric columns into user specified contiguous ranges <br/>
@@ -52,7 +40,7 @@
     If the option is selected the original column will not be touched, otherwise it is
     replaced.
 </section>
-<section name="KBinsDiscretizer">
+<section name="BinsDiscretizer">
     <h2>BinDiscretizer</h2>
     Discretize a numeric column into a defined number of bins
     <b>Input types</b>: Numeric<br/>
@@ -125,7 +113,7 @@
     labelled with "00/01" and all dates in (2001-01-01, 2002-01-01] labelled as "01/02". There is no
     way of excluding an interval from discretization, since all ranges are contiguous. The only way to
     achieve this is by labelling all the unwanted dates with a specific category and then replacing
-    all the categories values with Nan using the operation <i>ReplaceValues</i>.
+    all the categories values with NaN using the operation <i>ReplaceValues</i>.
     <h3>Create new attribute</h3>
     If selected the operation will produce one new column for every attribute to be discretized, and
     each column will have the original name followed by the provided suffix. Notice that if the
@@ -286,7 +274,7 @@
     labels. In this example "A_wave1" will be placed at time "wave1", "A_wave2" at time "wave2",
     "B_wave1" at "wave1", "B_wave3" at "wave3" and so on.
 </section>
-<section name="Drop">
+<section name="DropColumns">
     <h2>Drop</h2>
     Remove columns from dataframe<br/>
     <b>Input types</b>: All<br/>
@@ -316,18 +304,18 @@
         <li><b>Backfill</b>: fill with next valid observation</li>
         <li><b>Pad</b>: propagate last valid observation forward up to the next one</li>
         <li><b>Mean</b>: fill gaps with the mean of column (only for Numeric and Datetime)</li>
-        <li>Value: fill gaps in every column with a specified value</li>
+        <li><b>Value</b>: fill gaps in every column with a specified value</li>
     </ul>
 </section>
 <section name="SetIndex">
-    <h2>SetIndex</h2>
+    <h2>Set index</h2>
     Set an index to the dataframe<br/>
     <h3>Table options</h3>
     Selected columns will replace the current index column(s). After this, they will not be visible as
     columns, but they can be reinserted in the dataframe with the ResetIndex operation.
 </section>
 <section name="ResetIndex">
-    <h2>ResetIndex</h2>
+    <h2>Reset index</h2>
     Reset the index of the dataframe. All named index levels will be inserted in the dataframe as
     columns. Unnamed index levels are dropped.
 </section>
@@ -347,7 +335,7 @@
 <section name="OneHotEncoder">
     <h2>One-hot encoder</h2>
     Encode categorical or string column as a one-hot array<br/>
-    <b>Input types</b>: Category, String<br/>
+    <b>Input types</b>: Categorical, String<br/>
     <b>Output types</b>: Nominal
     <h3>Table options</h3>
     For every selected column a set of new columns will be appended to the dataframe, one for every
@@ -355,30 +343,36 @@
     original name, with the distinct value as suffix. The new columns will have type Nominal
     and will contain binary values.
     <h3>Column for nan</h3>
-    Whether to add a column also for nan values. If selected it is added regardless of the presence of
-    nan values.
+    Whether to add a column also for NaN values. If selected it is added regardless of the presence of
+    NaN values.
 </section>
 <section name="RemoveNanColumns">
     <h2>RemoveNanColumns</h2>
-    Remove columns with nan values.<br/>
+    Remove columns with NaN values.<br/>
     <b>Input types</b>: All<br/>
     <b>Output types</b>: Same
+    <h3>Usage</h3>
+    Can operate in one of two modes:
+    <ul>
+        <li>By removing every column with more than a minimum number of NaN values</li>
+        <li>By removing every column with NaN ratio > threshold</li>
+    </ul>
 </section>
 <section name="RemoveNanRows">
     <h2>RemoveNanColumns</h2>
-    Remove columns with nan values.<br/>
+    Remove columns with NaN values.<br/>
     <b>Input types</b>: All<br/>
     <b>Output types</b>: Same
-    Can operate in two modes:
+    <h3>Usage</h3>
+    Can operate in one of two modes:
     <ul>
-        <li>By removing rows with more than a minimum number of nan values </li>
-        <li>By removing rows with more than a ratio of nana values over all the attributes</li>
+        <li>By removing rows with more than a minimum number of NaN values over all columns</li>
+        <li>By removing rows with NaN ratio > threshold over all columns</li>
     </ul>
-    Only one modality may be chosen
 </section>
-<section name="Rename">
+<section name="RenameColumns">
     <h2>Rename column</h2>
-    Rename columns of the dataframe<br/>
+    Rename columns of the dataframe.<br/>
     <b>Input types</b>: All<br/>
     <b>Output types</b>: Same
     <h3>Usage</h3>
@@ -387,16 +381,103 @@
 </section>
 <section name="ReplaceValues">
     <h2>Replace values</h2>
-    Replace values in dataframe columns<br/>
-    <b>Input types</b>: String, Ordinal, Nominal, Numeric<br/>
+    Replace values in dataframe columns.<br/>
+    <b>Input types</b>: String, Categorical, Numeric<br/>
     <b>Output types</b>: Same
+    <h3>Table options</h3>
     Replace values in the dataframe.
 </section>
-<section name="ReplaceValues">
-    <h2>Replace values</h2>
-    Replace values in dataframe columns<br/>
-    <b>Input types</b>: String, Ordinal, Nominal, Numeric<br/>
-    <b>Output types</b>: Same
-    Replace values in the dataframe.
+<section name="MinMaxScaler">
+    <h2>Min max scaler</h2>
+    Scales columns as
+    <code>[(X - X_min) / (X_max - X_min)] * (max - min) + min</code>
+    , where <code>X_min</code> and <code>X_max</code> are the column-wise minimum and maximum and
+    <code>[min, max]</code> is the specified feature range (inclusive).<br/>
+    <b>Input types</b>: Numeric<br/>
+    <b>Output types</b>: Numeric
+    <h3>Table options</h3>
+    All selected columns will be scaled and will replace the original column. If you want to preserve
+    the original columns you will need to make a copy of them with the "Duplicate columns"
+    operation. <br/>
+    The feature range must be for every selected column in the "Range" column as numbers separated by
+    a blank space. The decimal separator is set to ".".
+</section>
+<section name="StandardScaler">
+    <h2>Standard scaler</h2>
+    Scales column values as (X - &mu;) / &sigma;, with &sigma;=std and &mu;=mean.<br/>
+    <b>Input types</b>: Numeric<br/>
+    <b>Output types</b>: Numeric
+    <h3>Table options</h3>
+    All selected columns will be scaled and will replace the original column. If you want to preserve
+    the original columns you will need to make a copy of them with the "Duplicate columns"
+    operation. No additional options are required.
+</section>
+<section name="ToNumeric">
+    <h2>To numeric</h2>
+    Convert columns to Numeric type (floating point).<br/>
+    <b>Input types</b>: String, Categorical<br/>
+    <b>Output types</b>: Numeric
+    <h3>Table options</h3>
+    All selected columns will be converted to numeric, if possible. The handling of conversion errors
+    depend on the "Error mode" option.
+    <h3>Error mode</h3>
+    <ul>
+        <li><b>Raise</b>: invalid parsing will stop the operation with an error and no column is
+            changed
+        </li>
+        <li><b>Coerce</b>: invalid parsed values will be set as NaN</li>
+    </ul>
+</section>
+<section name="ToCategorical">
+    <h2>To categorical</h2>
+    Convert columns to Categorical type. This conversion is convenient to encode columns with a small
+    set of distinct values. It can also be used to convert between Ordinal and Nominal and to change
+    the valid categories.<br/>
+    <b>Input types</b>: String, Numeric, Categorical<br/>
+    <b>Output types</b>: Ordinal or Nominal
+    <h3>Table options</h3>
+    Selected columns allow to input the exact categories to be considered, as strings separated by a
+    space. During conversion, encountered values which were not specified will be set to NaN. If the
+    "Categories" column is left empty, all distinct values will be considered categories.<br/>
+    The "Ordered" column controls whether the column will be Nominal (with False) or Ordinal (with
+    True). Ordinal categories are sorted as specified in the "Categories" column, or if not set, the
+    default lexicographical order is used.
+    <h3>Note</h3>
+    Selected Numeric columns will be converted to String type, before being converted to Categorical.
+</section>
+<section name="ToString">
+    <h2>To string</h2>
+    Convert columns to String type.<br/>
+    <b>Input types</b>: All<br/>
+    <b>Output types</b>: String
+    <h3>Table options</h3>
+    Selected columns will become String columns. No options are required.
+</section>
+<section name="ToTimestamp">
+    <h2>To datetime</h2>
+    Convert columns to Datetime type.<br/>
+    <b>Input types</b>: String<br/>
+    <b>Output types</b>: Datetime
+    <h3>Table options</h3>
+    Selected columns will be converted using the format specified in the "Format" column. If this is
+    not set Pandas will try to infer it. Refer to
+    <a href="https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes">
+        https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes
+    </a> for information on how to specify format.<br/>
+    <em>Example: "%Y-%m-%d %H:%M"</em> is the format of strings like: "2019-02-23 17:43".
+    <h3>Error mode</h3>
+    <ul>
+        <li><b>Raise</b>: invalid parsing will stop the operation with an error and no column is
+            changed
+        </li>
+        <li><b>Coerce</b>: invalid parsed dates will be set as NaT</li>
+    </ul>
+</section>
+<section name="PickleWriter">
+    <h2>Export to pickle</h2>
+    Save a dataframe in a Python serialized object (pickle)<br/>
+    Useful to save a dataframe without losing types information which would be lost by exporting to csv.
+    <h3>Usage</h3>
+    Select the dataframe to save and the file path.
 </section>
 </html>

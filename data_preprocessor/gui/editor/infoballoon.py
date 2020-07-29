@@ -8,6 +8,7 @@ class InfoBalloon(QFrame):
         super().__init__(parent)
         self.setWindowTitle('Operation helper')
         self.body = QTextBrowser(self)
+        self.body.setOpenExternalLinks(True)
         closeButton = QPushButton('Close', self)
         self.body.setBackgroundRole(QLabel().backgroundRole())
         self.setWindowFlags(Qt.Tool)

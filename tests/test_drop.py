@@ -4,7 +4,7 @@ import pytest
 
 from data_preprocessor import data, exceptions as exc
 from data_preprocessor.data.types import Types, IndexType
-from data_preprocessor.operation.dropcols import Drop
+from data_preprocessor.operation.dropcols import DropColumns
 from tests.utilities import nan_to_None
 
 
@@ -18,7 +18,7 @@ def test_drop_columns():
 
     g = g.setIndex('col1')
 
-    op = Drop()
+    op = DropColumns()
     assert op.getOutputShape() is None
     op.addInputShape(g.shape, 0)
     assert op.getOutputShape() is None

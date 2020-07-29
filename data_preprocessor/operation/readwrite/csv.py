@@ -98,6 +98,10 @@ class CsvWriter(Operation):
                   header=self.__header, index=self.__index, date_format=self.__date_format,
                   decimal=self.__decimal)
 
+    @staticmethod
+    def shortDescription() -> str:
+        return 'Load a dataframe from CSV file'
+
     def getEditor(self) -> 'AbsOperationEditor':
         factory = OptionsEditorFactory()
         factory.initEditor(subclass=WriteEditorBase)

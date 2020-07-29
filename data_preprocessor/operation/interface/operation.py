@@ -71,7 +71,7 @@ class Operation(ABC):
 
         :return: a string also with html formatting
         """
-        return operation.descriptions.get(self.name(), None)
+        return operation.descriptions.get(self.__class__.__name__, None)
 
     def hasOptions(self) -> bool:
         """
