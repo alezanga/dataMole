@@ -171,28 +171,28 @@ def test_unsetOptions_toCategory():
     op.addInputShape(f.shape, pos=0)
     op.setOptions(attributes={0: {'cat': ' " 2 e + " 1 ', 'ordered': True}})
     assert op.getOptions() == {'attributes': {0: {'cat': '"2 e +" 1', 'ordered': True}}}
-    assert op._ToCategoricalOp__attributes == {0: (['2 e +', '1'], True)}
+    assert op._ToCategorical__attributes == {0: (['2 e +', '1'], True)}
     assert op._shapes == [f.shape]
 
     op.unsetOptions()
     assert op.getOptions() == {'attributes': dict()}
-    assert op._ToCategoricalOp__attributes == dict()
+    assert op._ToCategorical__attributes == dict()
     assert op._shapes == [f.shape]
 
     op.removeInputShape(0)
     assert op.getOptions() == {'attributes': dict()}
-    assert op._ToCategoricalOp__attributes == dict()
+    assert op._ToCategorical__attributes == dict()
     assert op._shapes == [None]
 
     op.setOptions(attributes={1: dict()})
     assert op.getOptions() == {'attributes': {1: {'cat': '', 'ordered': False}}}
-    assert op._ToCategoricalOp__attributes == {1: (None, None)}
+    assert op._ToCategorical__attributes == {1: (None, None)}
     assert op._shapes == [None]
     assert op.getOutputShape() is None
 
     op.addInputShape(f.shape, pos=0)
     assert op.getOptions() == {'attributes': {1: {'cat': '', 'ordered': False}}}
-    assert op._ToCategoricalOp__attributes == {1: (None, None)}
+    assert op._ToCategorical__attributes == {1: (None, None)}
     assert op._shapes == [f.shape]
 
 
