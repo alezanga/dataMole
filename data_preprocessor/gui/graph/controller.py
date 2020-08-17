@@ -12,6 +12,7 @@ from ..editor.configuration import configureEditor, configureEditorOptions
 from ..workbench import WorkbenchModel
 from ...flow.dag import OperationDag
 from ...flow.handler import OperationHandler
+from ...utils import safeDelete
 
 
 class GraphController(QWidget):
@@ -153,7 +154,7 @@ class GraphController(QWidget):
     @Slot()
     def cleanupEditor(self) -> None:
         # Do not call close() here, since this function is called after a closeEvent
-        self.__editor_widget.deleteLater()
+        safeDelete(self.__editor_widget)
         self.__editor_node_id = None
         self.__editor_widget = None
 

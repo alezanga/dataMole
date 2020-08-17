@@ -1,4 +1,3 @@
-import copy
 from typing import List, Dict
 
 from data_preprocessor.data.types import Type, IndexType
@@ -40,7 +39,12 @@ class Shape:
         self.indexTypes = [IndexType(Type.fromCode(c)) for c in state['indexTypes']]
 
     def clone(self) -> 'Shape':
-        return copy.deepcopy(self)
+        s = Shape()
+        s.colNames = [n for n in self.colNames]
+        s.index = [n for n in self.index]
+        s.colTypes = [t for t in self.colTypes]
+        s.indexTypes = [t for t in self.indexTypes]
+        return s
 
     @staticmethod
     def fromDict(columns: Dict[str, Type], indexes: Dict[str, Type] = None) -> 'Shape':
