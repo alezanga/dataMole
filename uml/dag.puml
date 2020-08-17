@@ -1,0 +1,102 @@
+@startuml dag
+!define COMMENT(x) <color:grey>x</color>
+skinparam groupInheritance 2
+
+class MainWindow
+
+package flow {
+  class DagHandler {
+    + graph: networkx.DiGraph
+    + toExecute: Set[int]
+    + graphLogger
+    + signals
+    - qtSlots
+    + execute()
+    + startNode()
+    # canExecute(input_nodes: List[OperationNode]): bool
+  }
+
+  class OperationDag {
+    - G: networkx.DiGraph
+    - update_descendants(parent_id: int)
+    + updateNodeOptions(node_id: int, options: Iterable): bool
+    + addNode(node: OperationNode): bool
+    + addConnection(source_id: int, target_id: int, slot: int): bool
+    + removeNode(op_id: int): bool
+    + removeConnection(source_id: int, target_id: int): bool
+  }
+
+  class OperationNode {
+    - op_uid: int
+    - inputs: List
+    - input_order: Dict[int, int]
+    + operation: GraphOperation
+    + execute()
+    + clearInputArgument()
+    + removeInputShape(op_id: int)
+    + addInputShape(shape: Shape, op_id: int)
+    + addInputArgument(arg, op_id: int)
+    + setSourceOperationInputPosition(op_id: int, pos: int)
+    + unsetSourceOperationInputPosition(op_id: int)
+    + inputs(): List[Frame]
+    + nInputs(): int
+    + inputShapeFrom(node_id: int): Shape
+    + uid(): int
+    + inputOrder(): Dict[int, int]
+  }
+}
+
+package gui.graph {
+class GraphController
+
+class GraphView {
+  COMMENT(member of Qt Graphics View Framework)
+}
+
+
+class GraphScene {
+  COMMENT(member of Qt Graphics View Framework)
+}
+
+class Node {
+  # id: int
+  # name: str
+  ...
+}
+class NodeSlot
+class Edge
+class InteractiveEdge
+class RubberBand
+}
+
+note top of DagHandler #white
+Fields //signals// and //qtSlots// are part of
+the communication system with the controller
+end note
+
+
+QMainWindow <|-- MainWindow
+MainWindow o-- GraphController
+QWidget <|-- GraphController
+GraphController o- OperationDag
+GraphController o-- GraphScene
+GraphController o-- GraphView
+GraphController -> DagHandler
+GraphView o- GraphScene
+OperationDag *-- OperationNode
+GraphScene *-- Node
+GraphScene *-- Edge
+Node *-- NodeSlot
+Edge <|-- InteractiveEdge
+QGraphicsItem <|-- Node
+QGraphicsItem <|-- NodeSlot
+QGraphicsItem <|-- Edge
+QGraphicsItem <|- RubberBand
+
+' format
+DagHandler --[hidden] OperationDag
+RubberBand -[hidden] NodeSlot
+' GraphController -[hidden] DagHandler
+' GraphScene -[hidden] DagHandler
+
+@enduml

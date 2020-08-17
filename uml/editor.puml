@@ -1,0 +1,48 @@
+@startuml editor
+
+package gui.editor {
+
+abstract class AbsOperationEditor {
++ workbench: WorkbenchModel
++ inputShapes: List[Shape]
++ acceptedTypes: List[Type]
++ errorHandlers: Dict[str, Callable]
+# infoBallon: InfoBalloon
+
++ setDescription(short: str, long: str)
++ setUpEditor()
++ handleErrors(errors: List[Tuple[str, str]])
++ disableOkButton()
++ enableOkButton()
++ {abstract} editorBody(): QWidget
++ {abstract} getOptions(): Iterable
++ setOptions(*args, **kwargs)
++ onAccept()
+}
+
+class InfoBalloon {
+  + setText(text: str)
+}
+
+class OptionsEditorFactory {
+  + withAttributeTable(key: str, options, *args)
+  + withTextField(key: str, label: str, validator)
+  + withCheckBox(key: str, label: str)
+  + withRadioGroup(key: str, label: str, values)
+  + withComboBox(key: str, label: str, editable: bool, model, strings)
+  + withAttributeNameOptionsForTable(key: str)
+  + withFileChooser(key: str, label: str, extensions: str, mode: str)  
+  + initEditor(subclass: type)
+  + getEditor(): AbsOperationEditor
+}
+}
+
+note bottom of InfoBalloon
+Editor help window
+endnote
+
+QFrame <|-- InfoBalloon
+AbsOperationEditor -> InfoBalloon
+
+
+@enduml

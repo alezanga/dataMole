@@ -1,0 +1,82 @@
+@startuml operation
+skinparam groupInheritance 2
+
+package operation.interface {
+abstract class Operation {
+  # workbench: WorkbenchModel
+  + {abstract} execute()
+  + {abstract} setOptions(options: Iterable)
+  + getOptions(): Iterable
+  + {static} name(): str
+  + {static} shortDescription(): str
+  + longDescription(): str
+  + hasOptions(): bool
+  + needsOptions(): bool
+  + acceptedTypes(): List[Type]
+  + getEditor(): AbsOperationEditor
+  + injectEditor(editor: AbsOperationEditor)
+}
+
+
+abstract class GraphOperation {
+  # shapes: List[Shape]
+  + shapes(): List[Shape]
+  + addInputShape(shape: Shape, pos: int)
+  + removeInputShape(pos: int)
+  + getOutputShape(): Shape
+  + {static} isOutputShapeKnown(): bool
+  + {static} needsInputShapeKnown(): bool
+  + {abstract} unsetOptions()
+  + {abstract} needsOptions(): bool
+  + {abstract} {static} minInputNumber(): int
+  + {abstract} {static} maxInputNumber(): int 
+  + {abstract} {static} minOutputNumber(): int 
+  + {abstract} {static} maxOutputNumber(): int 
+}
+
+abstract class InputGraphOperation
+abstract class OutputGraphOperation
+}
+
+Operation <|- GraphOperation
+GraphOperation <|-- OutputGraphOperation
+GraphOperation <|-- InputGraphOperation
+
+'Operation o- WorkbenchModel
+
+@enduml
+
+@startuml logging
+
+interface Loggable {
+  + logOptions(): str
+  + logMessage(): str
+}
+
+abstract class Operation
+
+Operation <|-- ConcreteLoggableOperation
+Loggable <|-- ConcreteLoggableOperation
+
+@enduml
+
+
+@startuml factory
+
+class OptionsEditorFactory {
+  + withAttributeTable(key: str, options, *args)
+  + withTextField(key: str, label: str, validator)
+  + withCheckBox(key: str, label: str)
+  + withRadioGroup(key: str, label: str, values)
+  + withComboBox(key: str, label: str, editable: bool, model, strings)
+  + withAttributeNameOptionsForTable(key: str)
+  + withFileChooser(key: str, label: str, extensions: str, mode: str)  
+  + initEditor(subclass: type)
+  + getEditor(): AbsOperationEditor
+}
+
+note top of OptionsEditorFactory
+Singleton
+endnote
+
+@enduml
