@@ -1,0 +1,115 @@
+@startuml operation_add
+
+actor User
+
+User -> OperationMenu: "start drag"
+User -> GraphScene: dropEvent()
+GraphScene -> OperationMenu: getDropData()
+GraphScene <- OperationMenu: op_class
+GraphScene -> GraphController: addNode(op_class)
+GraphController --> Operation: <<create>>
+GraphController --> "node: OperationNode": <<create>>
+"node: OperationNode" -> UIdGenerator: getUniqueId()
+"node: OperationNode" <- UIdGenerator: uid
+GraphController -> OperationDag: addNode(node)
+GraphController -> GraphScene: create_node()
+note left: Adds a new\ngraphic item
+
+@enduml
+
+
+
+@startuml connection_add
+
+actor User
+
+User -> GUI: "start dragging new edge"
+GUI -> GraphScene: start_interactive_edge()
+GraphScene -> "iedge: InteractiveEdge" as iedge: <<create>>
+GraphScene -> GraphScene: addItem(iedge)
+User -> GUI: "drop edge on target node"
+GUI -> GraphScene: stop_interactive_edge()
+note right: Resolve edge orientation\nand slot
+GraphScene -> GraphController: addEdge(source_slot, target_slot)
+GraphController -> OperationDag: addConnection(source_id, target_id, slot)
+GraphController -> GraphScene: create_edge(source_slot, target_slot)
+note left: Adds a new\ngraphic item as edge
+GraphScene --> iedge
+destroy iedge
+
+@enduml
+
+
+
+@startuml operation_config
+
+actor User
+
+User -> GraphView: "double click on operation"
+GraphView -> GraphController: startEditNode(node_id: int)
+GraphController -> OperationDag: _getitem_(node_id: int)
+GraphController <- OperationDag: node: OperationNode
+GraphController -> Operation: getEditor()
+Operation -> GraphController: editor: AbsOperationEditor
+GraphController -> AbsOperationEditor: setUpEditor()
+GraphController -> Operation: getOptions()
+GraphController <- Operation: options
+GraphController -> AbsOperationEditor: setOptions(options)
+GraphController -> Operation: injectEditor(editor)
+GraphController -> AbsOperationEditor: show()
+@enduml
+
+
+@startuml controller_accept
+
+actor User
+
+User -> AbsOperationEditor: click "Ok"
+AbsOperationEditor -> GraphController: onEditAccept()
+GraphController -> AbsOperationEditor: getOptions()
+GraphController <- AbsOperationEditor: options
+GraphController -> OperationDag: updateNodeOptions(id, options)
+OperationDag -> Operation: setOptions(options)
+OperationDag -> OperationDag: update_descendants(id)
+
+@enduml
+
+
+@startuml controller_error_handling
+
+actor User
+
+User -> AbsOperationEditor: click "Ok"
+AbsOperationEditor -> GraphController: onEditAccept()
+GraphController -> AbsOperationEditor: getOptions()
+GraphController <- AbsOperationEditor: options
+GraphController -> OperationDag: updateNodeOptions(id, options)
+OperationDag -> Operation: setOptions(options)
+GraphController <- Operation: <font color=red><b>errors: OptionValidationError</b></font>
+GraphController -> AbsOperationEditor: handleErrors(errors)
+
+@enduml
+
+
+@startuml actionwrapper_apply
+
+actor User
+
+User -> GUI: click "Apply"
+GUI -> MainWindow: executeOperation()
+MainWindow --> OperationAction: <<create>>
+MainWindow -> OperationAction: startOperation()
+OperationAction -> Operation: <<create>>
+OperationAction --> OperationWrapper: <<create>>
+OperationAction -> OperationWrapper: start()
+
+OperationWrapper -> Operation: getEditor()
+OperationWrapper <- Operation: editor: AbsOperationEditor
+OperationWrapper -> AbsOperationEditor: setUpEditor()
+OperationWrapper -> Operation: getOptions()
+OperationWrapper <- Operation: options
+OperationWrapper -> AbsOperationEditor: setOptions(options)
+OperationWrapper -> Operation: injectEditor(editor)
+OperationWrapper -> AbsOperationEditor: show()
+
+@enduml

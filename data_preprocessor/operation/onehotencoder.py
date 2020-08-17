@@ -11,7 +11,7 @@ from data_preprocessor.gui.mainmodels import FrameModel
 from data_preprocessor.operation.interface.graph import GraphOperation
 
 
-class OneHotEncodeOp(GraphOperation, flogging.Loggable):
+class OneHotEncoder(GraphOperation, flogging.Loggable):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.__attributes: List[int] = list()
@@ -46,10 +46,6 @@ class OneHotEncodeOp(GraphOperation, flogging.Loggable):
     @staticmethod
     def shortDescription() -> str:
         return 'Replace every categorical value with a binary attribute'
-
-    def longDescription(self) -> str:
-        return 'Can be done on categorical or string attributes. The new attribute columns are of ' \
-               'categorical type'
 
     def hasOptions(self) -> bool:
         if self.__attributes and self.__includeNan is not None:
@@ -109,4 +105,4 @@ class OneHotEncodeOp(GraphOperation, flogging.Loggable):
         return -1
 
 
-export = OneHotEncodeOp
+export = OneHotEncoder

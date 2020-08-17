@@ -9,7 +9,7 @@ from data_preprocessor.gui.editor.interface import AbsOperationEditor
 from data_preprocessor.gui.utils import TextOptionWidget
 from data_preprocessor.operation.interface.graph import GraphOperation
 from data_preprocessor.operation.interface.operation import Operation
-from data_preprocessor.utils import UIdGenerator
+from data_preprocessor.utils import UIdGenerator, safeDelete
 
 
 class OperationAction(QAction):
@@ -75,9 +75,9 @@ class OperationAction(QAction):
         if state == 'success':
             self.__results[uid] = sender.result
             sender.result = None
-        elif state == 'finish':
-            sender.editor.deleteLater()  # delete editor
-            # sender.deleteLater()  # delete wrapper object
+        # elif state == 'finish':
+        #     sender.editor.deleteLater()  # delete editor (already done)
+        #     sender.deleteLater()  # delete wrapper object
         # Log
         if state == 'success' or state == 'error':
             outName = sender.operation.outName if hasattr(sender.operation, 'outName') else None
@@ -148,7 +148,7 @@ class OperationWrapper(QObject):
         configureEditor(self.editor, self.operation, None)
         configureEditorOptions(self.editor, self.operation)
         self.editor.accept.connect(self.onAcceptEditor)
-        self.editor.reject.connect(self.editor.close)
+        self.editor.reject.connect(self.cleanUpEditor)
         # If it is a GraphOperation or it has no default editor we should add input and output LineEdit
         if isinstance(self.operation, GraphOperation) or not self.operation.needsOptions():
             self._hasInputOutputOptions = True
@@ -159,6 +159,12 @@ class OperationWrapper(QObject):
         # Show editor
         self.editor.move(self._editorPos)
         self.editor.show()
+
+    @Slot()
+    def cleanUpEditor(self) -> None:
+        # Do not call close() here, since this function is called after a closeEvent
+        safeDelete(self.editor)
+        self.editor = None
 
     @Slot()
     def onAcceptEditor(self) -> None:
@@ -211,7 +217,7 @@ class OperationWrapper(QObject):
     @Slot(object)
     def _onFinish(self) -> None:
         self.__worker = None
-        self.editor.close()
+        self.cleanUpEditor()
         self.wrapperStateChanged.emit(self.uid, 'finish')
         flogging.appLogger.info('Operation {} finished'.format(self.operation.name()))
 

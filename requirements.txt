@@ -1,9 +1,9 @@
 pytest
-PySide2~=5.15.0
-numpy
+PySide2==5.15.0
+numpy==1.19.1
 setuptools
-pandas
-networkx~=2.4
-scikit-learn
+pandas==1.0.5
+networkx==2.4
+scikit-learn==0.23.1
 prettytable
 shiboken2

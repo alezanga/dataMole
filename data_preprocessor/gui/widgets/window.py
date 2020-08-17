@@ -4,7 +4,7 @@ import pickle
 
 import networkx as nx
 from PySide2 import QtGui
-from PySide2.QtCore import Slot, QThreadPool, Qt, QModelIndex, QUrl
+from PySide2.QtCore import Slot, QThreadPool, Qt, QModelIndex, QUrl, QMutex
 from PySide2.QtGui import QDesktopServices
 from PySide2.QtWidgets import QTabWidget, QWidget, QMainWindow, QMenuBar, QAction, QSplitter, \
     QHBoxLayout, QMenu, QFileDialog, QMessageBox
@@ -120,8 +120,10 @@ class MainWindow(QMainWindow):
         # Initialise a thread pool
         self.threadPool = QThreadPool.globalInstance()
         logging.info('Multithreading with maximum {} threads'.format(self.threadPool.maxThreadCount()))
+        self.setWindowTitle('dataMole')
 
         self.setUpMenus()
+        self.__spinnerMutex = QMutex()
 
         centralWidget.frameInfoPanel.operationRequest.connect(self.executeOperation)
         centralWidget.workbenchView.selectedRowChanged[str, str].connect(self.changedSelectedFrame)
@@ -173,15 +175,19 @@ class MainWindow(QMainWindow):
             logging.error('Operation uid={:d} stopped with errors'.format(uid))
             self.statusBar().showMessage('Operation stopped with errors', 10000)
         elif state == 'start':
+            self.__spinnerMutex.lock()
             self.__activeCount += 1
+            self.__spinnerMutex.unlock()
             self.statusBar().startSpinner()
             logging.info('Operation uid={:d} started'.format(uid))
             self.statusBar().showMessage('Executing...', 10000)
         elif state == 'finish':
             logging.info('Operation uid={:d} finished'.format(uid))
+            self.__spinnerMutex.lock()
             self.__activeCount -= 1
             if self.__activeCount == 0:
                 self.statusBar().stopSpinner()
+            self.__spinnerMutex.unlock()
         # print('Emit', uid, state, 'count={}'.format(self.__activeCount))
 
     @Slot(type)

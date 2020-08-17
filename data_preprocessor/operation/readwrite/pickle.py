@@ -19,6 +19,10 @@ class PickleLoader(Operation):
         df = pd.read_pickle(self.__file)
         self._workbench.setDataframeByName(self.__frameName, data.Frame(df))
 
+    @staticmethod
+    def shortDescription() -> str:
+        return 'Load a dataframe from pickle file'
+
     def setOptions(self, file: str, frameName: str) -> None:
         errors = list()
         frameName = frameName.strip()
@@ -87,6 +91,10 @@ class PickleWriter(Operation):
             raise exp.OptionValidationError(errors)
         self.__file = file
         self.__frame = frame
+
+    @staticmethod
+    def shortDescription() -> str:
+        return 'Write a dataframe to pickle'
 
     def getOptions(self) -> Dict:
         return {'frame': self.__frame, 'file': self.__file}

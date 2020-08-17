@@ -59,11 +59,13 @@ class DuplicateColumn(GraphOperation, flogging.Loggable):
             errors.append(('values', 'Error: selected columns target names are not set'))
         else:
             names: Dict[int, str] = {i: d.get('rename', ' ').strip() for i, d in table.items()}
-            nameList = list(names.values())
+            nameList = set(names.values())
             if not all(nameList):
                 errors.append(('set', 'Error: some names are not set'))
-            if len(set(nameList)) != len(nameList):
+            if len(nameList) != len(list(names.values())):
                 errors.append(('set', 'Error: some column names are duplicate'))
+            if nameList & set(self.shapes[0].colNames):
+                errors.append(('overwrite', 'Error: some new columns names are already present'))
         if errors:
             raise exp.OptionValidationError(errors)
         self.__attributes = names

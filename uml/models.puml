@@ -1,0 +1,173 @@
+@startuml models
+!define COMMENT(x) <color:grey>x</color>
+
+abstract class QAbstractItemModel {
+  + rowCount()
+  + columnCount()
+  + data()
+  + headerData()
+  + setHeaderData()
+  + canFetchMore()
+  + fetchMore()
+}
+note right of QAbstractItemModel #white
+Base class for Qt models, only relevant 
+methods are shown
+endnote
+
+abstract class QAbstractTableModel
+
+note bottom of QAbstractTableModel #white
+Specialised model for tabular data
+endnote
+
+abstract class QAbstractProxyModel
+class QSortFilterProxyModel {
+  + filterAcceptsRow()
+}
+class QIdentityProxyModel
+class QWidget
+class QTableView
+QWidget <|-- QTableView
+QAbstractItemModel <|-- QAbstractProxyModel
+QAbstractItemModel <|-- QAbstractTableModel
+QAbstractProxyModel <|-- QSortFilterProxyModel 
+QAbstractProxyModel <|-- QIdentityProxyModel
+
+package data {
+  class Shape {
+    + index: List[str]
+    + indexTypes: List[Type]
+    + columnNames: List[str]
+    + columnTypes: List[Type]
+    + columnsDict(): Dict
+    + indexDict(): Dict
+  }
+
+  class Frame {
+    - df: pandas.Dataframe
+    + shape(): Shape
+    + fromShape(shape: Shape)
+  }
+}
+
+note right of Frame #white
+Wrapper for Pandas dataframes
+endnote
+
+package mainmodels {
+class FrameModel {
+  + name: str
+  - frame: Frame
+  - shape: Shape
+  # statistics: Dict
+  # histogram: Dict
+
+  + frame(): Frame
+  + shape(): Shape
+  + setFrame(frame: Frame)
+  + statistics(): Dict
+  + histogram(): Dict
+}
+
+QAbstractTableModel <|-- FrameModel
+FrameModel o-- Frame
+FrameModel o-- Shape
+
+class IncrementalRenderFrameModel {
+  # batchRows: int
+  # batchCols: int
+  # loadedRows: int
+  # loadedCols: int
+  # scrollMode: str
+  + canFetchMore()
+  + fetchMore()
+}
+QIdentityProxyModel <|-- IncrementalRenderFrameModel
+IncrementalRenderFrameModel o--- FrameModel
+
+interface AbstractAttributeModel {
+  checkboxColumn(): int
+  typeColumn(): int
+  nameColumn(): int
+  frameModel(): FrameModel
+  setFrameModel(model: FrameModel)
+  checked(): Iterable[int]
+  setChecked(rows: Iterable[int], value: bool)
+  setAllChecked(value: bool)
+}
+
+class AttributeTableModel {
+  # frameModel: FrameModel
+}
+QAbstractTableModel <|-- AttributeTableModel
+AbstractAttributeModel <|-- AttributeTableModel
+AttributeTableModel o-- FrameModel
+
+class AttributeProxyModel {
+  # filterTypes: List[Type]
+  + filters()
+  + setFilters(filterTypes: List[Type])
+}
+QSortFilterProxyModel <|-- AttributeProxyModel
+AbstractAttributeModel <|-- AttributeProxyModel
+AttributeProxyModel o- AttributeTableModel
+
+
+class SearchableAttributeTableWidget {
+  - model: AttributeProxyModel
+  + tableView
+}
+QWidget <|-- SearchableAttributeTableWidget
+SearchableAttributeTableWidget o-- AttributeProxyModel
+SearchableAttributeTableWidget o-- SignalTableView
+
+class SignalTableView
+QTableView <|-- SignalTableView
+}
+
+@enduml
+
+
+@startuml workbench
+
+package workbench {
+
+class WorkbenchModel {
+  - workbench: List[FrameModel]
+  - nameToIndex: Dict[str, int]
+  + modelList(): List[FrameModel]
+  + modelDict(): Dict[str, FrameModel]
+  + names(): List[str]
+  + getDataframeModelByIndex(index: int): FrameModel
+  + getDataframeModelByName(name: str): FrameModel
+  + setDataframeByName(name: str, value: Frame)
+}
+
+class WorkbenchView {
+  # editable: bool
+  + mousePressEvent(event)
+  + mouseMoveEvent(event)
+  + mouseReleaseEvent(event)
+  + contextMenuEvent(event)
+} 
+}
+
+class FrameModel {
+  + name: str
+  - frame: Frame
+}
+
+class Frame {
+    - df: pandas.Dataframe
+    + shape(): Shape
+    + fromShape(shape: Shape)
+}
+
+QAbstractTableModel <|-- WorkbenchModel
+QTableView <|-- WorkbenchView
+FrameModel o- Frame
+WorkbenchModel *-- FrameModel
+
+
+@enduml

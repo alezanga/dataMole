@@ -26,10 +26,6 @@ class SetIndex(GraphOperation, flogging.Loggable):
     def shortDescription() -> str:
         return 'Sets the column index of a table'
 
-    def longDescription(self) -> str:
-        return 'Some operations like Join does not preserve the index, so you may want to ' \
-               'set it again if it is required. Setting it twice does nothing. '
-
     def acceptedTypes(self) -> List[Type]:
         return ALL_TYPES
 
@@ -113,11 +109,6 @@ class ResetIndex(GraphOperation, flogging.Loggable):
     def shortDescription() -> str:
         return 'Sets a default numeric index on the dataframe. The old indexes are re-inserted in the ' \
                'dataframe as columns'
-
-    def longDescription(self) -> str:
-        return 'The operation tries to insert index columns back in the dataframe as columns. If the ' \
-               'dataframes already contains column with an index name, the columns will be added with ' \
-               'a \'_index\' suffix.'
 
     def acceptedTypes(self) -> List[Type]:
         return ALL_TYPES

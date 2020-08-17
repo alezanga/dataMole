@@ -5,7 +5,7 @@ import pytest
 from data_preprocessor import exceptions as exp
 from data_preprocessor.data import Frame
 from data_preprocessor.data.types import Types
-from data_preprocessor.operation.typeconversions import ToNumericOp, ToCategoricalOp, ToTimestamp, \
+from data_preprocessor.operation.typeconversions import ToNumeric, ToCategorical, ToTimestamp, \
     ToString
 from tests.utilities import nan_to_None, roundValues, isDictDeepCopy
 
@@ -19,7 +19,7 @@ def test_cat_toNumeric():
     #                   dtype='datetime64[ns]')}
     f = Frame(d)
 
-    op = ToNumericOp()
+    op = ToNumeric()
     op.addInputShape(f.shape, pos=0)
     assert op.getOutputShape() is None
     assert op.getOptions() == {'attributes': {}, 'errors': 'raise'}
@@ -66,7 +66,7 @@ def test_str_toNumeric():
     #                   dtype='datetime64[ns]')}
     f = Frame(d)
 
-    op = ToNumericOp()
+    op = ToNumeric()
     op.addInputShape(f.shape, pos=0)
     op.setOptions(attributes={0: dict(), 2: dict()}, errors='raise')
 
@@ -103,7 +103,7 @@ def test_str_toNumeric_coerce():
     #                   dtype='datetime64[ns]')}
     f = Frame(d)
 
-    op = ToNumericOp()
+    op = ToNumeric()
     op.addInputShape(f.shape, pos=0)
     op.setOptions(attributes={0: dict(), 2: dict()}, errors='coerce')
 
@@ -136,7 +136,7 @@ def test_unsetOptions_toNumeric():
          'col3': ['q', '2', 'c', '4', 'x']}
     f = Frame(d)
 
-    op = ToNumericOp()
+    op = ToNumeric()
     op.addInputShape(f.shape, pos=0)
     assert op.getOptions() == {'attributes': {}, 'errors': 'raise'} and not op.hasOptions()
     op.setOptions(attributes={0: dict()}, errors='raise')
@@ -167,32 +167,32 @@ def test_unsetOptions_toCategory():
          'col3': ['q', '2', 'c', '4', 'x']}
     f = Frame(d)
 
-    op = ToCategoricalOp()
+    op = ToCategorical()
     op.addInputShape(f.shape, pos=0)
     op.setOptions(attributes={0: {'cat': ' " 2 e + " 1 ', 'ordered': True}})
     assert op.getOptions() == {'attributes': {0: {'cat': '"2 e +" 1', 'ordered': True}}}
-    assert op._ToCategoricalOp__attributes == {0: (['2 e +', '1'], True)}
+    assert op._ToCategorical__attributes == {0: (['2 e +', '1'], True)}
     assert op._shapes == [f.shape]
 
     op.unsetOptions()
     assert op.getOptions() == {'attributes': dict()}
-    assert op._ToCategoricalOp__attributes == dict()
+    assert op._ToCategorical__attributes == dict()
     assert op._shapes == [f.shape]
 
     op.removeInputShape(0)
     assert op.getOptions() == {'attributes': dict()}
-    assert op._ToCategoricalOp__attributes == dict()
+    assert op._ToCategorical__attributes == dict()
     assert op._shapes == [None]
 
     op.setOptions(attributes={1: dict()})
     assert op.getOptions() == {'attributes': {1: {'cat': '', 'ordered': False}}}
-    assert op._ToCategoricalOp__attributes == {1: (None, None)}
+    assert op._ToCategorical__attributes == {1: (None, None)}
     assert op._shapes == [None]
     assert op.getOutputShape() is None
 
     op.addInputShape(f.shape, pos=0)
     assert op.getOptions() == {'attributes': {1: {'cat': '', 'ordered': False}}}
-    assert op._ToCategoricalOp__attributes == {1: (None, None)}
+    assert op._ToCategorical__attributes == {1: (None, None)}
     assert op._shapes == [f.shape]
 
 
@@ -205,7 +205,7 @@ def test_str_toCategory():
     #                   dtype='datetime64[ns]')}
     f = Frame(d)
 
-    op = ToCategoricalOp()
+    op = ToCategorical()
     op.addInputShape(f.shape, pos=0)
     op.setOptions(attributes={1: {'cat': '3.0 4.0 0.0', 'ordered': True}, 2: dict()})
 
@@ -240,7 +240,7 @@ def test_num_toCategory():
 
     f = Frame(d)
 
-    op = ToCategoricalOp()
+    op = ToCategorical()
     op.addInputShape(f.shape, pos=0)
     op.setOptions(attributes={1: dict(), 2: dict()})
 
@@ -276,7 +276,7 @@ def test_cat_toCategory():
 
     f = Frame(d)
 
-    op = ToCategoricalOp()
+    op = ToCategorical()
     op.addInputShape(f.shape, pos=0)
     op.setOptions(attributes={0: {'cat': '5 0'}})
 
@@ -308,7 +308,7 @@ def test_ordinal_to_ordinal_cat():
 
     f = Frame(d)
 
-    op = ToCategoricalOp()
+    op = ToCategorical()
     op.addInputShape(f.shape, pos=0)
     op.setOptions(attributes={0: {'cat': '5 0 1', 'ordered': True}})
 
@@ -331,7 +331,7 @@ def test_ordinal_to_nominal_cat():
 
     f = Frame(d)
 
-    op = ToCategoricalOp()
+    op = ToCategorical()
     op.addInputShape(f.shape, pos=0)
     op.setOptions(attributes={0: {'cat': '5 0 1 2', 'ordered': False}})
 
@@ -359,7 +359,7 @@ def test_nominal_to_nominal_cat():
 
     f = Frame(d)
 
-    op = ToCategoricalOp()
+    op = ToCategorical()
     op.addInputShape(f.shape, pos=0)
     op.setOptions(attributes={0: {'cat': 'U 0 1 2', 'ordered': False}})
 
@@ -383,7 +383,7 @@ def test_nominal_to_ordinal_cat():
 
     f = Frame(d)
 
-    op = ToCategoricalOp()
+    op = ToCategorical()
     op.addInputShape(f.shape, pos=0)
     op.setOptions(attributes={0: {'cat': 'U 0 1 5', 'ordered': True}})
 

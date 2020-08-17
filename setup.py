@@ -1,44 +1,22 @@
-import io
-import os
-import re
+import setuptools
 
-from setuptools import find_packages
-from setuptools import setup
+with open("README.md", "r") as fh:
+    long_description = fh.read()
 
-
-def read(filename):
-    filename = os.path.join(os.path.dirname(__file__), filename)
-    text_type = type(u"")
-    with io.open(filename, mode="r", encoding='utf-8') as fd:
-        return re.sub(text_type(r':[a-z]+:`~?(.*?)`'), text_type(r'``\1``'), fd.read())
-
-
-setup(
-    name="{{ cookiecutter.package_name }}",
-    version="{{ cookiecutter.package_version }}",
-    url="{{ cookiecutter.package_url }}",
-    license='MIT',
-
-    author="{{ cookiecutter.author_name }}",
-    author_email="{{ cookiecutter.author_email }}",
-
-    description="{{ cookiecutter.package_description }}",
-    long_description=read("README.rst"),
-
-    packages=find_packages(exclude=('tests',)),
-
-    install_requires=[],
-
+setuptools.setup(
+    name="dataMole",  # Replace with your own username
+    version="0.0.1",
+    author="Alessandro Zangari",
+    author_email="alezanga@outlook.it",
+    description="A data preprocessing package",
+    long_description=long_description,
+    long_description_content_type="text/markdown",
+    url="",
+    packages=setuptools.find_packages(),
     classifiers=[
-        'Development Status :: 2 - Pre-Alpha',
-        'License :: OSI Approved :: MIT License',
-        'Programming Language :: Python',
-        'Programming Language :: Python :: 2',
-        'Programming Language :: Python :: 2.7',
-        'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.4',
-        'Programming Language :: Python :: 3.5',
-        'Programming Language :: Python :: 3.6',
-        'Programming Language :: Python :: 3.7',
+        "Programming Language :: Python :: 3",
+        "License :: OSI Approved :: MIT License",
+        "Operating System :: OS Independent",
     ],
+    python_requires='>=3.8',
 )

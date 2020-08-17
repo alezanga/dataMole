@@ -16,7 +16,7 @@ from ..gui.editor.OptionsEditorFactory import OptionsEditorFactory, OptionValida
 from ..gui.mainmodels import FrameModel
 
 
-class ToNumericOp(GraphOperation, flogging.Loggable):
+class ToNumeric(GraphOperation, flogging.Loggable):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.__attributes: List[int] = list()
@@ -129,7 +129,7 @@ class ToNumericOp(GraphOperation, flogging.Loggable):
         return -1
 
 
-class ToCategoricalOp(GraphOperation, flogging.Loggable):
+class ToCategorical(GraphOperation, flogging.Loggable):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.__attributes: Dict[int, Tuple[Optional[List[str]], bool]] = dict()
@@ -297,9 +297,6 @@ class ToTimestamp(GraphOperation, flogging.Loggable):
     def shortDescription() -> str:
         return 'Convert columns to datetime objects. Custom format may be specified.'
 
-    def longDescription(self) -> str:
-        pass
-
     def hasOptions(self) -> bool:
         return self.__attributes and self.__errorMode is not None
 
@@ -466,4 +463,4 @@ class ToString(GraphOperation, flogging.Loggable):
         return -1
 
 
-export = ToNumericOp, ToCategoricalOp, ToTimestamp, ToString
+export = ToNumeric, ToCategorical, ToTimestamp, ToString

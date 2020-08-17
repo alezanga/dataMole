@@ -1,16 +1,25 @@
 from typing import List, Dict, Optional
 
-from data_preprocessor import data, exceptions as exp
+import prettytable as pt
+
+from data_preprocessor import data, exceptions as exp, flogging
 from data_preprocessor.gui.editor import AbsOperationEditor, OptionsEditorFactory
 from data_preprocessor.gui.mainmodels import FrameModel
 from data_preprocessor.operation.interface.graph import GraphOperation
 
 
-class Drop(GraphOperation):
+class DropColumns(GraphOperation, flogging.Loggable):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # List of selected attributes by column name
         self.__selected: List[int] = list()
+
+    def logOptions(self) -> Optional[str]:
+        tt = pt.PrettyTable(field_names=['Columns to drop'])
+        columns = self.shapes[0].colNames
+        for a in self.__selected:
+            tt.add_row([columns[a]])
+        return tt.get_string(border=True, vrules=pt.ALL)
 
     def execute(self, df: data.Frame) -> data.Frame:
         df = df.getRawFrame()
@@ -76,4 +85,4 @@ class Drop(GraphOperation):
         return -1
 
 
-export = Drop
+export = DropColumns

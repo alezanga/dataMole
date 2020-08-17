@@ -47,13 +47,6 @@ class RemoveNanRows(GraphOperation, flogging.Loggable):
     def shortDescription() -> str:
         return 'Remove all rows with a specified number or percentage of nan values'
 
-    def longDescription(self) -> str:
-        return 'Can operate in two modes: <ul>' \
-               '<li>By removing rows with more than a minimum number of nan values </li>' \
-               '<li>By removing rows with more than a ratio of nana values over all the attributes' \
-               '</li>' \
-               '</ul> Only one modality may be chosen'
-
     def hasOptions(self) -> bool:
         return (self.__thresholdPercentage is not None) ^ (self.__thresholdNumber is not None)
 

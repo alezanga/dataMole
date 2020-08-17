@@ -1,0 +1,56 @@
+@startuml charts
+skinparam groupInheritance 2
+
+package gui.charts {
+  class Histogram {
+    + chartView: QChartView
+    + chart: QChart
+    + clearChart()
+    + setData()
+  }
+
+  class ScatterPlotMatrix {
+    workbench: WorkbenchModel
+    frameModel: FrameModel
+    + showScatterPlots()
+    + clearScatterPlotMatrix()
+  }
+
+  class TimeSeriesPlot {
+    + chartView: QChartView
+    + changeTimeFormat(format: str)
+    + createChart()
+    + createChartView()
+  }
+
+  package views {
+    class SimpleChartView
+    class InteractiveChartView
+    class BarsInteractiveChartView
+    class Callout
+    class InteractiveChartWindow {
+      + zoomIn()
+      + zoomOut()
+      + zoomReset()
+      + saveImage()
+    }
+  }
+}
+
+QWidget <|-- Histogram
+QWidget <|-- ScatterPlotMatrix
+QWidget <|-- TimeSeriesPlot
+QGraphicsItem <|--- Callout
+QChartView <|-- SimpleChartView
+QChartView <|-- InteractiveChartView
+InteractiveChartView <|-- BarsInteractiveChartView
+InteractiveChartView *---- Callout
+
+Histogram o-- BarsInteractiveChartView
+ScatterPlotMatrix --> SimpleChartView
+TimeSeriesPlot o-- InteractiveChartView
+QMainWindow <|-- InteractiveChartWindow
+SimpleChartView --> InteractiveChartWindow
+InteractiveChartView --> InteractiveChartWindow
+
+@enduml
