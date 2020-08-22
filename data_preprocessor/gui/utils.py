@@ -329,17 +329,28 @@ class FileIODialog(QWidget):
         path, ext = QFileDialog.getSaveFileName(self.parentWidget(), caption=self._caption,
                                                 filter=self._filter, **self._kwargs)
         # Add extension to filename
-        splitPath = path.split('.')
-        if len(splitPath) == 1:
-            # No extension was added, so use selected extension
-            sel = re.search('\\(.*\\)', ext)
-            if sel:
-                ext = sel.group(0).split('.')[-1][:-1]
-                path += '.' + ext
-        # else: Extension is present, use that
+        path = getFileNameWithExtension(path, ext)
         self.fileSelected.emit(path)
 
     def _showLoadDialog(self) -> None:
         path, ext = QFileDialog.getOpenFileName(self.parentWidget(), caption=self._caption,
                                                 filter=self._filter, **self._kwargs)
         self.fileSelected.emit(path)
+
+
+def getFileNameWithExtension(path: str, ext: str) -> str:
+    """
+    Computes the complete name with extension in the following way:
+        - if the file name already has an extension it uses that name
+        - otherwise it appends the extension to the file name
+    """
+    # Add extension to filename
+    splitPath = path.split('.')
+    if len(splitPath) == 1:
+        # No extension was added, so use selected extension
+        sel = re.search('\\(.*\\)', ext)
+        if sel:
+            ext = sel.group(0).split('.')[-1][:-1]
+            path += '.' + ext
+    # else: Extension is present, use that
+    return path
