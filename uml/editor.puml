@@ -1,4 +1,4 @@
-@startuml editor
+@startuml editor_pack
 
 package gui.editor {
 
@@ -37,7 +37,7 @@ class OptionsEditorFactory {
 }
 }
 
-note bottom of InfoBalloon
+note bottom of InfoBalloon #White
 Editor help window
 endnote
 

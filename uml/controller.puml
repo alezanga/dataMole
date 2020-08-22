@@ -13,7 +13,7 @@ GraphController --> "node: OperationNode": <<create>>
 "node: OperationNode" <- UIdGenerator: uid
 GraphController -> OperationDag: addNode(node)
 GraphController -> GraphScene: create_node()
-note left: Adds a new\ngraphic item
+note left #White: Adds a new\ngraphic item
 
 @enduml
 
@@ -29,11 +29,11 @@ GraphScene -> "iedge: InteractiveEdge" as iedge: <<create>>
 GraphScene -> GraphScene: addItem(iedge)
 User -> GUI: "drop edge on target node"
 GUI -> GraphScene: stop_interactive_edge()
-note right: Resolve edge orientation\nand slot
+note right #White: Resolve edge orientation\nand slot
 GraphScene -> GraphController: addEdge(source_slot, target_slot)
 GraphController -> OperationDag: addConnection(source_id, target_id, slot)
 GraphController -> GraphScene: create_edge(source_slot, target_slot)
-note left: Adds a new\ngraphic item as edge
+note left #White: Adds a new\ngraphic item as edge
 GraphScene --> iedge
 destroy iedge
 
@@ -71,6 +71,8 @@ GraphController <- AbsOperationEditor: options
 GraphController -> OperationDag: updateNodeOptions(id, options)
 OperationDag -> Operation: setOptions(options)
 OperationDag -> OperationDag: update_descendants(id)
+GraphController --> AbsOperationEditor
+destroy AbsOperationEditor
 
 @enduml
 
@@ -111,5 +113,20 @@ OperationWrapper <- Operation: options
 OperationWrapper -> AbsOperationEditor: setOptions(options)
 OperationWrapper -> Operation: injectEditor(editor)
 OperationWrapper -> AbsOperationEditor: show()
+
+@enduml
+
+@startuml actionwrapper_confirm
+
+actor User
+
+User -> AbsOperationEditor: click "Ok"
+AbsOperationEditor -> OperationAction: onAcceptEditor()
+OperationAction -> AbsOperationEditor: getOptions()
+OperationAction <- AbsOperationEditor: options
+OperationAction -> OperationAction: emit start()
+OperationAction -> "w: Worker": <<create>>
+OperationAction -> QThreadPool: start(w)
+OperationAction -> AbsOperationEditor: hide()
 
 @enduml

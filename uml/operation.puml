@@ -75,8 +75,6 @@ class OptionsEditorFactory {
   + getEditor(): AbsOperationEditor
 }
 
-note top of OptionsEditorFactory
-Singleton
-endnote
+note top of OptionsEditorFactory #White: Singleton
 
 @enduml

@@ -1,0 +1,23 @@
+@startuml threads
+
+class Worker {
+  + signals: WorkerSignals
+  # executable
+  # args
+  # identifier
+  + run()
+}
+
+
+class WorkerSignals {
+  {static} finished: Signal
+  {static} error: Signal
+  {static} result: Signal
+}
+
+Worker *- WorkerSignals
+QRunnable <|-- Worker
+QObject <|-- WorkerSignals
+
+
+@enduml

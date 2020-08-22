@@ -51,6 +51,7 @@ package data {
   }
 }
 
+Frame -> Shape
 note right of Frame #white
 Wrapper for Pandas dataframes
 endnote
