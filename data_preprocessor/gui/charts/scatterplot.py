@@ -12,15 +12,15 @@ from data_preprocessor.data.types import Types
 from data_preprocessor.gui.charts.views import SimpleChartView
 from data_preprocessor.gui.mainmodels import SearchableAttributeTableWidget, FrameModel, \
     AttributeTableModel, AttributeProxyModel
+from data_preprocessor.gui.panels.dataview import DataView
 from data_preprocessor.gui.workbench import WorkbenchModel
 from data_preprocessor.utils import safeDelete
 
 
-class ScatterPlotMatrix(QWidget):
+class ScatterPlotMatrix(DataView):
 
     def __init__(self, workbench: WorkbenchModel, parent=None):
-        super().__init__(parent)
-        self.__workbench: WorkbenchModel = workbench
+        super().__init__(workbench, parent)
         self.__frameModel: FrameModel = None
 
         # Create widget for the two tables
@@ -224,7 +224,7 @@ class ScatterPlotMatrix(QWidget):
     def onFrameSelectionChanged(self, frameName: str, *_) -> None:
         if not frameName:
             return
-        self.__frameModel = self.__workbench.getDataframeModelByName(frameName)
+        self.__frameModel = self._workbench.getDataframeModelByName(frameName)
         self.__matrixAttributes.setSourceFrameModel(self.__frameModel)
         # Combo box
         attributes = AttributeTableModel(self, False, False, False)

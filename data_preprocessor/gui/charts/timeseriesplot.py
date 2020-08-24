@@ -12,6 +12,7 @@ from data_preprocessor.data.types import Types, Type
 from data_preprocessor.gui.charts.views import InteractiveChartView
 from data_preprocessor.gui.mainmodels import SearchableAttributeTableWidget, AttributeProxyModel, \
     AttributeTableModel, FrameModel, BooleanBoxDelegate
+from data_preprocessor.gui.panels.dataview import DataView
 from data_preprocessor.gui.workbench import WorkbenchModel
 from data_preprocessor.utils import safeDelete
 
@@ -209,16 +210,15 @@ class _SettingsPanel(QWidget):
         self.errorLabel.hide()
 
 
-class TimeSeriesPlot(QWidget):
+class TimeSeriesPlot(DataView):
     def __init__(self, workbench: WorkbenchModel, parent: QWidget = None):
-        super().__init__(parent)
+        super().__init__(workbench, parent)
 
         self.settingsPanel = _SettingsPanel(self)
         self.chartView = InteractiveChartView(parent=self, setInWindow=False)
         p: QSizePolicy = self.chartView.sizePolicy()
         p.setHorizontalStretch(20)
         self.chartView.setSizePolicy(p)
-        self.workbench = workbench
         self.searchableIndexTableModel: QSortFilterProxyModel = QSortFilterProxyModel(self)
 
         self.splitter = QSplitter(Qt.Horizontal, self)
@@ -472,7 +472,7 @@ class TimeSeriesPlot(QWidget):
         if not name:
             return
         # Set attribute table
-        frameModel = self.workbench.getDataframeModelByName(name)
+        frameModel = self._workbench.getDataframeModelByName(name)
         self.settingsPanel.valuesTable.setSourceFrameModel(frameModel)
         # Set up combo box for time axis
         timeAxisModel = AttributeTableModel(self, False, False, False)

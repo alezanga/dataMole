@@ -28,7 +28,7 @@ if __name__ == "__main__":
     # Initialize globals and mainWindow
     from data_preprocessor import gui
 
-    mw = gui.widgets.window.MainWindow()
+    mw = gui.window.MainWindow()
     # Create status bar
     gui.statusBar = gui.widgets.statusbar.StatusBar(mw)
     mw.setStatusBar(gui.statusBar)

@@ -1,6 +1,6 @@
 from PySide2.QtCore import Slot, QAbstractItemModel, Qt, Signal
 from PySide2.QtWidgets import QWidget, QLabel, QFormLayout, QComboBox, QPushButton, \
-    QVBoxLayout
+    QVBoxLayout, QSizePolicy
 
 from data_preprocessor.gui.mainmodels import FrameModel
 from data_preprocessor.gui.workbench import WorkbenchModel
@@ -29,7 +29,8 @@ class FramePanel(QWidget):
         fLayout.addRow(labeli, self.index)
         fLayout.setVerticalSpacing(0)
 
-        lab = QLabel('Operations apply')
+        lab = QLabel('Select an operation:')
+        lab.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.operationsComboBox = QComboBox(self)
         self.operationsComboBox.setModel(opModel)
         applyButton = QPushButton('Apply', self)
@@ -37,10 +38,9 @@ class FramePanel(QWidget):
         layout = QVBoxLayout(self)
         layout.setSpacing(10)
         layout.addLayout(fLayout)
-        layout.addSpacing(30)
-        layout.addWidget(lab)
+        layout.addWidget(lab, 0, Qt.AlignBottom)
         layout.addWidget(self.operationsComboBox)
-        layout.addWidget(applyButton, 1)
+        layout.addWidget(applyButton)
         applyButton.clicked.connect(self.applyOperation)
 
     @Slot()

@@ -1,0 +1,10 @@
+{
+  "config": {
+    "default": "Scatterplot",
+    "description": "Select a data view:"
+  },
+  "modules": {
+    "Scatterplot": "data_preprocessor.gui.charts.scatterplot.ScatterPlotMatrix",
+    "Time series": "data_preprocessor.gui.charts.timeseriesplot.TimeSeriesPlot"
+  }
+}

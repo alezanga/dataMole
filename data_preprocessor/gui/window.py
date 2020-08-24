@@ -12,11 +12,11 @@ from PySide2.QtWidgets import QTabWidget, QWidget, QMainWindow, QMenuBar, QActio
 import data_preprocessor.exceptions as exc
 from data_preprocessor import flow, flogging, gui
 from data_preprocessor.gui.graph import GraphController, GraphView, GraphScene
+from data_preprocessor.gui.panels.attributepanel import AttributePanel
+from data_preprocessor.gui.panels.diffpanel import DataframeSideBySideView
+from data_preprocessor.gui.panels.framepanel import FramePanel
+from data_preprocessor.gui.panels.viewpanel import ViewPanel
 from data_preprocessor.gui.utils import getFileNameWithExtension
-from data_preprocessor.gui.widgets.attributepanel import AttributePanel
-from data_preprocessor.gui.widgets.chartpanel import ChartPanel
-from data_preprocessor.gui.widgets.diffpanel import DataframeSideBySideView
-from data_preprocessor.gui.widgets.framepanel import FramePanel
 from data_preprocessor.gui.widgets.operationmenu import OperationMenu
 from data_preprocessor.gui.workbench import WorkbenchModel, WorkbenchView
 from data_preprocessor.operation.actionwrapper import OperationAction
@@ -40,7 +40,7 @@ class MainWidget(QWidget):
         tabs = QTabWidget(self)
 
         attributeTab = AttributePanel(self.workbenchModel, self)
-        chartsTab = ChartPanel(self.workbenchModel, self)
+        chartsTab = ViewPanel(self.workbenchModel, self)
         self.graphScene = GraphScene(self)
         self._flowView = GraphView(self.graphScene, self)
         self.controller = GraphController(self.graph, self.graphScene, self._flowView,

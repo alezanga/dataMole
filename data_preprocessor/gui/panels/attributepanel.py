@@ -8,7 +8,7 @@ from data_preprocessor import flogging, gui
 from data_preprocessor.data.types import Types, Type
 from data_preprocessor.gui.charts.histogram import Histogram
 from data_preprocessor.gui.mainmodels import FrameModel, SearchableAttributeTableWidget
-from data_preprocessor.gui.widgets.diffpanel import DataframeView
+from data_preprocessor.gui.panels.diffpanel import DataframeView
 from data_preprocessor.gui.widgets.waitingspinnerwidget import QtWaitingSpinner
 from data_preprocessor.gui.workbench import WorkbenchModel
 
