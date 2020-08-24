@@ -170,17 +170,54 @@ class OperationDag:
         """ Return the operation node with specified id """
         return self.__G.nodes[uid]['op']
 
+    def serialize(self) -> Dict:
+        nodes: Dict[int, Dict] = dict()  # {id: node_data}
+        for node_id in self.__G.nodes:
+            node: OperationNode = self[node_id]
+            s = node.serialize()
+            nodes[node_id] = s
+        edges: List = list()
+        for edge in self.__G.edges:
+            edges.append(edge)
+
+        serializeDict = dict()
+        serializeDict['nodes'] = nodes
+        serializeDict['edges'] = edges
+        return serializeDict
+
+    @staticmethod
+    def deserialize(state: Dict) -> 'OperationDag':
+        graph = OperationDag()
+        try:
+            nodes: Dict[int, Dict] = state['nodes']
+            edges: List = state['edges']
+            for nodeId, serNode in nodes.items():
+                node = OperationNode.deserialize(serNode)
+                graph.__G.add_node(nodeId, op=node)
+
+            for edge in edges:
+                source_id, target_id = edge
+                graph.__G.add_edge(source_id, target_id)
+        except (AttributeError, KeyError) as e:
+            raise exp.DagException('Error during deserialization', str(e))
+        return graph
+
 
 class OperationNode:
     """ Wraps an operation, providing functionality required for graph computation """
 
     def __init__(self, operation: 'GraphOperation'):
-        self.__op_uid: int = UIdGenerator().getUniqueId()
-        self.operation = operation
+        self.__op_uid: int = None
+        self.operation = None
         # List of inputs, kept in order
-        self.__inputs: List = [None] * operation.maxInputNumber()
+        self.__inputs: List = None
         # Input mapper { operation_id: position }
         self.__input_order: Dict[int, int] = dict()
+        if operation is not None:
+            self.__op_uid = UIdGenerator().getUniqueId()
+            self.operation = operation
+            # List of inputs, kept in order
+            self.__inputs = [None] * operation.maxInputNumber()
 
     @property
     def inputOrder(self) -> Dict[int, int]:
@@ -190,6 +227,36 @@ class OperationNode:
     def uid(self) -> int:
         """ Returns the integer unique identifier of one node """
         return self.__op_uid
+
+    def serialize(self) -> Dict:
+        d = dict()
+        d['type'] = type(self.operation)
+        d['shapes'] = [s.serialize() if s else None for s in self.operation.shapes]
+        d['options'] = self.operation.getOptions()
+        d['order'] = self.__input_order
+        d['uid'] = self.uid
+        return d
+
+    @staticmethod
+    def deserialize(state: Dict) -> 'OperationNode':
+        node = OperationNode(None)
+        node.operation = state['type']()
+        node.operation._shapes = [data.Shape.deserialize(s) if s else None for s in state['shapes']]
+        node.__op_uid = state['uid']
+        node.__inputs = [None] * node.operation.maxInputNumber()
+        node.__input_order = state['order']
+        options = state['options']
+        try:
+            if isinstance(options, dict):
+                node.operation.setOptions(**options)
+            else:
+                node.operation.setOptions(*options)
+        except exp.OptionValidationError:
+            # If options are not valid it means that the operation was not configured
+            # Thus just ignore the configuration (just log a warning)
+            flogging.appLogger.warning('An un-configured operation "{}" has been deserialized'.format(
+                state['type'].__name__))
+        return node
 
     def inputShapeFrom(self, node_id: int) -> Optional[data.Shape]:
         """ Get the input shape set from specified source node, if set """

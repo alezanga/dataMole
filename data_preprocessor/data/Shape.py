@@ -25,6 +25,24 @@ class Shape:
     def __str__(self):
         return str(self.__dict__)
 
+    def serialize(self) -> Dict:
+        """ Serialize a shape """
+        s = self.__dict__
+        s['colTypes'] = [t.code for t in self.colTypes]
+        s['indexTypes'] = [t.code for t in self.indexTypes]
+        # s['colNames'] = [n for n in self.colNames]
+        # s['index'] = [n for n in self.index]
+        return s
+
+    @staticmethod
+    def deserialize(state: Dict) -> 'Shape':
+        """ Create a new shape from a serialization """
+        s = Shape()
+        s.__dict__ = state
+        s.colTypes = [Type.fromCode(c) for c in state['colTypes']]
+        s.indexTypes = [IndexType(Type.fromCode(c)) for c in state['indexTypes']]
+        return s
+
     def clone(self) -> 'Shape':
         s = Shape()
         s.colNames = [n for n in self.colNames]

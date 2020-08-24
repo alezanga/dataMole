@@ -65,15 +65,15 @@ class Frame:
         indexTypes = s.indexTypes
 
         def getDataForType(dt: Type):
-            if dt is Types.Ordinal:
+            if dt == Types.Ordinal:
                 col = _ordinal
-            elif dt is Types.Nominal:
+            elif dt == Types.Nominal:
                 col = _nominal
-            elif dt is Types.Numeric:
+            elif dt == Types.Numeric:
                 col = _numeric
-            elif dt is Types.String:
+            elif dt == Types.String:
                 col = _string
-            elif dt is Types.Datetime:
+            elif dt == Types.Datetime:
                 col = _date
             else:
                 raise ValueError()

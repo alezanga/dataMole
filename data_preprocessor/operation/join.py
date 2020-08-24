@@ -80,10 +80,10 @@ class Join(GraphOperation, flogging.Loggable):
             errors.append(('suffixequals', 'Error: suffixes must be different'))
         if not joinType:
             errors.append(('jointype', 'Error: join type is not set'))
-        if not all(self.shapes):
-            errors.append(('shape', 'Error: some input is missing. Connect all source inputs before '
-                                    'setting options'))
-        else:
+        # if not all(self.shapes):
+        #     errors.append(('shape', 'Error: some input is missing. Connect all source inputs before '
+        #                             'setting options'))
+        if all(self.shapes):
             if onindex:
                 # Check index types
                 if not self.shapes[0].index or not self.shapes[1].index:

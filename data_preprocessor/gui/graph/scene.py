@@ -12,7 +12,7 @@
 """
 Node graph scene manager based on QGraphicsScene
 """
-from typing import Set, List
+from typing import Set, List, Dict, Tuple
 
 from PySide2 import QtCore, QtGui, QtWidgets
 from PySide2.QtCore import QPointF
@@ -42,7 +42,7 @@ class GraphScene(QtWidgets.QGraphicsScene):
         QtWidgets.QGraphicsScene.__init__(self, parent)
         self.parent = parent
         self._nodegraph_widget = nodegraph_widget
-        self._nodes = []
+        self._nodes: List[Node] = []
         self._edges_by_hash = {}
         self._is_interactive_edge = False
         self._is_refresh_edges = False
@@ -82,6 +82,10 @@ class GraphScene(QtWidgets.QGraphicsScene):
 
         """
         return self._nodes
+
+    @property
+    def nodesPosition(self) -> Dict[int, Tuple[float, float]]:
+        return {node.id: node.scenePos().toTuple() for node in self._nodes}
 
     @property
     def is_interactive_edge(self):

@@ -412,7 +412,7 @@ class Node(QtWidgets.QGraphicsItem):
         QtWidgets.QGraphicsItem.mouseMoveEvent(self, event)
 
     def refresh(self, refresh_edges=True):
-        """Refreh node
+        """Refresh node
 
         :param refresh_edges: If true, also connected edge
         :type refresh_edges: bool

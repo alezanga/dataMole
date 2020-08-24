@@ -145,10 +145,10 @@ def test_removeNode():
     node2_is = copy.deepcopy(node2.operation._shapes)
     node1_is = copy.deepcopy(node1.operation._shapes)
     node0_is = copy.deepcopy(node0.operation._shapes)
-    node0_os = copy.deepcopy(node0.operation.getOutputShape())
-    node1_os = copy.deepcopy(node1.operation.getOutputShape())
-    node2_os = copy.deepcopy(node2.operation.getOutputShape())
-    node3_os = copy.deepcopy(node3.operation.getOutputShape())
+    node0_os = node0.operation.getOutputShape().clone()
+    node1_os = node1.operation.getOutputShape().clone()
+    node2_os = node2.operation.getOutputShape().clone()
+    node3_os = node3.operation.getOutputShape().clone()
     assert node3_os == node2_os == node0_os == node1_os == f.shape
     # Remove a node
     dag.removeNode(node1.uid)
@@ -215,10 +215,10 @@ def test_removeNode_unsetOptions():
     node2_is = copy.deepcopy(node2.operation._shapes)
     node1_is = copy.deepcopy(node1.operation._shapes)
     node0_is = copy.deepcopy(node0.operation._shapes)
-    node0_os = copy.deepcopy(node0.operation.getOutputShape())
-    node1_os = copy.deepcopy(node1.operation.getOutputShape())
-    node2_os = copy.deepcopy(node2.operation.getOutputShape())
-    node3_os = copy.deepcopy(node3.operation.getOutputShape())
+    node0_os = node0.operation.getOutputShape().clone()
+    node1_os = node1.operation.getOutputShape().clone()
+    node2_os = node2.operation.getOutputShape().clone()
+    node3_os = node3.operation.getOutputShape().clone()
     assert node3_os == node2_os == node0_os == node1_os == f.shape
     # Remove a node
     dag.removeNode(node1.uid)

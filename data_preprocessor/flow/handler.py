@@ -137,7 +137,9 @@ class _HandlerSlots(QObject):
         self.handler.signals.statusChanged.emit(node_id, NodeStatus.ERROR)
         msg = str(error[1])
         eName = error[0].__name__
-        self.handler.toExecute.remove(node_id)
+        if self.handler.toExecute:
+            # If a node has already failed the set is empty
+            self.handler.toExecute.remove(node_id)
         node = self.handler.graph.nodes[node_id]['op']
         node.clearInputArgument()
         flogging.appLogger.error('GraphOperation {} failed with exception {}: {} - trace: {}'.format(

@@ -27,11 +27,11 @@ def test_join_on_index():
     assert op.getOptions() == defaultOpts
 
     assert op.getOutputShape() is None
-    with pytest.raises(exc.OptionValidationError) as e:
-        op.setOptions('_ll', '_rr', True, None, None, jt.Inner)
-    # Cannot set options before shape
-    assert 'shape' in [a[0] for a in e.value.invalid]
-    assert op.getOptions() == defaultOpts
+    # with pytest.raises(exc.OptionValidationError) as e:
+    #     op.setOptions('_ll', '_rr', True, None, None, jt.Inner)
+    # CAN set options before shapes
+    # assert 'shape' in [a[0] for a in e.value.invalid]
+    # assert op.getOptions() == defaultOpts
 
     assert op.getOutputShape() is None
     op.addInputShape(f.shape, 0)

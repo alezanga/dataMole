@@ -1,7 +1,6 @@
-from statistics import mean
-from typing import List, Callable, Dict, Tuple
+from typing import List, Callable, Dict
 
-from PySide2.QtCore import Slot, QPoint
+from PySide2.QtCore import Slot
 from PySide2.QtWidgets import QWidget, QMessageBox
 
 from data_preprocessor import flow, flogging, gui, exceptions as exp
@@ -220,18 +219,14 @@ class GraphController(QWidget):
         self._scene.disableEdit = False
         flogging.appLogger.debug('Flow finished controller slot called')
 
-    def updateFromGraph(self) -> None:
+    def showGraphInScene(self) -> None:
         graph = self._operation_dag.getNxGraph()
         nodeDict = dict()
-        firstColumn = [0]
 
-        # TODO: position
-
-        def addNode(opNode, scene, pos) -> Node:
+        def addNode(opNode, scene) -> Node:
             op = opNode.operation
             inputNames = ['in {}'.format(i) for i in range(op.maxInputNumber())]
             isOutput: bool = op.minOutputNumber() == 0
-            scene._GraphScene__dropPosition = pos
             return scene.create_node(name=op.name(), id=opNode.uid, inputs=inputNames,
                                      output=not isOutput)
 
@@ -241,32 +236,9 @@ class GraphController(QWidget):
             targetSlot: NodeSlot = childItem.slots[0][inputs[node_id]]
             scene.create_edge(sourceSlot, targetSlot)
 
-        def computePosition(map: Dict[int, Tuple], firstColumn: List[int], node, graph) -> Tuple:
-            advance = 250
-            sources = list(graph.predecessors(node))
-            if not sources:
-                pos = 0, firstColumn[0]
-                firstColumn[0] += advance
-            else:
-                allPos = [p for p in [map.get(s, None) for s in sources] if p]
-                xs = [p[0] for p in allPos]
-                ys = [p[1] for p in allPos]
-                if not ys:
-                    y = firstColumn[0]
-                    firstColumn[0] += advance
-                else:
-                    y = mean(ys)
-                pos = max(xs, default=0) + advance, y
-            map[node] = pos
-            return pos
-
         # Add all nodes
-        positionMap: Dict[int, Tuple[int, int]] = dict()
         for node_id in graph.nodes:
-            pos = computePosition(positionMap, firstColumn, node_id, graph)
-            point = QPoint(*pos)
-            parNode = addNode(self._operation_dag[node_id], self._scene, point)
-            nodeDict[node_id] = parNode
+            nodeDict[node_id] = addNode(self._operation_dag[node_id], self._scene)
 
         # Add all edges
         for node_id in graph.nodes:

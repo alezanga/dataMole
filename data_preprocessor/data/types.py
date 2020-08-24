@@ -23,7 +23,7 @@ class Type(abc.ABC):
         return {v.code: v for k, v in Types.__dict__.items() if hasattr(v, 'code')}[code]
 
     def __eq__(self, other) -> bool:
-        return self is other
+        return self.code == other.code
 
     def __ne__(self, other) -> bool:
         return not self.__eq__(other)
@@ -113,7 +113,7 @@ class IndexType(Type):
         return self.__type.code
 
     def __eq__(self, other) -> bool:
-        return isinstance(other, IndexType) and self.__type is other.__type
+        return isinstance(other, IndexType) and self.__type == other.__type
 
     def __ne__(self, other) -> bool:
         return not self.__eq__(other)
