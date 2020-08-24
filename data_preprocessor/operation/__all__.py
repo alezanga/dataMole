@@ -1,4 +1,4 @@
-""" FIle to add all modules which contains operations """
+""" File to add all modules which contains operations to be used in the graph """
 
 from . import cleaner, dateoperations, discretize, dropcols, duplicate, extractseries, \
     fill, index, input, join, onehotencoder, utils, remove_nan, rename, replacevalues, scaling, \
