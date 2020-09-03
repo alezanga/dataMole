@@ -1,6 +1,6 @@
 import numpy as np
 
-from data_preprocessor.operation.utils import joinList, splitString
+from dataMole.operation.utils import joinList, splitString
 
 
 def test_join_split_list():

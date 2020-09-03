@@ -1,8 +1,8 @@
 import numpy as np
 
-from data_preprocessor import data
-from data_preprocessor.operation.scaling import MinMaxScaler, StandardScaler
-from data_preprocessor.operation.utils import numpy_equal
+from dataMole import data
+from dataMole.operation.scaling import MinMaxScaler, StandardScaler
+from dataMole.operation.utils import numpy_equal
 from tests.utilities import nan_to_None, roundValues
 
 

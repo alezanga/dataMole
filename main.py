@@ -4,9 +4,9 @@ from PySide2 import QtCore
 from PySide2.QtCore import QFile
 from PySide2.QtWidgets import QApplication
 
-from data_preprocessor import flogging
+from dataMole import flogging
 # noinspection PyUnresolvedReferences
-from data_preprocessor import qt_resources
+from dataMole import qt_resources
 
 if __name__ == "__main__":
     print('dataMole v. 0.1')
@@ -26,7 +26,7 @@ if __name__ == "__main__":
     styleFile.close()
 
     # Initialize globals and mainWindow
-    from data_preprocessor import gui
+    from dataMole import gui
 
     mw = gui.window.MainWindow()
     # Create status bar

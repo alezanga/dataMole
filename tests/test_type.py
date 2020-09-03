@@ -2,10 +2,10 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from data_preprocessor import exceptions as exp
-from data_preprocessor.data import Frame
-from data_preprocessor.data.types import Types
-from data_preprocessor.operation.typeconversions import ToNumeric, ToCategorical, ToTimestamp, \
+from dataMole import exceptions as exp
+from dataMole.data import Frame
+from dataMole.data.types import Types
+from dataMole.operation.typeconversions import ToNumeric, ToCategorical, ToTimestamp, \
     ToString
 from tests.utilities import nan_to_None, roundValues, isDictDeepCopy
 

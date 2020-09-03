@@ -2,61 +2,117 @@
 
 actor User
 
-User -> OperationMenu: "start drag"
+User -> OperationMenu: "Start drag"
 User -> GraphScene: dropEvent()
+activate GraphScene
 GraphScene -> OperationMenu: getDropData()
+activate OperationMenu
 GraphScene <- OperationMenu: op_class
-GraphScene -> GraphController: addNode(op_class)
+deactivate OperationMenu
+GraphScene --> GraphController: addNode(op_class)
+deactivate GraphScene
+note left #White
+Emit signal
+"dropNewNode"
+endnote
+activate GraphController
 GraphController --> Operation: <<create>>
-GraphController --> "node: OperationNode": <<create>>
-"node: OperationNode" -> UIdGenerator: getUniqueId()
-"node: OperationNode" <- UIdGenerator: uid
+GraphController --> "node: OperationNode" as ON: <<create>>
+activate ON
+ON -> UIdGenerator: getUniqueId()
+activate UIdGenerator
+ON <- UIdGenerator: uid
+deactivate UIdGenerator
+deactivate ON
 GraphController -> OperationDag: addNode(node)
+activate OperationDag
+deactivate OperationDag
 GraphController -> GraphScene: create_node()
+activate GraphScene
 note left #White: Adds a new\ngraphic item
+deactivate GraphScene
+deactivate GraphController
 
 @enduml
 
 
 
 @startuml connection_add
-
 actor User
 
-User -> GUI: "start dragging new edge"
+User -> GUI: "Start dragging new edge"
 GUI -> GraphScene: start_interactive_edge()
+note left #White
+Invoked from
+mousePressEvent()
+in GraphNode class
+endnote
+activate GraphScene
 GraphScene -> "iedge: InteractiveEdge" as iedge: <<create>>
 GraphScene -> GraphScene: addItem(iedge)
-User -> GUI: "drop edge on target node"
+User -> GUI: "Drop edge on target node"
+deactivate GraphScene
 GUI -> GraphScene: stop_interactive_edge()
-note right #White: Resolve edge orientation\nand slot
+note left #White
+Invoked from
+mouseReleaseEvent()
+in GraphScene class
+endnote
+activate GraphScene
 GraphScene -> GraphController: addEdge(source_slot, target_slot)
+activate GraphController
 GraphController -> OperationDag: addConnection(source_id, target_id, slot)
+activate OperationDag
+deactivate OperationDag
 GraphController -> GraphScene: create_edge(source_slot, target_slot)
+deactivate GraphController
 note left #White: Adds a new\ngraphic item as edge
-GraphScene --> iedge
+GraphScene -> iedge: <<destroy>>
+activate iedge
 destroy iedge
+deactivate GraphScene
 
 @enduml
 
 
 
 @startuml operation_config
-
 actor User
 
-User -> GraphView: "double click on operation"
-GraphView -> GraphController: startEditNode(node_id: int)
+User -> GraphScene: "Double click on operation"
+activate GraphScene
+GraphScene --> GraphController: startEditNode(node_id: int)
+note left #White
+Emit signal 
+"editModeEnabled"
+endnote
+deactivate GraphScene
+activate GraphController
 GraphController -> OperationDag: _getitem_(node_id: int)
+activate OperationDag
 GraphController <- OperationDag: node: OperationNode
+deactivate OperationDag
 GraphController -> Operation: getEditor()
+activate Operation
 Operation -> GraphController: editor: AbsOperationEditor
+deactivate Operation
 GraphController -> AbsOperationEditor: setUpEditor()
+activate AbsOperationEditor
+deactivate AbsOperationEditor
 GraphController -> Operation: getOptions()
+activate Operation
 GraphController <- Operation: options
+deactivate Operation
 GraphController -> AbsOperationEditor: setOptions(options)
+activate AbsOperationEditor
+deactivate AbsOperationEditor
 GraphController -> Operation: injectEditor(editor)
-GraphController -> AbsOperationEditor: show()
+activate Operation
+deactivate Operation
+GraphController --> AbsOperationEditor: show()
+activate AbsOperationEditor
+deactivate AbsOperationEditor
+deactivate GraphController
 @enduml
 
 
@@ -64,15 +120,35 @@ GraphController -> AbsOperationEditor: show()
 
 actor User
 
-User -> AbsOperationEditor: click "Ok"
-AbsOperationEditor -> GraphController: onEditAccept()
+User -> AbsOperationEditor: Click "Ok"
+activate AbsOperationEditor
+AbsOperationEditor --> GraphController: onEditAccept()
+note left #White
+Emit signal 
+"accept"
+endnote
+deactivate AbsOperationEditor
+activate GraphController
 GraphController -> AbsOperationEditor: getOptions()
+activate AbsOperationEditor
 GraphController <- AbsOperationEditor: options
+deactivate AbsOperationEditor
 GraphController -> OperationDag: updateNodeOptions(id, options)
+activate OperationDag
 OperationDag -> Operation: setOptions(options)
+activate Operation
+deactivate Operation
 OperationDag -> OperationDag: update_descendants(id)
-GraphController --> AbsOperationEditor
+GraphController <-[hidden] OperationDag
+deactivate OperationDag
+GraphController -> AbsOperationEditor: <<destroy>>
+note right #White
+Close editor
+and delete it
+endnote
+activate AbsOperationEditor
 destroy AbsOperationEditor
+deactivate GraphController
 
 @enduml
 
@@ -81,14 +157,26 @@ destroy AbsOperationEditor
 
 actor User
 
-User -> AbsOperationEditor: click "Ok"
-AbsOperationEditor -> GraphController: onEditAccept()
+User -> AbsOperationEditor: Click "Ok"
+activate AbsOperationEditor
+AbsOperationEditor --> GraphController: onEditAccept()
+deactivate AbsOperationEditor
+activate GraphController
 GraphController -> AbsOperationEditor: getOptions()
+activate AbsOperationEditor
 GraphController <- AbsOperationEditor: options
+deactivate AbsOperationEditor
 GraphController -> OperationDag: updateNodeOptions(id, options)
+activate OperationDag
 OperationDag -> Operation: setOptions(options)
-GraphController <- Operation: <font color=red><b>errors: OptionValidationError</b></font>
-GraphController -> AbsOperationEditor: handleErrors(errors)
+activate Operation
+GraphController <- Operation: <font color=red><b>err: OptionValidationError</b></font>
+deactivate Operation
+deactivate OperationDag
+GraphController -> AbsOperationEditor: handleErrors(err)
+activate AbsOperationEditor
+deactivate AbsOperationEditor
+deactivate GraphController
 
 @enduml
 
@@ -97,22 +185,45 @@ GraphController -> AbsOperationEditor: handleErrors(errors)
 
 actor User
 
-User -> GUI: click "Apply"
-GUI -> MainWindow: executeOperation()
+User -> GUI: Click "Apply"
+GUI --> MainWindow: executeOperation()
+note left #White
+Emit signal
+"operationRequest"
+endnote
+activate MainWindow
 MainWindow --> OperationAction: <<create>>
 MainWindow -> OperationAction: startOperation()
+activate OperationAction
 OperationAction -> Operation: <<create>>
 OperationAction --> OperationWrapper: <<create>>
 OperationAction -> OperationWrapper: start()
+activate OperationWrapper
 
 OperationWrapper -> Operation: getEditor()
+activate Operation
 OperationWrapper <- Operation: editor: AbsOperationEditor
+deactivate Operation
 OperationWrapper -> AbsOperationEditor: setUpEditor()
+activate AbsOperationEditor
+deactivate AbsOperationEditor
 OperationWrapper -> Operation: getOptions()
+activate Operation
 OperationWrapper <- Operation: options
+deactivate Operation
 OperationWrapper -> AbsOperationEditor: setOptions(options)
+activate AbsOperationEditor
+deactivate AbsOperationEditor
 OperationWrapper -> Operation: injectEditor(editor)
-OperationWrapper -> AbsOperationEditor: show()
+activate Operation
+deactivate Operation
+OperationWrapper --> AbsOperationEditor: show()
+note right #White: Editor is visible
+activate AbsOperationEditor
+deactivate OperationWrapper
+deactivate OperationAction
+deactivate MainWindow
+deactivate AbsOperationEditor
 
 @enduml
 
@@ -120,13 +231,31 @@ OperationWrapper -> AbsOperationEditor: show()
 
 actor User
 
-User -> AbsOperationEditor: click "Ok"
-AbsOperationEditor -> OperationAction: onAcceptEditor()
+User -> AbsOperationEditor: Click "Ok"
+activate AbsOperationEditor
+AbsOperationEditor --> OperationAction: onAcceptEditor()
+note left #White
+Emit signal 
+"accept"
+endnote
+deactivate AbsOperationEditor
+activate OperationAction
 OperationAction -> AbsOperationEditor: getOptions()
+activate AbsOperationEditor
 OperationAction <- AbsOperationEditor: options
-OperationAction -> OperationAction: emit start()
-OperationAction -> "w: Worker": <<create>>
-OperationAction -> QThreadPool: start(w)
-OperationAction -> AbsOperationEditor: hide()
+deactivate AbsOperationEditor
+OperationAction --> OperationAction: emit\n"wrapperStateChanged"
+note left #White
+Signal that the
+operation started
+endnote
+OperationAction --> "w: Worker": <<create>>
+OperationAction --> QThreadPool: start(w)
+activate QThreadPool
+OperationAction --> AbsOperationEditor: hide()
+activate AbsOperationEditor
+deactivate AbsOperationEditor
+deactivate QThreadPool
+deactivate OperationAction
 
 @enduml

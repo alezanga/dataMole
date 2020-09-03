@@ -4,9 +4,9 @@ import pandas as pd
 import pytest
 from PySide2.QtCore import QDateTime
 
-from data_preprocessor import data, exceptions as exp
-from data_preprocessor.data.types import Types
-from data_preprocessor.operation.dateoperations import DateDiscretizer, _IntervalWidget, toQtDateTime
+from dataMole import data, exceptions as exp
+from dataMole.data.types import Types
+from dataMole.operation.dateoperations import DateDiscretizer, _IntervalWidget, toQtDateTime
 from tests.utilities import nan_to_None
 
 

@@ -1,5 +1,6 @@
 @startuml models
 !define COMMENT(x) <color:grey>x</color>
+skinparam groupInheritance 2
 
 abstract class QAbstractItemModel {
   + rowCount()
@@ -18,7 +19,8 @@ endnote
 abstract class QAbstractTableModel
 
 note bottom of QAbstractTableModel #white
-Specialised model for tabular data
+Specialised model 
+for tabular data
 endnote
 
 abstract class QAbstractProxyModel
@@ -30,7 +32,7 @@ class QWidget
 class QTableView
 QWidget <|-- QTableView
 QAbstractItemModel <|-- QAbstractProxyModel
-QAbstractItemModel <|-- QAbstractTableModel
+QAbstractItemModel <|---- QAbstractTableModel
 QAbstractProxyModel <|-- QSortFilterProxyModel 
 QAbstractProxyModel <|-- QIdentityProxyModel
 
@@ -87,7 +89,7 @@ class IncrementalRenderFrameModel {
 QIdentityProxyModel <|-- IncrementalRenderFrameModel
 IncrementalRenderFrameModel o--- FrameModel
 
-interface AbstractAttributeModel {
+interface AbstractAttributeModel <<interface>> {
   checkboxColumn(): int
   typeColumn(): int
   nameColumn(): int
@@ -165,10 +167,11 @@ class Frame {
     + fromShape(shape: Shape)
 }
 
+abstract class QAbstractTableModel
+
 QAbstractTableModel <|-- WorkbenchModel
 QTableView <|-- WorkbenchView
 FrameModel o- Frame
 WorkbenchModel *-- FrameModel
-
 
 @enduml

@@ -1,8 +1,8 @@
 import numpy as np
 
-from data_preprocessor import data
-from data_preprocessor.data.types import Types
-from data_preprocessor.operation.remove_nan import RemoveNanRows, RemoveNanColumns
+from dataMole import data
+from dataMole.data.types import Types
+from dataMole.operation.remove_nan import RemoveNanRows, RemoveNanColumns
 
 
 # Remove rows

@@ -1,5 +1,5 @@
-from data_preprocessor.data import Frame, Shape
-from data_preprocessor.operation.input import SetInput
+from dataMole.data import Frame, Shape
+from dataMole.operation.input import SetInput
 from tests.mocks import WorkbenchModelMock
 
 

@@ -3,10 +3,10 @@ from typing import List, Tuple
 import numpy as np
 import pytest
 
-from data_preprocessor import data
-from data_preprocessor import exceptions as exp
-from data_preprocessor.data.types import Types
-from data_preprocessor.operation.discretize import BinsDiscretizer, BinStrategy, RangeDiscretizer
+from dataMole import data
+from dataMole import exceptions as exp
+from dataMole.data.types import Types
+from dataMole.operation.discretize import BinsDiscretizer, BinStrategy, RangeDiscretizer
 from tests.utilities import nan_to_None
 
 

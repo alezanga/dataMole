@@ -2,8 +2,8 @@ import copy
 
 import numpy as np
 
-from data_preprocessor import data
-from data_preprocessor.operation.cleaner import RemoveBijections
+from dataMole import data
+from dataMole.operation.cleaner import RemoveBijections
 from tests.utilities import nan_to_None
 
 

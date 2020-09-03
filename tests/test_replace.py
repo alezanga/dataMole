@@ -1,9 +1,9 @@
 import pandas as pd
 import pytest
 
-from data_preprocessor import data, exceptions as exp
-from data_preprocessor.data.types import Types
-from data_preprocessor.operation.replacevalues import ReplaceValues
+from dataMole import data, exceptions as exp
+from dataMole.data.types import Types
+from dataMole.operation.replacevalues import ReplaceValues
 from tests.utilities import nan_to_None, isDictDeepCopy
 
 

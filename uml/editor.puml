@@ -24,7 +24,7 @@ class InfoBalloon {
   + setText(text: str)
 }
 
-class OptionsEditorFactory {
+class OptionsEditorFactory <<singleton>> {
   + withAttributeTable(key: str, options, *args)
   + withTextField(key: str, label: str, validator)
   + withCheckBox(key: str, label: str)

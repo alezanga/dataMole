@@ -2,8 +2,8 @@ import pandas as pd
 import pytest
 from numpy import int64
 
-from data_preprocessor.data import Frame, Shape
-from data_preprocessor.data.types import Types, IndexType
+from dataMole.data import Frame, Shape
+from dataMole.data.types import Types, IndexType
 
 
 #

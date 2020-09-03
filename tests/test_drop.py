@@ -2,9 +2,9 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from data_preprocessor import data, exceptions as exc
-from data_preprocessor.data.types import Types, IndexType
-from data_preprocessor.operation.dropcols import DropColumns
+from dataMole import data, exceptions as exc
+from dataMole.data.types import Types, IndexType
+from dataMole.operation.dropcols import DropColumns
 from tests.utilities import nan_to_None
 
 

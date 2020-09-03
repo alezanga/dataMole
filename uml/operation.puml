@@ -63,7 +63,7 @@ Loggable <|-- ConcreteLoggableOperation
 
 @startuml factory
 
-class OptionsEditorFactory {
+class OptionsEditorFactory <<singleton>> {
   + withAttributeTable(key: str, options, *args)
   + withTextField(key: str, label: str, validator)
   + withCheckBox(key: str, label: str)
@@ -74,7 +74,5 @@ class OptionsEditorFactory {
   + initEditor(subclass: type)
   + getEditor(): AbsOperationEditor
 }
-
-note top of OptionsEditorFactory #White: Singleton
 
 @enduml

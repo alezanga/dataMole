@@ -1,9 +1,9 @@
 import pandas as pd
 import pytest
 
-from data_preprocessor import data, exceptions as exc
-from data_preprocessor.data.types import Types, IndexType
-from data_preprocessor.operation.join import Join
+from dataMole import data, exceptions as exc
+from dataMole.data.types import Types, IndexType
+from dataMole.operation.join import Join
 
 jt = Join.JoinType
 

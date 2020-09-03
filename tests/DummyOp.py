@@ -1,8 +1,8 @@
 from typing import Union, Any, Iterable, Optional, List
 
-from data_preprocessor import data
-from data_preprocessor.gui.editor.interface import AbsOperationEditor
-from data_preprocessor.operation.interface.graph import GraphOperation, InputGraphOperation, \
+from dataMole import data
+from dataMole.gui.editor.interface import AbsOperationEditor
+from dataMole.operation.interface.graph import GraphOperation, InputGraphOperation, \
     OutputGraphOperation
 
 

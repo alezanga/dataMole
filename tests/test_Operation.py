@@ -1,7 +1,7 @@
 # Tests for generic GraphOperation
 import pytest
 
-from data_preprocessor.data import Frame
+from dataMole.data import Frame
 from .DummyOp import DummyOp
 
 

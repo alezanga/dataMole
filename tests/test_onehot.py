@@ -1,6 +1,6 @@
-from data_preprocessor import data
-from data_preprocessor.data.types import Types
-from data_preprocessor.operation.onehotencoder import OneHotEncoder
+from dataMole import data
+from dataMole.data.types import Types
+from dataMole.operation.onehotencoder import OneHotEncoder
 
 
 def test_ohe():

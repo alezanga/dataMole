@@ -49,24 +49,17 @@ package flow {
 package gui.graph {
 class GraphController
 
-class GraphView {
-  COMMENT(member of Qt Graphics View Framework)
-}
-
-
-class GraphScene {
-  COMMENT(member of Qt Graphics View Framework)
-}
-
-class Node {
+class GraphNode {
   # id: int
   # name: str
   ...
 }
 class NodeSlot
-class Edge
+class GraphEdge
 class InteractiveEdge
 class RubberBand
+class GraphView
+class GraphScene
 }
 
 note top of DagHandler #white
@@ -84,19 +77,32 @@ GraphController o-- GraphView
 GraphController -> DagHandler
 GraphView o- GraphScene
 OperationDag *-- OperationNode
-GraphScene *-- Node
-GraphScene *-- Edge
-Node *-- NodeSlot
-Edge <|-- InteractiveEdge
-QGraphicsItem <|-- Node
+GraphScene *-- QGraphicsItem
+GraphScene -[hidden] GraphEdge
+GraphScene -[hidden]- RubberBand
+GraphNode *- NodeSlot
+GraphEdge <|-- InteractiveEdge
+QGraphicsItem <|--- GraphNode
 QGraphicsItem <|-- NodeSlot
-QGraphicsItem <|-- Edge
-QGraphicsItem <|- RubberBand
+QGraphicsItem <|-- GraphEdge
+QGraphicsItem <|-- RubberBand
+QGraphicsScene <|--- GraphScene
+QGraphicsView <|--- GraphView
 
 ' format
 DagHandler --[hidden] OperationDag
 RubberBand -[hidden] NodeSlot
 ' GraphController -[hidden] DagHandler
 ' GraphScene -[hidden] DagHandler
+
+class QGraphicsView {
+  COMMENT(Member of the Graphics View Framework)
+}
+class QGraphicsScene {
+  COMMENT("Member of the Graphics View Framework")
+}
+class QGraphicsItem {
+  COMMENT(Member of the Graphics View Framework)
+}
 
 @enduml

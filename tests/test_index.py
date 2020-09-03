@@ -1,9 +1,9 @@
 import pandas as pd
 
-from data_preprocessor import data
-from data_preprocessor.data import Shape
-from data_preprocessor.data.types import Types, IndexType
-from data_preprocessor.operation.index import SetIndex, ResetIndex
+from dataMole import data
+from dataMole.data import Shape
+from dataMole.data.types import Types, IndexType
+from dataMole.operation.index import SetIndex, ResetIndex
 from tests.utilities import isDictDeepCopy
 
 

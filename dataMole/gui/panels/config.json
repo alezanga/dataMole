@@ -1,0 +1,10 @@
+{
+  "config": {
+    "default": "Scatterplot",
+    "description": "Select a data view:"
+  },
+  "modules": {
+    "Scatterplot": "dataMole.gui.charts.scatterplot.ScatterPlotMatrix",
+    "Time series": "dataMole.gui.charts.timeseriesplot.TimeSeriesPlot"
+  }
+}

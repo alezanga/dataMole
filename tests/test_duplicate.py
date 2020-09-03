@@ -2,8 +2,8 @@ from copy import deepcopy
 
 import pytest
 
-from data_preprocessor import data, exceptions as exc
-from data_preprocessor.operation.duplicate import DuplicateColumn
+from dataMole import data, exceptions as exc
+from dataMole.operation.duplicate import DuplicateColumn
 
 
 def test_duplicate_columns():

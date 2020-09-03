@@ -2,8 +2,8 @@ import copy
 
 import pytest
 
-import data_preprocessor.exceptions as exp
-from data_preprocessor.flow.dag import OperationDag, OperationNode
+import dataMole.exceptions as exp
+from dataMole.flow.dag import OperationDag, OperationNode
 from .DummyOp import *
 
 

@@ -1,5 +1,5 @@
-from data_preprocessor.data import Frame
-from data_preprocessor.operation.rename import RenameColumns
+from dataMole.data import Frame
+from dataMole.operation.rename import RenameColumns
 
 
 def test_rename():

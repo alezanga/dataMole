@@ -1,9 +1,9 @@
 import numpy as np
 import pytest
 
-from data_preprocessor import data, exceptions as exp
-from data_preprocessor.data.types import Types
-from data_preprocessor.operation.extractseries import ExtractTimeSeries
+from dataMole import data, exceptions as exp
+from dataMole.data.types import Types
+from dataMole.operation.extractseries import ExtractTimeSeries
 from tests.mocks import WorkbenchModelMock
 from tests.utilities import nan_to_None
 

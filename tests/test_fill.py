@@ -2,11 +2,11 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from data_preprocessor import data
-from data_preprocessor.data import Shape
-from data_preprocessor.data.types import Types, IndexType
-from data_preprocessor.exceptions import OptionValidationError
-from data_preprocessor.operation.fill import FillNan
+from dataMole import data
+from dataMole.data import Shape
+from dataMole.data.types import Types, IndexType
+from dataMole.exceptions import OptionValidationError
+from dataMole.operation.fill import FillNan
 from tests.utilities import nan_to_None, roundValues, isDictDeepCopy
 
 
