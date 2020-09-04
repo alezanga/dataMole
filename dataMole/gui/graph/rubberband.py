@@ -16,8 +16,8 @@ default one with a large numbers of items
 """
 
 from PySide2 import QtCore, QtGui, QtWidgets
-# from .node import Node
-# from .edge import Edge
+# from .node import GraphNode
+# from .edge import GraphEdge
 
 # from constant import DEBUG
 

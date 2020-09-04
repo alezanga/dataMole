@@ -12,7 +12,7 @@
 """
 Base node definition including:
 
-    * Node
+    * GraphNode
     * NodeSlot
 
 """
@@ -20,6 +20,9 @@ Base node definition including:
 from typing import Union, Set, List, Tuple
 
 from PySide2 import QtCore, QtGui, QtWidgets
+from PySide2.QtCore import QSize
+from PySide2.QtGui import QPixmap
+from PySide2.QtWidgets import QGraphicsPixmapItem
 
 from dataMole.status import NodeStatus
 from .constant import DEBUG
@@ -32,7 +35,7 @@ _statusShow = {
 }
 
 
-class Node(QtWidgets.QGraphicsItem):
+class GraphNode(QtWidgets.QGraphicsItem):
     """
     Base class for node graphic item
 
@@ -46,8 +49,8 @@ class Node(QtWidgets.QGraphicsItem):
         metrics = QtGui.QFontMetrics(font)
         return metrics.size(QtCore.Qt.TextSingleLine, text + '      ')
 
-    def __init__(self, name: str, id: int, inputs=None, parent: QtWidgets.QGraphicsItem = None,
-                 output: bool = True):
+    def __init__(self, name: str, id: int, optionsSet: bool, inputs=None,
+                 parent: QtWidgets.QGraphicsItem = None, output: bool = True):
         """Create an instance of this class
 
         """
@@ -59,7 +62,7 @@ class Node(QtWidgets.QGraphicsItem):
         # Set font used for label (operation name)
         self._title_font = QtGui.QFont("Arial", 14)
         # Compute size of label to display
-        self._width = max(130, Node.__headerSize(self._name, self._title_font).width())
+        self._width = max(150, GraphNode.__headerSize(self._name, self._title_font).width())
         self._height = 130
         self._outline = 6
         self._slot_radius = 10
@@ -87,6 +90,15 @@ class Node(QtWidgets.QGraphicsItem):
 
         # Update internal containers
         self._update()
+
+        # Node options indicator
+        self._optionsSet: bool = None
+        self._optionsIndicator: QGraphicsPixmapItem = QGraphicsPixmapItem(self)
+        self.setOptionsIndicator(optionsSet)
+        center = self.boundingRect().center()
+        offsetW = self._optionsIndicator.boundingRect().width() // 2
+        offsetH = self._optionsIndicator.boundingRect().height() // 2
+        self._optionsIndicator.setPos(center.x() - offsetW, center.y() - offsetH // 2)
 
     @property
     def name(self):
@@ -175,6 +187,17 @@ class Node(QtWidgets.QGraphicsItem):
 
         """
         return self._bbox
+
+    def setOptionsIndicator(self, optionsSet: bool) -> None:
+        """ Change the pixmap to show depending on options state """
+        if optionsSet != self._optionsSet:
+            self._optionsSet = optionsSet
+            if self._optionsSet:
+                pixmap = QPixmap(':/resources/icons/settings-ok.png')
+            else:
+                pixmap = QPixmap(':/resources/icons/settings-wrong.png')
+            pixmap = pixmap.scaled(QSize(48, 48))
+            self._optionsIndicator.setPixmap(pixmap)
 
     def paint(self, painter, option, widget=None):
         """Re-implement paint method
@@ -403,9 +426,9 @@ class Node(QtWidgets.QGraphicsItem):
 
         if buttons == QtCore.Qt.LeftButton:
             if self.scene().is_interactive_edge:
-                # Edge creation mode
+                # GraphEdge creation mode
 
-                # print("Node Name: %s, pos: %s" % (self._name, event.pos()))
+                # print("GraphNode Name: %s, pos: %s" % (self._name, event.pos()))
                 event.accept()
                 return
 
@@ -509,7 +532,7 @@ class NodeSlot(object):
         self._edge = set(value if isinstance(value, list) else [value])
 
     @property
-    def parentNode(self) -> Node:
+    def parentNode(self) -> GraphNode:
         return self.parent
 
     def add_edge(self, value):

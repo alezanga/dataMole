@@ -16,8 +16,6 @@ class ToVariableOp(OutputGraphOperation, flogging.Loggable):
 
     def execute(self, df: data.Frame) -> None:
         self._workbench.setDataframeByName(self.__var_name, df)
-        # Reset since now that variable is taken
-        self.__var_name = None
 
     @staticmethod
     def name() -> str:

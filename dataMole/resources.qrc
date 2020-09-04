@@ -1,7 +1,10 @@
-<!DOCTYPE RCC><RCC version="1.0">
-<qresource>
-    <file>resources/icons/close.png</file>
-    <file>resources/descriptions.html</file>
-    <file>resources/style.css</file>
-</qresource>
+<!DOCTYPE RCC>
+<RCC version="1.0">
+    <qresource>
+        <file>resources/icons/close.png</file>
+        <file>resources/icons/settings-wrong.png</file>
+        <file>resources/icons/settings-ok.png</file>
+        <file>resources/descriptions.html</file>
+        <file>resources/style.css</file>
+    </qresource>
 </RCC>

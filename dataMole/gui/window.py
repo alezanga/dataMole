@@ -296,12 +296,12 @@ class MainWindow(QMainWindow):
             path = getFileNameWithExtension(path, ext)
             serialization = self.centralWidget().graph.serialize()
             # Add info about scene position to node data
-            nodeDict: Dict[int, Dict] = serialization['nodes']
-            graphPosition: Dict[int, Tuple[float, float]] = self.centralWidget().graphScene.nodesPosition
-            for nodeId, data in nodeDict.items():
-                data['pos'] = graphPosition[nodeId]
+            nodeSerialization: Dict[int, Dict] = serialization['nodes']
+            for nodeId, data in nodeSerialization.items():
+                data['pos'] = self.centralWidget().graphScene.nodesDict[nodeId].scenePos().toTuple()
             with open(path, 'wb') as file:
                 pickle.dump(serialization, file)
+            gui.statusBar.showMessage('Pipeline was successfully exported in {:s}'.format(path), 15)
 
     @Slot()
     def readFlow(self):
@@ -326,10 +326,11 @@ class MainWindow(QMainWindow):
                 self.centralWidget().controller.showGraphInScene()
                 # Set position of every node
                 nodeDict = serialization['nodes']
-                for node in self.centralWidget().graphScene.nodes:
-                    pos: Tuple[float, float] = nodeDict[node.id]['pos']
+                for nodeId, node in self.centralWidget().graphScene.nodesDict.items():
+                    pos: Tuple[float, float] = nodeDict[nodeId]['pos']
                     node.setPos(*pos)
                     node.refresh()  # Update connected edges
                 # Reconnect actions to the new controller
                 self._aStartFlow.triggered.connect(self.centralWidget().controller.executeFlow)
                 self._aResetFlow.triggered.connect(self.centralWidget().controller.resetFlowStatus)
+                gui.statusBar.showMessage('Pipeline was successfully imported', 15)

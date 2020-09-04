@@ -56,7 +56,7 @@ class GraphNode {
 }
 class NodeSlot
 class GraphEdge
-class InteractiveEdge
+class InteractiveGraphEdge
 class RubberBand
 class GraphView
 class GraphScene
@@ -81,7 +81,7 @@ GraphScene *-- QGraphicsItem
 GraphScene -[hidden] GraphEdge
 GraphScene -[hidden]- RubberBand
 GraphNode *- NodeSlot
-GraphEdge <|-- InteractiveEdge
+GraphEdge <|-- InteractiveGraphEdge
 QGraphicsItem <|--- GraphNode
 QGraphicsItem <|-- NodeSlot
 QGraphicsItem <|-- GraphEdge

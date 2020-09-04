@@ -12,15 +12,15 @@
 """
 Node graph scene manager based on QGraphicsScene
 """
-from typing import Set, List, Dict, Tuple
+from typing import Set, List, Dict
 
 from PySide2 import QtCore, QtGui, QtWidgets
 from PySide2.QtCore import QPointF
 from PySide2.QtWidgets import QGraphicsSceneDragDropEvent
 
 from .constant import SCENE_WIDTH, SCENE_HEIGHT
-from .edge import Edge, InteractiveEdge
-from .node import Node, NodeSlot
+from .edge import GraphEdge, InteractiveGraphEdge
+from .node import GraphNode, NodeSlot
 from .rubberband import RubberBand
 from ... import flogging
 
@@ -42,12 +42,12 @@ class GraphScene(QtWidgets.QGraphicsScene):
         QtWidgets.QGraphicsScene.__init__(self, parent)
         self.parent = parent
         self._nodegraph_widget = nodegraph_widget
-        self._nodes: List[Node] = []
-        self._edges_by_hash = {}
+        self._edges_by_hash = dict()
+        self._nodes_by_id: Dict[int, GraphNode] = dict()
         self._is_interactive_edge = False
         self._is_refresh_edges = False
         self._interactive_edge = None
-        self._refresh_edges = {}
+        self._refresh_edges = dict()
         self._rubber_band = None
 
         # Registars
@@ -77,15 +77,8 @@ class GraphScene(QtWidgets.QGraphicsScene):
         self.disableEdit = False
 
     @property
-    def nodes(self):
-        """Return all nodes
-
-        """
-        return self._nodes
-
-    @property
-    def nodesPosition(self) -> Dict[int, Tuple[float, float]]:
-        return {node.id: node.scenePos().toTuple() for node in self._nodes}
+    def nodesDict(self) -> Dict[int, GraphNode]:
+        return self._nodes_by_id
 
     @property
     def is_interactive_edge(self):
@@ -105,7 +98,7 @@ class GraphScene(QtWidgets.QGraphicsScene):
     def selectedNodes(self) -> List:
         nodes = list()
         for item in self.selectedItems():
-            if isinstance(item, Node):
+            if isinstance(item, GraphNode):
                 nodes.append(item)
         return nodes
 
@@ -113,27 +106,29 @@ class GraphScene(QtWidgets.QGraphicsScene):
     def selectedEdges(self) -> List:
         edges = list()
         for item in self.selectedItems():
-            if isinstance(item, Edge):
+            if isinstance(item, GraphEdge):
                 edges.append(item)
         return edges
 
-    def create_node(self, name: str, id: int, inputs=None, output: bool = True, parent=None) -> Node:
+    def create_node(self, name: str, id: int, optionsSet: bool, inputs=None, output: bool = True,
+                    parent=None) -> GraphNode:
         """Create a new node
 
         """
-        node = Node(name, id=id, inputs=inputs, output=output, parent=parent)
-        self._nodes.append(node)
+        node = GraphNode(name, id=id, optionsSet=optionsSet, inputs=inputs, output=output,
+                         parent=parent)
+        self._nodes_by_id[id] = node
         self.addItem(node)
         if self.__dropPosition:
             node.setPos(self.__dropPosition)
             self.__dropPosition = None
         return node
 
-    def create_edge(self, source: NodeSlot, target: NodeSlot) -> Edge:
+    def create_edge(self, source: NodeSlot, target: NodeSlot) -> GraphEdge:
         """Create a new edge
 
         """
-        edge = Edge(source, target, arrow=Edge.ARROW_STANDARD)
+        edge = GraphEdge(source, target, arrow=GraphEdge.ARROW_STANDARD)
         self._edges_by_hash[edge.hash] = edge
         self.addItem(edge)
         return edge
@@ -147,10 +142,10 @@ class GraphScene(QtWidgets.QGraphicsScene):
         self._is_interactive_edge = True
         if not self._interactive_edge:
             # Create interactive edge
-            self._interactive_edge = InteractiveEdge(
+            self._interactive_edge = InteractiveGraphEdge(
                 source_slot,
                 mouse_pos,
-                arrow=Edge.ARROW_STANDARD)
+                arrow=GraphEdge.ARROW_STANDARD)
             self.addItem(self._interactive_edge)
         else:
             # Re-use existing interactive edge
@@ -169,7 +164,7 @@ class GraphScene(QtWidgets.QGraphicsScene):
             source = self._interactive_edge._source_slot
 
             found = True
-            if isinstance(connect_to, Node):
+            if isinstance(connect_to, GraphNode):
                 found = False
                 # Try to find most likely slot
                 if source.family == NodeSlot.OUTPUT:
@@ -252,12 +247,12 @@ class GraphScene(QtWidgets.QGraphicsScene):
         """Delete selected nodes and edges
 
         """
-        nodes_to_delete: List[Node] = list()
+        nodes_to_delete: List[GraphNode] = list()
         edges_to_delete: Set[str] = set()
         for i in self.selectedItems():
-            if isinstance(i, Node):
+            if isinstance(i, GraphNode):
                 nodes_to_delete.append(i)
-            if isinstance(i, Edge):
+            if isinstance(i, GraphEdge):
                 edges_to_delete.add(i.hash)
 
         for node in nodes_to_delete:
@@ -273,12 +268,12 @@ class GraphScene(QtWidgets.QGraphicsScene):
 
         # Delete nodes
         for node in nodes_to_delete:
-            self._nodes.remove(node)
+            self._nodes_by_id.pop(node.id)
             self.removeItem(node)
 
         # Update existing nodes' slots if edges were removed
         if edges_to_delete:
-            for node in self._nodes:
+            for node in self._nodes_by_id.values():
                 for slot in (*node.slots[0], *node.slots[1]):
                     slot.remove_edge(edges_to_delete)
 
@@ -299,7 +294,7 @@ class GraphScene(QtWidgets.QGraphicsScene):
                 return
             else:
                 if self._is_shift_key or self._is_ctrl_key:
-                    # Mouse is above scene items and single click with modfiers
+                    # Mouse is above scene items and single click with modifiers
                     event.accept()
 
                     if self._is_shift_key and self._is_ctrl_key:
@@ -333,7 +328,7 @@ class GraphScene(QtWidgets.QGraphicsScene):
 
             QtWidgets.QGraphicsScene.mouseMoveEvent(self, event)
 
-            # Edge creation mode?
+            # GraphEdge creation mode?
             if self._is_interactive_edge:
                 self._interactive_edge.refresh(event.scenePos())
             # Selection mode?
@@ -363,12 +358,12 @@ class GraphScene(QtWidgets.QGraphicsScene):
         # buttons = event.buttons()
         connect_to = None
 
-        # Edge creation mode?
+        # GraphEdge creation mode?
         if self._is_interactive_edge:
             slot = None
             node = None
             for item in self.items(event.scenePos()):
-                if isinstance(item, Node):
+                if isinstance(item, GraphNode):
                     node = item
                     slot = node._hover_slot
                     break
@@ -376,7 +371,7 @@ class GraphScene(QtWidgets.QGraphicsScene):
 
             self.stop_interactive_edge(connect_to=connect_to)
 
-        # Edge refresh mode?
+        # GraphEdge refresh mode?
         if self._is_refresh_edges:
             self._is_refresh_edges = False
             self._refresh_edges = []
@@ -394,11 +389,23 @@ class GraphScene(QtWidgets.QGraphicsScene):
         :type event: :class:`QtWidgets.QMouseEvent`
 
         """
-        selected = self.items(event.scenePos())
+        # Get selected items
+        selected: List[QtWidgets.QGraphicsItem] = self.items(event.scenePos())
+        # Filter out the child items (which are the pixmap)
+        topSelected = [item for item in selected if item.topLevelItem() is item]
 
-        if len(selected) == 1 and isinstance(selected[0], Node):
-            self.editModeEnabled.emit(selected[0].id)
-            flogging.appLogger.debug("Edit Node %s" % selected[0].id)
+        if len(topSelected) == 1 and isinstance(topSelected[0], GraphNode):
+            self.editModeEnabled.emit(topSelected[0].id)
+            flogging.appLogger.debug("Edit GraphNode %s" % topSelected[0].id)
+
+    def updateNodeOptionIndicator(self, nodeId: int, optionsSet: bool) -> None:
+        """
+        Update the node indicator of a graphic node
+
+        :param nodeId: the id of the node to update
+        :param optionsSet: whether options are set or not
+        """
+        self._nodes_by_id[nodeId].setOptionsIndicator(optionsSet)
 
     def _onSelectionChanged(self):
         """Re-inplements selection changed event
@@ -417,7 +424,7 @@ class GraphScene(QtWidgets.QGraphicsScene):
         edges_to_refresh = []
 
         for item in self.selectedItems():
-            if isinstance(item, Node):
+            if isinstance(item, GraphNode):
                 edges |= item.edges
                 nodes.add(item.id)
 
@@ -440,7 +447,7 @@ class GraphScene(QtWidgets.QGraphicsScene):
         :returns: A bounding rectangle
         :rtype: :class:`QtCore.QrectF`
         """
-        if not self._nodes:
+        if not self._nodes_by_id:
             return QtCore.QRectF()
 
         min_x = SCENE_WIDTH / 2
@@ -452,7 +459,7 @@ class GraphScene(QtWidgets.QGraphicsScene):
         max_x_node = None
         max_y_node = None
 
-        for node in self._nodes:
+        for node in self._nodes_by_id.values():
             if visible_only and not node.isVisible():
                 continue
 

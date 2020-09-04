@@ -10,10 +10,10 @@
 # =============================================================================
 
 """
-Edge definition including:
+GraphEdge definition including:
 
-    * Edge
-    * InteractiveEdge
+    * GraphEdge
+    * InteractiveGraphEdge
 
 """
 import hashlib
@@ -25,9 +25,9 @@ from .node import NodeSlot
 from .polygons import ARROW_STANDARD, ARROW_SLIM
 
 
-class Edge(QtWidgets.QGraphicsItem):
+class GraphEdge(QtWidgets.QGraphicsItem):
     """
-    Node Edge base class that displays a directed line between two slots
+    GraphEdge base class that displays a directed line between two slots
     of a source and target node
 
     """
@@ -54,7 +54,7 @@ class Edge(QtWidgets.QGraphicsItem):
         :type arrow: int
 
         :returns: An instance of this class
-        :rtype: :class:`nodegraph.edge.Edge`
+        :rtype: :class:`nodegraph.edge.GraphEdge`
 
         """
         QtWidgets.QGraphicsItem.__init__(self, parent=None)
@@ -90,11 +90,11 @@ class Edge(QtWidgets.QGraphicsItem):
         self._update()
 
     @property
-    def sourceNode(self) -> 'Node':
+    def sourceNode(self) -> 'GraphNode':
         return self._source_slot.parentNode
 
     @property
-    def targetNode(self) -> 'Node':
+    def targetNode(self) -> 'GraphNode':
         return self._target_slot.parentNode
 
     @property
@@ -286,7 +286,7 @@ class Edge(QtWidgets.QGraphicsItem):
             return False
 
 
-class InteractiveEdge(Edge):
+class InteractiveGraphEdge(GraphEdge):
     """Draw an edge where one one the end point is the currrent mouse pos
 
     """
@@ -310,7 +310,7 @@ class InteractiveEdge(Edge):
         :type arrow: int
 
         :returns: An instance of this class
-        :rtype: :class:`nodegraph.edge.InteractiveEdge`
+        :rtype: :class:`nodegraph.edge.InteractiveGraphEdge`
 
         """
         QtWidgets.QGraphicsItem.__init__(self, parent=None)

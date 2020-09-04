@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Set
 
 import networkx as nx
 
@@ -19,13 +19,15 @@ class OperationDag:
         """ Returns a reference to the NetworkX graph """
         return self.__G
 
-    def __update_descendants(self, parent_id: int) -> None:
+    def __update_descendants(self, parent_id: int) -> Set[int]:
         """
         Recursively update the descendants of a provided node. Updates the input shape and unset
         options if the input shape changed
 
         :param parent_id: the id of the parent node
+        :return the list of descendants that were updated (their id)
         """
+        updated = set()
         for child_id in self.__G.successors(parent_id):  # Direct successors
             child_node = self[child_id]
             newParentOutputShape = self[parent_id].operation.getOutputShape()
@@ -33,26 +35,31 @@ class OperationDag:
             if newParentOutputShape != oldParentOutputShape:
                 child_node.operation.unsetOptions()
                 child_node.addInputShape(newParentOutputShape, parent_id)
-                self.__update_descendants(child_id)
+                # Child was updated, now try with its descendants
+                updated.add(child_id)
+                updated |= self.__update_descendants(child_id)
+            # Else shape is the same, so nothing to update
+        return updated
 
-    def updateNodeOptions(self, node_id: int, *options: Any, **kwoptions: Any) -> bool:
+    def updateNodeOptions(self, node_id: int, *options: Any, **kwoptions: Any) -> Set[int]:
         """ Set/updates the options of a node.
 
         :param node_id: the id of the node to update
         :param options: any argument to pass to
             :func:`~dataMole.operation.interface.GraphOperation.setOptions`
-        :return True if the options were set, False otherwise
+        :return The list of updated nodes if the options were set, empty list otherwise
         :raise ValueError: if the node is not in the graph
         """
         if node_id not in self.__G:
             flogging.appLogger.error('Cannot update a node which does not belong to the graph')
-            return False
+            return set()
         # Set options for operation
         node: 'OperationNode' = self[node_id]
         node.operation.setOptions(*options, **kwoptions)
         # Update every connected node
-        self.__update_descendants(node_id)
-        return True
+        updated = self.__update_descendants(node_id)
+        updated.add(node_id)
+        return updated
 
     def addNode(self, node: 'OperationNode') -> bool:
         """ Adds a node to the graph. Must not be already in the graph
@@ -61,10 +68,10 @@ class OperationDag:
         :return: True if the node was inserted, False if not (e.g. if it was already in the graph)
         """
         if node.uid in self.__G:
-            flogging.appLogger.error('Node uid={:d} is already present in the graph'.format(node.uid))
+            flogging.appLogger.error(
+                'GraphNode uid={:d} is already present in the graph'.format(node.uid))
             return False
         self.__G.add_node(node.uid, op=node)
-        # self.__update_descendants(node.uid)  # TOCHECK: is it needed?
         return True
 
     def addConnection(self, source_id: int, target_id: int, slot: int) -> bool:
@@ -86,26 +93,30 @@ class OperationDag:
         to_max_in = target_node.operation.maxInputNumber()
         if (0 <= from_max_out <= self.__G.out_degree(source_id)) or (
                 0 <= to_max_in <= self.__G.in_degree(target_id)):
-            flogging.appLogger.debug('Edge ({}->{}) not created because of degree constraints'.format(
-                source_id, target_id))
-            raise exp.DagException(message='Edge "{}->{}" not created because maximum in/out-degree is '
-                                           'violated'.format(source_node.operation.name(),
-                                                             target_node.operation.name()))
+            flogging.appLogger.debug(
+                'GraphEdge ({}->{}) not created because of degree constraints'.format(
+                    source_id, target_id))
+            raise exp.DagException(
+                message='GraphEdge "{}->{}" not created because maximum in/out-degree is '
+                        'violated'.format(source_node.operation.name(),
+                                          target_node.operation.name()))
 
         if not source_node.operation.isOutputShapeKnown() and \
                 target_node.operation.needsInputShapeKnown():
-            flogging.appLogger.debug('Edge ({}->{}) not created because source node output shape is '
-                                     'unknown and target node needs an input shape'
-                                     .format(source_id, target_id))
-            raise exp.DagException(message='Edge "{}->{}" not created because source operation yields ' \
-                                           'undefined output shape and target operation needs it'
-                                   .format(source_node.operation.name(), target_node.operation.name()))
+            flogging.appLogger.debug(
+                'GraphEdge ({}->{}) not created because source node output shape is '
+                'unknown and target node needs an input shape'
+                    .format(source_id, target_id))
+            raise exp.DagException(
+                message='GraphEdge "{}->{}" not created because source operation yields ' \
+                        'undefined output shape and target operation needs it'
+                    .format(source_node.operation.name(), target_node.operation.name()))
 
         if self.__G.has_edge(source_id, target_id):
             # Avoid connecting the same node twice (debatable)
             flogging.appLogger.debug(
-                'Edge ({}->{}) not created because already exists'.format(source_id, target_id))
-            raise exp.DagException(message='Edge {}->{} not created it already exists'
+                'GraphEdge ({}->{}) not created because already exists'.format(source_id, target_id))
+            raise exp.DagException(message='GraphEdge {}->{} not created it already exists'
                                    .format(source_node.operation.name(), target_node.operation.name()))
 
         # Add connection
@@ -114,9 +125,9 @@ class OperationDag:
         if not nx.is_directed_acyclic_graph(self.__G):
             self.__G.remove_edge(source_id, target_id)
             flogging.appLogger.debug(
-                'Edge ({}->{}) not created because it creates a cycle'.format(source_id, target_id))
+                'GraphEdge ({}->{}) not created because it creates a cycle'.format(source_id, target_id))
             raise exp.DagException(
-                message='Edge "{}->{}" not created because resulting graph is not acyclic'
+                message='GraphEdge "{}->{}" not created because resulting graph is not acyclic'
                     .format(source_node.operation.name(), target_node.operation.name()))
 
         target_node.setSourceOperationInputPosition(source_id, slot)
@@ -125,19 +136,19 @@ class OperationDag:
         # Update input shapes in descendants
         self.__update_descendants(target_id)
 
-        flogging.appLogger.debug('Edge ({}->{}) was created'.format(source_id, target_id))
+        flogging.appLogger.debug('GraphEdge ({}->{}) was created'.format(source_id, target_id))
         return True
 
-    def removeConnection(self, source_id: int, target_id: int) -> bool:
+    def removeConnection(self, source_id: int, target_id: int) -> Set[int]:
         """ Removes a single edge 'source -> target'
 
         :param source_id: id of the source node
         :param target_id: id of the target node
-        :return: True if the edge was removed, False otherwise
+        :return: the list of updated nodes if the edge was removed, empty list otherwise
         """
         if not self.__G.has_edge(source_id, target_id):
             flogging.appLogger.error('Removing non existent edge ({}->{})'.format(source_id, target_id))
-            return False
+            return list()
         self.__G.remove_edge(source_id, target_id)
         target_node = self[target_id]
         # Removes source' input shape from target node
@@ -147,24 +158,27 @@ class OperationDag:
         # Unset options which depends on the input shape
         target_node.operation.unsetOptions()
         # Updates (remove) input shapes (and options) in descendants
-        self.__update_descendants(target_id)
-        return True
+        updated = self.__update_descendants(target_id)
+        updated.add(target_id)
+        return updated
 
-    def removeNode(self, op_id: int) -> bool:
+    def removeNode(self, op_id: int) -> Set[int]:
         """ Removes a node from the graph, also all its edges
 
         :param op_id: the id of the node to remove
-        :return: True if the node was removed, False otherwise
+        :return: a list of all nodes that were updated if the node was removed, empty list otherwise
         """
         # Remove all incoming edges
+        updated = set()
         for u in list(self.__G.predecessors(op_id)):
-            self.removeConnection(u, op_id)
+            updated |= self.removeConnection(u, op_id)
         # Remove all outgoing edges
         for v in list(self.__G.successors(op_id)):
-            self.removeConnection(op_id, v)
+            updated |= self.removeConnection(op_id, v)
+
         # Remove node
         self.__G.remove_node(op_id)
-        return True
+        return updated
 
     def __getitem__(self, uid: int) -> 'OperationNode':
         """ Return the operation node with specified id """

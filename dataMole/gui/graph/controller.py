@@ -1,10 +1,10 @@
-from typing import List, Callable, Dict
+from typing import List, Callable, Dict, Set
 
 from PySide2.QtCore import Slot
 from PySide2.QtWidgets import QWidget, QMessageBox
 
 from dataMole import flow, flogging, gui, exceptions as exp
-from .node import NodeSlot, Node, NodeStatus
+from .node import NodeSlot, GraphNode, NodeStatus
 from .scene import GraphScene
 from .view import GraphView
 from ..editor.configuration import configureEditor, configureEditorOptions
@@ -49,19 +49,20 @@ class GraphController(QWidget):
         node = flow.dag.OperationNode(op)
         if self._operation_dag.addNode(node):
             inputs = ['in {}'.format(i) for i in range(op.maxInputNumber())]
-            self._scene.create_node(name=op.name(), id=node.uid, inputs=inputs, output=not op_output)
+            self._scene.create_node(name=op.name(), id=node.uid, optionsSet=op.hasOptions(),
+                                    inputs=inputs, output=not op_output)
 
     @Slot(NodeSlot, NodeSlot)
     def addEdge(self, source_slot: NodeSlot, target_slot: NodeSlot):
         if self.__executing:
             return
-        u: Node = source_slot.parentNode
-        v: Node = target_slot.parentNode
+        u: GraphNode = source_slot.parentNode
+        v: GraphNode = target_slot.parentNode
         try:
             done = self._operation_dag.addConnection(source_id=u.id, target_id=v.id,
                                                      slot=target_slot.position)
         except exp.DagException as e:
-            gui.notifier.addMessage(e.title if e.title else 'Edge not added', e.message,
+            gui.notifier.addMessage(e.title if e.title else 'GraphEdge not added', e.message,
                                     QMessageBox.Critical)
         else:
             if done:
@@ -71,18 +72,26 @@ class GraphController(QWidget):
     def removeItems(self):
         if self.__executing:
             return
-        selected_nodes: List[Node] = self._scene.selectedNodes
-        selected_edges: List['Edge'] = self._scene.selectedEdges
+        # We have to keep track of which nodes are updated, in order to update their options indicator
+        nodesToUpdate: Set[int] = set()
+        # Get selection
+        selected_nodes: List[GraphNode] = self._scene.selectedNodes
+        selected_edges: List['GraphEdge'] = self._scene.selectedEdges
+        # Remove items one by one
         for edge in selected_edges:
-            self._operation_dag.removeConnection(edge.sourceNode.id, edge.targetNode.id)
+            nodesToUpdate |= self._operation_dag.removeConnection(edge.sourceNode.id, edge.targetNode.id)
         for node in selected_nodes:
-            self._operation_dag.removeNode(node.id)
+            nodesToUpdate |= self._operation_dag.removeNode(node.id)
         # Update the scene
         self._scene.delete_selected()
+        # Update nodes that were not deleted (but whose edges changed)
+        nodesToUpdate -= set(map(lambda n: n.id, selected_nodes))
+        for nodeId in nodesToUpdate:
+            op = self._operation_dag[nodeId].operation
+            self._scene.updateNodeOptionIndicator(nodeId, op.hasOptions())
 
     @Slot(int)
     def startEditNode(self, node_id: int):
-        # TODO: see why this is not called sometimes !!!
         flogging.appLogger.debug('Edit node slot')
         if self.__executing:
             flogging.appLogger.debug('Flow is executing, don\'t allow edit')
@@ -126,9 +135,9 @@ class GraphController(QWidget):
         options = self.__editor_widget.getOptions()
         try:
             if isinstance(options, dict):
-                graphUpdated = self._operation_dag.updateNodeOptions(self.__editor_node_id, **options)
+                nodesUpdated = self._operation_dag.updateNodeOptions(self.__editor_node_id, **options)
             else:
-                graphUpdated = self._operation_dag.updateNodeOptions(self.__editor_node_id, *options)
+                nodesUpdated = self._operation_dag.updateNodeOptions(self.__editor_node_id, *options)
         except exp.OperationError as e:
             if isinstance(e, exp.OptionValidationError):
                 self.__editor_widget.handleErrors(e.invalid)
@@ -137,16 +146,19 @@ class GraphController(QWidget):
                 gui.notifier.addMessage(e.title, e.message, QMessageBox.Critical)
         else:
             # If validation succeed
-            if graphUpdated:
-                # TODO: Maybe update view
+            if nodesUpdated:
+                # At least 1 node has been updated
                 flogging.appLogger.debug('Graph node {} edited'.format(self.__editor_node_id))
+                # Update the view for all the nodes that were updated
+                for nodeId in nodesUpdated:
+                    op = self._operation_dag[nodeId].operation
+                    self._scene.updateNodeOptionIndicator(nodeId, op.hasOptions())
             else:
-                # TODO: Maybe update view
+                # The view does not change if no node was updated
                 gui.notifier.addMessage('Error occurred updating node',
                                         'Flow node {} was not updated'.format(self.__editor_node_id),
                                         icon=QMessageBox.Critical)
                 flogging.appLogger.debug('Graph node {} was not updated'.format(self.__editor_node_id))
-                pass
             # Delete editor
             self.cleanupEditor()
 
@@ -191,22 +203,22 @@ class GraphController(QWidget):
     def resetFlowStatus(self) -> None:
         if self.__executing:
             return
-        for node in self._scene.nodes:
+        for node in self._scene.nodesDict.values():
             node.status = NodeStatus.NONE
             node.refresh(refresh_edges=False)
         flogging.appLogger.debug('Reset flow status')
 
     @Slot(int, NodeStatus)
     def onStatusChanged(self, uid: int, status: NodeStatus) -> None:
-        node: Node = next((n for n in self._scene.nodes if n.id == uid))
-        flogging.appLogger.debug('Node status changed in {} at node {} with id {}'
+        node: GraphNode = self._scene.nodesDict[uid]
+        flogging.appLogger.debug('GraphNode status changed in {} at node {} with id {}'
                                  .format(str(status), node.name, node.id))
         node.status = status
         node.refresh(refresh_edges=False)
 
     @Slot(int, str)
     def onErrorException(self, uid: int, msg: str) -> None:
-        node: Node = next((n for n in self._scene.nodes if n.id == uid))
+        node: GraphNode = self._scene.nodesDict[uid]
         gui.notifier.addMessage(message=msg, title='"{}" failed'.format(node.name),
                                 icon=QMessageBox.Critical)
 
@@ -223,12 +235,12 @@ class GraphController(QWidget):
         graph = self._operation_dag.getNxGraph()
         nodeDict = dict()
 
-        def addNode(opNode, scene) -> Node:
+        def addNode(opNode, scene) -> GraphNode:
             op = opNode.operation
             inputNames = ['in {}'.format(i) for i in range(op.maxInputNumber())]
             isOutput: bool = op.minOutputNumber() == 0
-            return scene.create_node(name=op.name(), id=opNode.uid, inputs=inputNames,
-                                     output=not isOutput)
+            return scene.create_node(name=op.name(), id=opNode.uid, optionsSet=op.hasOptions(),
+                                     inputs=inputNames, output=not isOutput)
 
         def addEdge(sourceItem, childItem, childNode, scene) -> None:
             inputs: Dict[int, int] = childNode.inputOrder
@@ -244,6 +256,6 @@ class GraphController(QWidget):
         for node_id in graph.nodes:
             parNode = nodeDict[node_id]
             for child_id in graph.successors(node_id):  # direct successors
-                childNode: Node = nodeDict[child_id]
+                childNode: GraphNode = nodeDict[child_id]
                 childOp = self._operation_dag[child_id]
                 addEdge(parNode, childNode, childOp, self._scene)

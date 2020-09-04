@@ -74,7 +74,7 @@ def test_GraphAdd():
     assert op2._shapes == [None]
     assert op3._shapes == [None]
     # Add options to node0
-    assert dag.updateNodeOptions(node0.uid, f) is True
+    assert set(dag.updateNodeOptions(node0.uid, f)) == {node0.uid, node1.uid, node2.uid}
     assert op0._shapes == []
     assert op1._shapes == [f.shape]
     assert op2._shapes == [f.shape]

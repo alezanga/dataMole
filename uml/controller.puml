@@ -48,7 +48,7 @@ mousePressEvent()
 in GraphNode class
 endnote
 activate GraphScene
-GraphScene -> "iedge: InteractiveEdge" as iedge: <<create>>
+GraphScene -> "iedge: InteractiveGraphEdge" as iedge: <<create>>
 GraphScene -> GraphScene: addItem(iedge)
 User -> GUI: "Drop edge on target node"
 deactivate GraphScene

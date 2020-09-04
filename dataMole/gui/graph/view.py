@@ -17,7 +17,7 @@ import random
 from PySide2 import QtCore, QtGui, QtWidgets
 
 from .constant import SCENE_WIDTH, SCENE_HEIGHT
-from .node import Node
+from .node import GraphNode
 
 
 class GraphView(QtWidgets.QGraphicsView):
@@ -128,7 +128,7 @@ class GraphView(QtWidgets.QGraphicsView):
         else:
             # Fit to rectangle while keeping aspect ratio
             self._scale = new_scale
-            print("Fit en view")
+            # print("Fit en view")
             self.fitInView(scene_rect, QtCore.Qt.KeepAspectRatio)
 
     def translate_view(self, offset):
@@ -180,18 +180,15 @@ class GraphView(QtWidgets.QGraphicsView):
         modifiers = event.modifiers()
 
         if modifiers & QtCore.Qt.AltModifier:
-            print("P# ALT ON")
             self.scene()._is_alt_key = True
             self._is_pan = True
             self.setRenderHint(QtGui.QPainter.Antialiasing, False)
             self.setCursor(QtCore.Qt.OpenHandCursor)
 
         if modifiers & QtCore.Qt.ControlModifier:
-            print("P# CTRL ON")
             self.scene()._is_ctrl_key = True
 
         if modifiers & QtCore.Qt.ShiftModifier:
-            print("P# SHIFT ON")
             self.scene()._is_shift_key = True
 
         if event.key() in [QtCore.Qt.Key_Delete, QtCore.Qt.Key_Backspace]:
@@ -220,12 +217,12 @@ class GraphView(QtWidgets.QGraphicsView):
 
         if event.text() in ['o']:
             for node in self.scene().selectedItems():
-                if isinstance(node, Node):
+                if isinstance(node, GraphNode):
                     node._height -= 10
                     node.refresh()
         if event.text() in ['p']:
             for node in self.scene().selectedItems():
-                if isinstance(node, Node):
+                if isinstance(node, GraphNode):
                     node._height += 10
                     node.refresh()
         if event.text() in ['s']:
@@ -243,15 +240,12 @@ class GraphView(QtWidgets.QGraphicsView):
         modifiers = event.modifiers()
 
         if not modifiers & QtCore.Qt.ControlModifier:
-            print("R### CTRL OFF")
             self.scene()._is_ctrl_key = False
 
         if not modifiers & QtCore.Qt.ShiftModifier:
-            print("R### SHIFT OFF")
             self.scene()._is_shift_key = False
 
         if not modifiers & QtCore.Qt.AltModifier:
-            print("R### ALT OFF")
             self.scene()._is_alt_key = False
 
             if not self.scene()._is_mid_mouse:
@@ -418,7 +412,7 @@ class GraphView(QtWidgets.QGraphicsView):
         top_left = QtCore.QPointF(self._width, self._height)
         bottom_right = QtCore.QPointF(- self._width, - self._height)
 
-        for node in [s for s in selection if isinstance(s, Node)]:
+        for node in [s for s in selection if isinstance(s, GraphNode)]:
             bbox = node.boundingRect()
             top_left.setX(min(node.x() + bbox.left(), top_left.x()))
             top_left.setY(min(node.y() + bbox.top(), top_left.y()))

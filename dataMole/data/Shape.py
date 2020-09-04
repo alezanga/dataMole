@@ -26,8 +26,8 @@ class Shape:
         return str(self.__dict__)
 
     def serialize(self) -> Dict:
-        """ Serialize a shape """
-        s = self.__dict__
+        """ Serialize a shape object in a dictionary """
+        s = self.clone().__dict__
         s['colTypes'] = [t.code for t in self.colTypes]
         s['indexTypes'] = [t.code for t in self.indexTypes]
         # s['colNames'] = [n for n in self.colNames]
