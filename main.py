@@ -8,7 +8,7 @@ from dataMole import flogging
 # noinspection PyUnresolvedReferences
 from dataMole import qt_resources
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     print('dataMole v. 0.1')
     print('Built on Python', sys.version)
     # Set up logger, QApp
@@ -19,7 +19,7 @@ if __name__ == "__main__":
     flogging.setUpLogger(name='ops', folder='operations', fmt='%(message)s', level=flogging.INFO)
     QtCore.qInstallMessageHandler(flogging.qtMessageHandler)
 
-    styleFile = QFile(":/resources/style.css")
+    styleFile = QFile(':/resources/style.css')
     styleFile.open(QFile.ReadOnly)
     styleStr: str = str(styleFile.readAll(), encoding='utf-8')
     app.setStyleSheet(styleStr)

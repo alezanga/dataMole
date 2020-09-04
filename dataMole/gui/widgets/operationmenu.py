@@ -1,10 +1,11 @@
+import importlib
 from typing import Callable, List
 
 from PySide2.QtCore import Qt, QPoint, QMimeData, Slot
 from PySide2.QtGui import QMouseEvent, QDrag, QStandardItem, QStandardItemModel
 from PySide2.QtWidgets import QWidget, QTreeWidget, QTreeWidgetItem, QApplication
 
-from dataMole.operation.__all__ import ops
+from dataMole.operation import __all_modules__  # contains all modules with operations
 from dataMole.operation.interface.graph import GraphOperation
 
 
@@ -58,7 +59,8 @@ class OperationMenu(QTreeWidget):
         self.addTopLevelItems(top_items)
         # Import everything in operations directory
         var_export = 'export'
-        for module in ops:
+        for moduleName in __all_modules__:
+            module = importlib.import_module(moduleName)
             if not hasattr(module, var_export):
                 continue
             op_class = getattr(module, var_export)

@@ -2,7 +2,7 @@ import numpy as np
 
 from dataMole import data
 from dataMole.data.types import Types
-from dataMole.operation.remove_nan import RemoveNanRows, RemoveNanColumns
+from dataMole.operation.removenan import RemoveNanRows, RemoveNanColumns
 
 
 # Remove rows

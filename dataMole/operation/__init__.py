@@ -1,8 +1,9 @@
 import html
+import json
 import xml.etree.ElementTree as eTree
 from typing import Dict
 
-# Read operation description file
+# 1 - Read operation description file
 from PySide2.QtCore import QFile
 
 # noinspection PyUnresolvedReferences
@@ -24,3 +25,8 @@ for e in root:
 descriptions: Dict[str, str] = {
     e.get('name'): eTree.tostring(e, encoding='unicode', method='xml').replace('\n', '')
         .replace('\t', '').replace('\r', '') for e in list(root)}
+
+# 2 - Read operation modules (only names)
+with open('dataMole/config/operations.json', 'r') as config:
+    d = json.load(config)
+    __all_modules__ = d['modules']

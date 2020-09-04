@@ -508,7 +508,7 @@ class TimeSeriesPlot(DataView):
                 self.searchableIndexTableModel.setFilterRegularExpression)
             self.settingsPanel.indexTable.tableView.horizontalHeader().sectionClicked.connect(
                 indexTableModel.onHeaderClicked)
-        # Must be connected
+        # Must be connected because Qt slot is not virtual
         indexTableModel.headerDataChanged.connect(
             self.settingsPanel.indexTable.tableView.horizontalHeader().headerDataChanged)
 

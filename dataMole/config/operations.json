@@ -1,0 +1,21 @@
+{
+  "modules": [
+    "dataMole.operation.cleaner",
+    "dataMole.operation.dateoperations",
+    "dataMole.operation.discretize",
+    "dataMole.operation.dropcols",
+    "dataMole.operation.duplicate",
+    "dataMole.operation.extractseries",
+    "dataMole.operation.fill",
+    "dataMole.operation.index",
+    "dataMole.operation.input",
+    "dataMole.operation.join",
+    "dataMole.operation.onehotencoder",
+    "dataMole.operation.output",
+    "dataMole.operation.removenan",
+    "dataMole.operation.rename",
+    "dataMole.operation.replacevalues",
+    "dataMole.operation.scaling",
+    "dataMole.operation.typeconversions"
+  ]
+}

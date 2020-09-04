@@ -1,6 +1,6 @@
 .PHONY: clean resources installer
 clean:
-	rm -r *.pyc dist build .pytest_cache
+    find . -type d -name __pycache__ ! -path */venv/* -exec rm -rf {} \;
 
 resources:
 	pyside2-rcc data_preprocessor/resources.qrc -o data_preprocessor/qt_resources.py

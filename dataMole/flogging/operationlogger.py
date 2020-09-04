@@ -6,7 +6,6 @@ from dataMole import data
 from dataMole.flogging.loggable import Loggable
 from dataMole.flogging.utils import logDataframeDiff, logDataframeInfo
 from dataMole.flow import dag
-from dataMole.operation.interface.operation import Operation
 
 
 class GraphOperationLogger:
@@ -54,12 +53,12 @@ class GraphOperationLogger:
 
 
 class OperationLogger(GraphOperationLogger):
-    def _operationHeader(self, operation: Operation) -> None:
+    def _operationHeader(self, operation: 'Operation') -> None:
         # Log name
         self._stringsToLog.append(
             '# {:s} \nTimestamp: {}\n'.format(operation.name(), str(datetime.now())))
 
-    def log(self, operation: Operation, result: Any, **kwargs) -> None:
+    def log(self, operation: 'Operation', result: Any, **kwargs) -> None:
         if not isinstance(operation, Loggable):
             return None
         inputName: str = kwargs.get('input', None)
