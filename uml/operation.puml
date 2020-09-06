@@ -48,9 +48,9 @@ GraphOperation <|-- InputGraphOperation
 
 @startuml logging
 
-interface Loggable {
-  + logOptions(): str
-  + logMessage(): str
+interface Loggable <<interface>> {
+  + {abstract} logOptions(): str
+  + {abstract} logMessage(): str
 }
 
 abstract class Operation

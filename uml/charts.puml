@@ -1,5 +1,9 @@
 @startuml charts
-skinparam groupInheritance 2
+skinparam groupInheritance 3
+
+interface DataView <<interface>> {
+  + {abstract} onFrameSelectionChanged(name: str, oldName: str)
+}
 
 package gui.charts {
   class Histogram {
@@ -37,9 +41,13 @@ package gui.charts {
   }
 }
 
-QWidget <|-- Histogram
+QWidget <|- Histogram
 QWidget <|-- ScatterPlotMatrix
 QWidget <|-- TimeSeriesPlot
+' class ScatterPlotMatrix implements DataView
+' class TimeSeriesPlot implements DataView
+DataView <|.. TimeSeriesPlot
+DataView <|.. ScatterPlotMatrix
 QGraphicsItem <|--- Callout
 QChartView <|-- SimpleChartView
 QChartView <|-- InteractiveChartView

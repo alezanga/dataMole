@@ -1,14 +1,16 @@
 # TODO
 
+- [ ] Catch more exceptions
+
 - [x] !!! FIX: outputShape is shared in graph !
 - [x] !!! FIX: getOutputShape for some operations does not conform to standard
-- [ ] !! IMPROVE: review operations for inefficiencies
-- [ ] !!!!! FIX: segfault when adding empty frame from time series panel with chart on **values** set
+- [x] !! IMPROVE: review operations for inefficiencies
+- [x] !!!!! FIX: segfault when adding empty frame from time series panel with chart on **values** set
 - [x] ! ADD: fillna operation
     - [x] Add log
 - [x] ! ADD: drop column operation
-- [ ] ! ADD: write to csv
-- [ ] ! ADD: Discretize dates
+- [x] ! ADD: write to csv
+- [x] ! ADD: Discretize dates
 - [ ] ! CHANGE: setIndex allow append
 
 - [ ] CHECK: race condition when connecting QRunnable to same slot? (onWorkerSuccess)

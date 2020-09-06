@@ -3,7 +3,7 @@ from pydoc import locate
 from PySide2.QtCore import Slot
 from PySide2.QtWidgets import QWidget, QComboBox, QFormLayout
 
-from . import __modules__, __config__
+from . import __classes__, __config__
 from .dataview import DataView
 
 
@@ -14,7 +14,7 @@ class ViewPanel(DataView):
         self.__chartTypeCB = QComboBox(self)
         self.fLayout = QFormLayout(self)
         self.fLayout.addRow(__config__['description'], self.__chartTypeCB)
-        moduleNames = __modules__.keys()
+        moduleNames = __classes__.keys()
         self.fLayout.setHorizontalSpacing(40)
         self.__chartTypeCB.addItems(list(moduleNames))
         defaultSelection = __config__['default']
@@ -26,7 +26,7 @@ class ViewPanel(DataView):
     def chartSelectionChanged(self, text: str) -> None:
         if self.fLayout.rowCount() == 2:
             self.fLayout.removeRow(1)
-        widget: type = locate(__modules__[text])  # subclass of DataView
+        widget: type = locate(__classes__[text])  # subclass of DataView
         self.fLayout.addRow(widget(self._workbench, self))
         self.onFrameSelectionChanged(self.__currentFrameName, '')
 
