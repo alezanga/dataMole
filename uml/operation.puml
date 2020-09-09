@@ -56,7 +56,7 @@ interface Loggable <<interface>> {
 abstract class Operation
 
 Operation <|-- ConcreteLoggableOperation
-Loggable <|-- ConcreteLoggableOperation
+Loggable <|.. ConcreteLoggableOperation
 
 @enduml
 

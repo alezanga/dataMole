@@ -1,6 +1,6 @@
 @startuml models
 !define COMMENT(x) <color:grey>x</color>
-skinparam groupInheritance 2
+skinparam groupInheritance 3
 
 abstract class QAbstractItemModel {
   + rowCount()
@@ -90,21 +90,21 @@ QIdentityProxyModel <|-- IncrementalRenderFrameModel
 IncrementalRenderFrameModel o--- FrameModel
 
 interface AbstractAttributeModel <<interface>> {
-  checkboxColumn(): int
-  typeColumn(): int
-  nameColumn(): int
-  frameModel(): FrameModel
-  setFrameModel(model: FrameModel)
-  checked(): Iterable[int]
-  setChecked(rows: Iterable[int], value: bool)
-  setAllChecked(value: bool)
+  + {abstract} checkboxColumn(): int
+  + {abstract} typeColumn(): int
+  + {abstract} nameColumn(): int
+  + {abstract} frameModel(): FrameModel
+  + {abstract} setFrameModel(model: FrameModel)
+  + {abstract} checked(): Iterable[int]
+  + {abstract} setChecked(rows: Iterable[int], value: bool)
+  + {abstract} setAllChecked(value: bool)
 }
 
 class AttributeTableModel {
   # frameModel: FrameModel
 }
 QAbstractTableModel <|-- AttributeTableModel
-AbstractAttributeModel <|-- AttributeTableModel
+AbstractAttributeModel <|.. AttributeTableModel
 AttributeTableModel o-- FrameModel
 
 class AttributeProxyModel {
@@ -113,7 +113,7 @@ class AttributeProxyModel {
   + setFilters(filterTypes: List[Type])
 }
 QSortFilterProxyModel <|-- AttributeProxyModel
-AbstractAttributeModel <|-- AttributeProxyModel
+AbstractAttributeModel <|.. AttributeProxyModel
 AttributeProxyModel o- AttributeTableModel
 
 

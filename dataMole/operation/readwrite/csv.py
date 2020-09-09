@@ -97,6 +97,10 @@ class CsvWriter(Operation):
         self.__date_format: str = '%Y-%m-%d %H:%M:%S'
         self.__decimal: str = '.'
 
+    @staticmethod
+    def name() -> str:
+        return 'Write CSV'
+
     def execute(self) -> None:
         df: pd.DataFrame = self._workbench.getDataframeModelByName(self.__frame_name).frame.getRawFrame()
         df.to_csv(self.__path, sep=self.__sep, na_rep=self.__nan_rep,

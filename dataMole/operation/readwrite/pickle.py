@@ -77,6 +77,10 @@ class PickleWriter(Operation):
         self.__file: str = None
         self.__frame: str = frameName
 
+    @staticmethod
+    def name() -> str:
+        return 'Write pickle'
+
     def execute(self) -> None:
         df: pd.DataFrame = self._workbench.getDataframeModelByName(self.__frame).frame.getRawFrame()
         df.to_pickle(self.__file)

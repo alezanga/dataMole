@@ -1,0 +1,25 @@
+@startuml notifications
+
+skinparam groupInheritance 2
+
+class Notifier {
+  - mNotifier: NotificationWidget
+  + setParent(parent: QWidget)
+  + addMessage(title: str, message: str, icon)
+  + clearMessages()
+}
+
+class Message extends QWidget
+
+class NotificationWidget extends QWidget
+
+note left of NotificationWidget #White
+Handles messages visualisation,
+close and delete them when they
+are clicked
+endnote
+
+NotificationWidget *-- Message
+Notifier o-- NotificationWidget
+
+@enduml
