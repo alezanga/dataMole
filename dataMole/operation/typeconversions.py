@@ -165,8 +165,7 @@ class ToCategorical(GraphOperation, flogging.Loggable):
                                                             ordered=opts[1])))(index, info)
             for index, info in self.__attributes.items()
         ])
-        raw_df.iloc[:, columnIndexes] = raw_df.iloc[:, columnIndexes].astype(
-            dtype=conversions, errors='raise')
+        raw_df = raw_df.astype(dtype=conversions, copy=True, errors='raise')
         return data.Frame(raw_df)
 
     @staticmethod

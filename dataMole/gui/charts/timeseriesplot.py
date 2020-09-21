@@ -294,7 +294,7 @@ class TimeSeriesPlot(DataView):
             # dataframe[timeIndexName]: pd.Series[pd.Categorical]
             dataframe.loc[:, timeIndexName] = dataframe[timeIndexName].cat.codes.to_list()
 
-        timeValues: pd.Series = dataframe[timeIndexName]
+        timeValues: pd.Series = dataframe[timeIndexName].astype(float)
         # Remove time column since we already used it to create the time points
         dataframe = dataframe.drop(timeIndexName, axis=1)
 
@@ -304,6 +304,10 @@ class TimeSeriesPlot(DataView):
         yMin: float = None
         yMax: float = None
         for colName, valueSeries in dataframe.items():
+            valueSeries = pd.Series(valueSeries)
+            if pd.api.types.is_categorical(valueSeries):
+                # makes sure this is a series of floats
+                valueSeries = valueSeries.cat.codes.astype(float)
             # Compute minimum and maximum of series and update global range
             smin = valueSeries.min()
             smax = valueSeries.max()

@@ -197,8 +197,8 @@ def test_unsetOptions_toCategory():
 
 
 def test_str_toCategory():
-    d = {'col1': pd.Categorical([3, 0, 5, 6, 0]),
-         'col2': [3, 4, 5.1, 6, 0],
+    d = {'col1': pd.Categorical(["3", "0", "5", "6", "0"]),
+         'col2': ["3", "4", "5.1", "6", None],
          'col3': ['123', '2', '0.43', 'nan', '90']}
 
     # 'cold': pd.Series(['05-09-1988', '22-12-1994', '21-11-1995', '22-06-1994', '12-12-2012'],
@@ -207,7 +207,7 @@ def test_str_toCategory():
 
     op = ToCategorical()
     op.addInputShape(f.shape, pos=0)
-    op.setOptions(attributes={1: {'cat': '3.0 4.0 0.0', 'ordered': True}, 2: dict()})
+    op.setOptions(attributes={1: {'cat': '4 3 0', 'ordered': True}, 2: dict()})
 
     # Predict output shape
     os = f.shape.columnsDict
@@ -221,12 +221,12 @@ def test_str_toCategory():
     op.addInputShape(f.shape, pos=0)
     op.unsetOptions()
     assert op.getOutputShape() is None
-    op.setOptions(attributes={1: {'cat': '3.0 4.0 0.0', 'ordered': True}, 2: dict()})
+    op.setOptions(attributes={1: {'cat': '4 3 0', 'ordered': True}, 2: dict()})
     assert op.getOutputShape().columnsDict == os  # Re-adding everything
 
     g = op.execute(f)
-    gd = {'col1': [3, 0, 5, 6, 0],
-          'col2': ['3.0', '4.0', None, None, '0.0'],
+    gd = {'col1': ["3", "0", "5", "6", "0"],
+          'col2': ['3', '4', None, None, None],
           'col3': ['123', '2', '0.43', 'nan', '90']}
     assert nan_to_None(g.to_dict()) == gd
     assert g.shape.columnsDict == os
