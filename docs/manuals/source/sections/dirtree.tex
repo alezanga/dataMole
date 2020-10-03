@@ -1,0 +1,98 @@
+\dirtree{%
+	.1 dataMole/.
+	.2 main.py.
+	.2 requirements.txt.
+	.2 makefile.
+	.2 docs/\DTcomment{Automatic documentation}.
+	.3 $\ldots$.
+	.2 tests/.
+	.3 $\ldots$. 
+	.2 dataMole.
+	.3 threads.py.
+	.3 status.py.
+	.3 resources.qrc.
+	.3 exceptions.py.
+	.3 utils.py.
+	.3 \color{OliveGreen}flow/\DTcomment{Pipeline management}.
+	.4 dag.py.
+	.4 handler.py.
+	.3 \color{OliveGreen}operation/\DTcomment{Every opeation is defined here}.
+	.4 actionwrapper.py\DTcomment{Handles operation execution}.
+	.4 cleaner.py.
+	.4 dateoperations.py.
+	.4 discretize.py.
+	.4 dropcols.py.
+	.4 duplicate.py.
+	.4 extractseries.py.
+	.4 fill.py.
+	.4 index.py.
+	.4 input.py.
+	.4 join.py.
+	.4 onehotencoder.py.
+	.4 output.py.
+	.4 removenan.py.
+	.4 rename.py.
+	.4 replacevalues.py.
+	.4 scaling.py.
+	.4 typeconversions.py.
+	.4 utils.py.
+	.4 readwrite/\DTcomment{I/O operations}.
+	.5 csv.py.
+	.5 pickle.py.
+	.4 computations/\DTcomment{Worker operations}.
+	.5 statistics.py.
+	.4 interface/.
+	.5 graph.py.
+	.5 operation.py.
+	.3 \color{OliveGreen}data/\DTcomment{Dataframe utilities}.
+	.4 Shape.py.
+	.4 Frame.py.
+	.4 types.py.
+	.3 \color{OliveGreen}gui/\DTcomment{Qt GUI classes}.
+	.4 mainmodels.py.
+	.4 workbench.py.
+	.4 window.py.
+	.4 utils.py.
+	.4 charts/.
+	.5 views.py.
+	.5 scatterplot.py.
+	.5 timeseriesplot.py.
+	.5 histogram.py.
+	.5 utils.py.
+	.4 panels/.
+	.5 framepanel.py.
+	.5 diffpanel.py.
+	.5 viewpanel.py.
+	.5 attributepanel.py.
+	.5 dataview.py.
+	.4 graph/.
+	.5 node.py.
+	.5 controller.py.
+	.5 constant.py.
+	.5 edge.py.
+	.5 rubberband.py.
+	.5 scene.py.
+	.5 view.py.
+	.5 polygons.py.
+	.4 widgets/.
+	.5 waitingspinnerwidget.py.
+	.5 statusbar.py.
+	.5 operationmenu.py.
+	.5 notifications.py.
+	.4 editor/.
+	.5 configuration.py.
+	.5 interface.py.
+	.5 OptionsEditorFactory.py.
+	.5 infoballoon.py.
+	.3 \color{OliveGreen}flogging/\DTcomment{Logging package}.
+	.4 loggable.py.
+	.4 utils.py.
+	.4 operationlogger.py.
+	.3 resources/\DTcomment{Static resources}.
+	.4 style.css.
+	.4 descriptions.html.
+	.4 icons/.
+	.3 config/\DTcomment{Configuration files for extension}.
+	.4 operations.json.
+	.4 dataviews.json.
+}

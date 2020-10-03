@@ -1,0 +1,525 @@
+\RequirePackage[T1]{fontenc}            
+\RequirePackage[utf8]{inputenc}         
+\RequirePackage{filecontents}
+
+\newcommand{\myName}{Alessandro Zangari}
+\newcommand{\myTitle}{DataMole Developer Manual}           
+\newcommand{\myUni}{Università degli Studi di Padova}    
+\newcommand{\myFaculty}{Corso di Laurea Magistrale in Informatica}
+
+\begin{filecontents*}{\jobname.xmpdata}
+	\Title{\myTitle}
+	\Author{\textcopyright\ \myName,\ \myUni,\ \myFaculty}
+	\Subject{Developer manual for DataMole}
+	\Keywords{Preprocessing tool\sep DataMole\sep Developer manual}
+	\Language{en-GB}
+	\Copyright{Copyright \copyright\ 2020,\ \myName,\ \myUni,\ \myFaculty}
+	\Date{2020-10-02}
+\end{filecontents*}
+
+\author{\myName}
+\title{\myTitle}
+
+\documentclass[10pt,   
+	a4paper,                 
+%	twoside,                 
+%	openright,           
+	english,                 
+	]{report}
+
+%**************************************************************
+% Importazione package
+%************************************************************** 
+
+\usepackage{colorprofiles}
+%\usepackage{amsmath,amssymb,amsthm}
+\usepackage[table, rgb]{xcolor}
+
+\usepackage[english]{babel}
+
+%\usepackage{caption}                   
+
+\usepackage{dirtree}
+
+\usepackage{csquotes}                   
+
+\usepackage{graphicx}      
+
+%\usepackage{nameref} 
+%\usepackage[english]{varioref}
+
+\usepackage{setspace}
+
+\usepackage{titlesec}
+
+\usepackage[a-2u]{pdfx}[2018/12/22]
+
+%Workaround for missing metadata for keywords
+\makeatletter
+\def\sep{, }
+%\pdfx@topdfstring\pdfx@Author\xmp@Author
+\pdfx@topdfstring\pdfx@pdfKeywords\xmp@Keywords
+\makeatother
+
+\usepackage[binding=5mm]{layaureo}
+
+\usepackage{listings}
+
+\usepackage{multirow}
+
+\usepackage[backend=biber,style=numeric-comp,hyperref,backref]{biblatex}
+
+%\usepackage{pxfonts}
+%\usepackage{newpxtext}
+%\usepackage{newpxmath}
+\usepackage[capitalise]{cleveref}
+
+\input{config}                    
+
+\begin{document}
+\graphicspath{{./images/dev-manual/}{./images/}}
+\maketitle
+
+\chapter*{Document content}
+This technical document is organised in two parts:
+\begin{itemize}
+	\item Chapter \ref{ch:arch} describes the software architecture, as well as the considerations involved in DataMole development;
+	\item Chapter \ref{ch:ext-man} provides a practical guide to extend this software with new features.
+\end{itemize}
+
+\input{sections/tocs}
+
+% Chapter 1
+\include{sections/architecture}
+
+% Chapter 2
+\chapter{Extending DataMole}\label{ch:ext-man}
+
+Part of the development was dedicated to making DataMole easily extensible. Extensibility is meant with respect to the DataMole core features, which are the usage of operations and the visualisation features, like charts. 
+Thus the following topics are discussed in this chapter:
+\begin{itemize}
+	\item Definition of \textit{new operations}, to be applied from the \textit{Flow panel} or singularly (§\ref{sec:ext-operations});
+	\item Extension of the \textit{View panel} with new widgets (§\ref{sec:ext-view-panel}).
+\end{itemize}
+Additionally the last sections describe how to use the notification system (§\ref{sec:notifications}), to visualise pop-up with custom messages, the DataMole logger (§\ref{sec:flogging}) and finally §\ref{sec:resource-syst} explains how non-code files can be added to the resource system.\\
+This chapter only describes classes, methods and everything relevant in order to extend DataMole. A complete description of the program API, with all classes and methods, will be released in the software repository along with the code.
+
+\section{Package organisation}\label{sec:dirtree}
+DataMole is organised as a standard Python package, and its complete structure is shown in the tree below, where only the \texttt{tests/} and \texttt{docs/} folders have not been expanded.\\
+An overview of the content of the main sub-packages, marked in green in the below tree, was given in §\ref{ssec:packages}.
+\clearpage
+\input{sections/dirtree}
+
+\section{Definition of a new operation}\label{sec:ext-operations}
+Adding a new operation is simple. Three steps are required:
+\begin{enumerate}
+	\item Choose the \texttt{Operation} abstract class to subclass;
+	\item Define the new operation inside a module;
+	\item Edit a configuration file to tell DataMole where to look for new operations.
+\end{enumerate}
+When defining a new operation it is probably necessary to define an editor widget to support setting user options. This step is described later, in §\ref{ssec:define-editor}.
+
+\subsection{Choosing the abstract class}
+\begin{figure}
+	\centering
+	\includegraphics[width=0.8\textwidth]{../uml/operation}
+	\caption{Abstract classes derived from \texttt{Operation}}
+	\label{fig:operationuml-dev}
+\end{figure}
+All data transformations in DataMole are represented with subclasses of the \texttt{Operation} base class. Package \texttt{operation.interface} contains the definitions of 4 abstract classes shown in \cref{fig:operationuml-dev}. 
+The choice of the class to inherit depends on the operation that needs to be defined:
+\begin{itemize}
+	\item \texttt{Operation}: subclass this to define an operation as a generic task. The only abstract methods are \texttt{execute} and \texttt{setOptions}. Such an operation can not be used with the pipeline in the \textit{Flow panel}, but can only be applied from the \textit{Attribute panel}. Even background workers can implement this interface to take advantage of the multithreading module, as is later described in §\ref{ssec:worker-operation};
+	\item \texttt{GraphOperation}: its subclasses can be used in the \textit{Flow panel} as well as in the \textit{Attribute panel}, provided it has only one input. This constraint is set to reduce complexity, since graph operations must be adapted to be used from the \textit{Attribute panel} and having to deal with multiple inputs was not easy.\\
+	Graph operations must not do side effects on their inputs (or on the workbench);
+	\item \texttt{InputGraphOperation}: this is defined for convenience. It gives a default implementation to some methods that are not relevant when defining an input operation for the pipeline graph. These operations has no input nodes;
+	\item \texttt{OutputGraphOperation}: again this is subclassed only once by the graph operation \texttt{ToVariable} which has no output and exactly one input. This interface may be used to define an operation with no outgoing edges.
+\end{itemize}
+Every operation can hold a reference to the workbench object, but this is optional. In general \texttt{GraphOperation} subclasses should avoid any side effect: the pipeline consists of a chain of \textit{functional} transformations where the output of the parent operation is set as the input of the child node, and every operation must not change its input while producing its output. \texttt{InputGraphOperation} and \texttt{OutputGraphOperation} can instead do side-effect on the workbench: in fact they are mainly used to retrieve the input dataframe from the workbench when the pipeline starts and to save the pipeline output when it completes.
+
+%\subsubsection{A comment about subclassing in Python}
+%Interfaces and abstract classes are used in DataMole to enforce the presence of specific methods in subclasses, that are required for them to correctly work. But the type information itself (e.g. the mere fact that an operation is a subclass of \texttt{Operation}) is not actually important, because Python is dynamically-typed and uses the \textit{duck typing} approach, thus subclasses type is not checked. As a consequence, interface realisation is never strictly required, provided that all the relevant methods are defined. For instance an operation can be any object that implements all the methods described in §\ref{ssec:writing-operation}, even if it is not a subtype of \texttt{Operation}.
+
+\subsection{Implementing the operation}\label{ssec:writing-operation}
+New operations can be defined in new modules inside the \texttt{operation} package, where all DataMole operations are defined. Additionally related transformations are usually grouped in the same file. For example the module \texttt{type.py} contains the definition of all the operations used for type conversion. However it is not important where the new operations are defined, so they may be stored in different packages if desired.\\
+The \texttt{operation} package also contains an \texttt{utils} module with many helper functions for parsing editor options and some validators used by the editor widgets to validate inputs.\\
+%The next sections describe every method defined in the interfaces and how it should be overridden.
+
+\clearpage
+\subsubsection{\textit{Operation} methods}
+This section describes the methods that every \texttt{Operation} subclass inherits and override when required.
+\begin{itemize}
+	\item \texttt{execute(*args, **kwargs)}: this method is run to execute the operation. It takes any number of arguments (0 as well) and returns whatever the operation produces. It may also return nothing, if the operation does side effects;
+	\item \texttt{setOptions(*args, **kwargs)}: the method used to configure an operation with its options. This method is called with the arguments provided by the \texttt{getOptions} method of the editor widget, so its arguments depends on the way the widget provides options. For example if the editor widget returns a tuple of 3 integers, this method should expect to receive 3 integer arguments. If the operation does not require options this method can be set to a no-op. This method can also perform fields validation, see §\ref{sssec:opt-validation-dev};
+	\item \texttt{getOptions()}: this method returns the options currently set in the operation, in the same format required by \texttt{setOptions}. If you are defining an operation to use from the \textit{Attribute} panel this method is probably never used and its reimplementation can be skipped. The default implementation returns an empty dictionary;
+	\item \texttt{name()}: this static method returns a string with the name of the operation to be shown to the user;
+	\item \texttt{shortDescription()}: a static method with a reasonably short description to be visualised inside the header of the editor widget;
+	\item \texttt{longDescription()}: returns the text to be shown when the user clicks the "More" button in the editor widget. The description can be long and can include HTML formatted text. To avoid cluttering code with long formatted strings, they can be placed in the \texttt{resources/descriptions.html} file, under a \texttt{section} tag with the operation class name. By default this method searches the description in that file. More details are in §\ref{sec:resource-syst};
+	\item \texttt{hasOptions()}: returns a boolean value saying whether all the required options are set. This is required because every operation can have its own option fields. Typically it returns \textit{True} if all option fields are not set to \textit{None};
+	\item \texttt{needsOptions()}: returns a boolean value that tells whether the operation needs options, and consequently an editor widget. If this method returns \textit{False} the \texttt{getEditor} method can be no-op;
+	\item \texttt{acceptedTypes()}: returns the list of types that the operation supports, to choose between Numeric, Nominal, Ordinal, String and Datetime. These types are defined in the \texttt{data.types} module. By default it supports all types;
+	\item \texttt{getEditor()}: builds the editor widget of type \texttt{AbsOperationEditor} which should be used to configure the operation. This is described in §\ref{ssec:define-editor};
+	\item \texttt{injectEditor(AbsOperationEditor)}: if some editor components require additional configuration that cannot be provided during the editor creation, this method can be reimplemented. Typically it is used to fix column size on tables created with the editor factory.
+\end{itemize}
+
+\subsubsection{Options validation}\label{sssec:opt-validation-dev}
+Operations can refuse to accept parameters if they are not set correctly: options validation may be performed inside the \texttt{setOptions} method of every operation. This method should first check if the provided options are acceptable and save them only if they are. Otherwise it should raise an exception of type \texttt{OptionValidationError}. This exception can be parametrised with a list of errors that occurred while validating the options, thus it allows to notify more than one error at once. Every item of this list is a pair made up of a string error code and an error message. The error code allows to customise error handling and will be discussed in §\ref{sssec:custom-val-errors}.\\
+To give a practical example, part of the definition of the \texttt{BinsDiscretizer} class is reported here and commented:
+\begin{python}[emph={setOptions, __init__}]
+	class BinsDiscretizer(GraphOperation, Loggable):
+	def __init__(self, *args, **kwargs):
+	super().__init__(*args, **kwargs)
+	# Initialisation of the options fields
+	# Strategy to use for discretizing
+	self.__strategy: BinStrategy = BinStrategy.Uniform
+	# The column indices to be discretized
+	self.__attributes: Dict[int, int] = dict()
+	# The suffix for the column to create (if the transformation is not done in-place)
+	self.__attributeSuffix: Optional[str] = '_discretized'
+	
+	def setOptions(self, 
+	attributes: Dict[int, Dict[str, str]], 
+	strategy: BinStrategy,
+	suffix: Tuple[bool, Optional[str]]) -> None:
+	# 'attributes' is a dictionary like {row: {column\_key: value} }
+	# Thus it maps every row to the values of any column in the table
+	
+	# Validate options
+	errors = list()
+	if not attributes:
+	# Error: the user did not select any attribute
+	errors.append(('e1', 'Error: At least one attribute should be selected'))
+	for r, options in attributes.items():
+	bins = options.get('bins', None)
+	if not bins:
+	# Error: column 'bins' is not set for this row
+	errors.append(
+	('e2', 'Error: Number of bins must be set at row {:d}'.format(r))
+	)
+	elif not isPositiveInteger(bins):
+	# Error: column 'bins' is not a valid number
+	errors.append(('e3', 'Error: Number of bins must be > 1 at row {:d}'.format(r)))
+	if strategy is None:
+	# Error: no strategy is selected from the radio buttons
+	errors.append(('e4', 'Error: Strategy must be set'))
+	if suffix[0] and not suffix[1]:
+	# Error: suffix is not set
+	errors.append(('e5', 'Error: suffix for new attribute must be specified'))
+	if errors:
+	# If any validation error occurred stop
+	raise OptionValidationError(errors)
+	
+	# No error occurred, then set options
+	# Clear previously set attributes
+	self.__attributes = dict()
+	# Set options
+	for r, options in attributes.items():
+	k = int(options['bins'])
+	self.__attributes[r] = k
+	self.__strategy = strategy
+	self.__attributeSuffix = suffix[1] if suffix[0] else None
+\end{python}
+In the above example the \texttt{setOptions} method checks for options correctness in lines 20-39. Then if one or more validation errors were detected it raises an exception (line 42), otherwise it sets the new options (lines 44-52). The error message will be shown to the user as in \cref{fig:error-message-editor}.
+\clearpage
+\begin{figure}
+	\centering
+	\includegraphics[width=0.7\textwidth]{error-message-editor}
+	\caption{Error message in the \textit{BinsDiscretizer} operation}
+	\label{fig:error-message-editor}
+\end{figure}
+\subsubsection{\textit{GraphOperation} methods}
+The following section describes methods defined in the \texttt{GraphOperation} class. All methods inherited from \texttt{Operation} are not discussed here, unless they require further explanation.
+
+\lineparagraph{Utility methods}
+The following three methods provide functionalities required to manage every operation inside the pipeline. They are already implemented and should not be redefined in most cases.
+\begin{itemize}
+	\item \texttt{shapes()}: getter method for the protected \texttt{shapes} field, which contains the shapes of the inputs of the operation;
+	\item \texttt{addInputShape(Shape, int)}: this method is used to set the shape at the specified position in the \texttt{shapes} list;
+	\item \texttt{removeInputShape(int)}: remove the \texttt{Shape} object at the specified position in the \texttt{shapes} list and sets it to \texttt{None}.
+\end{itemize}
+
+\clearpage
+\lineparagraph{Methods to be reimplemented}
+The following methods should be overridden in every subclass to customise the operation behaviour.
+\begin{itemize}
+	\item \texttt{execute(*Frame)}: the execute method has a different signature from the one defined in the \texttt{Operation} class. As already explained graph operations should be defined in a functional way, with no side effects. Hence this method is passed the input dataframes and must apply the transformation and return the output dataframe (of type \texttt{Frame}) without affecting its input;
+	\item \texttt{getOutputShape()}: this method should be overridden to return a \texttt{Shape} object with the column names and types of the output of this operation. If the input shapes are not set (for example because the node is not yet connected to a predecessor) or any relevant option is not configured it must return \texttt{None};
+	\item \texttt{isOutputShapeKnown()}: this static method must return \texttt{True} if \texttt{getOutputShape} is able to infer the output shape, given the operation options and the shapes of its input. Otherwise it must return \texttt{False}. There are situations in which this method could \textit{always} return \texttt{False}. For instance, this is the case with the operation to remove all columns with more than a threshold of NaN values: there is no way of knowing in advance which columns will satisfy this condition, hence the operation does not know its output shape;
+	\item \texttt{needsInputShapeKnown()}: another static method that returns \texttt{True} for operations that require their input shapes to be used. Operations that do not need the input shape are the only operations that can be placed after operations that do not know their output shape (i.e. their \texttt{isOutputShapeKnown} method always returns \texttt{False});
+	\item \texttt{unsetOptions()}: this method resets every option that depends on the input shapes of the operation. It is called by the \texttt{DagHandler} whenever new input shapes are propagated through the pipeline;
+	\item \texttt{minInputNumber()}: a static method which returns the minimum number of input connections that the operation supports;
+	\item \texttt{maxInputNumber()}: a static method returning the maximum number of input connections that the operation supports or $-1$ if there is no maximum;
+	\item \texttt{minOutputNumber()}: a static method returning the minimum number of output connections that the operation supports;
+	\item \texttt{maxOutputNumber()}: a static method returning the maximum number of output connections that the operation supports or $-1$ if there is no maximum;
+\end{itemize}
+
+\subsection{Export the operation}
+Once operations have been defined it is necessary to make them visible to DataMole. Every module must define a global variable \texttt{export} pointing to the new operation class or, if more than one operations are defined in the same module, to a list (or tuple) of classes. For instance if two new operations were defined in the same module with classes \texttt{TransformData1} and \texttt{TransformData2}, the export variable should be set as in this snippet:
+\begin{python}
+	class TransformData1(Operation, Loggable):
+	def execute(self, *args, **kwargs):
+	pass
+	...
+	
+	class TransformData2(Operation, Loggable):
+	def execute(self, *args, **kwargs):
+	pass
+	...
+	
+	class OtherStuff:
+	# Class that is not an operation
+	...
+	
+	export = TransformData1, TransformData2
+	# or export = [TransformData1, TransformData2]
+\end{python}
+Additionally the name of every module to be searched for operations must be appended to the list defined in file \texttt{config/operations.json}. The fully qualified name of the module should be used, like in the following example:
+\begin{lstlisting}[language=json,frame=none, emph={myNewModule}, emphstyle=\color{deepred}]
+	{
+		"modules": [
+		"dataMole.operation.fill",
+		"dataMole.operation.discretize",
+		...
+		"dataMole.operation.myNewModule"
+		]
+	}
+\end{lstlisting}
+
+\subsection{Definition of editor widgets}\label{ssec:define-editor}
+\begin{figure}
+	\centering
+	\includegraphics[width=0.8\textwidth]{editor-sample-sections}
+	\caption[The three parts that compose every \textit{editor widget}]{The three parts that compose every \textit{editor widget}. The \textit{header} shows the short description and button to access the long description of the operation. The \textit{footer} has a button to quit the editor and one to confirm the options set.}
+	\label{fig:editor-sections}
+\end{figure}
+\begin{figure}
+	\centering
+	\includegraphics[width=\textwidth]{../uml/editor_pack}
+	\caption{Classes defined in the \texttt{gui.editor} package}
+	\label{fig:editor-package}
+\end{figure}
+Every operation requiring user options is responsible for defining its specialised \textit{editor widget} to support options configuration. An example is in \cref{fig:editor-sections}.\\
+Every editor widget must subclass the \texttt{AbsOperationEditor} abstract class, defined in the \texttt{gui.editor} package. Package structure is shown in \cref{fig:editor-package}.\\
+Custom editors are usually defined in the file containing the operation definition, since they are used only by a single operation. However, they can be placed on a different file if they are reused many times.\\
+An \textit{editor widget} should reimplement the following methods:
+\begin{itemize}
+	\item \texttt{editorBody()}: this abstract method should return the \texttt{QWidget} to place in the editor, between the header and the footer;
+	\item \texttt{getOptions()}: this abstract method must return the options set in the editor. It should return them inside an iterable sequence that can be unpacked when passed to the \texttt{setOptions} method of the operation. Its return type should therefore be compatible with the argument type of the operation \texttt{setOptions} method;
+	\item \texttt{setOptions(*args, **kwargs)}: sets the options inside the editor. The default implementation does nothing, which is ok in case the operation does not require a configurable editor;
+	\item \texttt{onAccept()}: this hook method is called after the options are confirmed (i.e. the \textit{"Ok"} button is clicked) and before setting them in the operation. It can be reimplemented to perform additional actions. Does nothing by default.
+\end{itemize}
+
+\subsubsection{Customised validation error handling}\label{sssec:custom-val-errors}
+As previously described, when the user configures an editor widget, the operation can raise an error with type \texttt{OptionValidationError} if supplied options are not correct. In this situation, every editor widget shows the error messages in red font immediately above the footer, like in \cref{fig:error-message-editor}. This is generally good enough, but complex editors may behave differently, for example by applying a red border around a \texttt{QLineEdit} or by showing pop-up immediately above the wrong fields. In fact, editor widgets derived from \texttt{AbsOperationEditor} support custom error handling behaviours. This abstract class defines a \texttt{errorHandlers} public field, of type \texttt{Dict[str, Callable]}, that contains arbitrary functions (\texttt{Callable}s) used to handle specific validation errors.
+Recall from §\ref{sssec:opt-validation-dev} that every pair passed to the \texttt{OptionValidationError} constructor contains an \textit{error code}, as well as an error message. When handling validation error, the editor first checks if a custom error handler is
+provided: to do this it searches the \texttt{errorHandlers} dictionary for a pair with the specified error code as key. If a matching key is found, the corresponding method is invoked, otherwise the default error handling strategy is used.\\
+Hence, once a customised method to handle errors has been defined, it may be added to this dictionary with an error code that matches the one of the error it should handle.
+%Finally, it must be said that nothing prevents the possibility of doing option validation inside the editor widget, rather than in the \texttt{setOptions} method of an operation.
+
+\subsubsection{The editor factory}\label{sssec:factory-usage}
+Since many operation editors required very similar components a \textit{factory class} has been defined to quickly build standard editors with a variety of fields. To do this, the factory class \texttt{OperationEditorFactory} can be instantiated inside method \texttt{Operation.getEditor} and used to configure the editor. Since the factory is a \textit{singleton}, method \texttt{initEditor} must be always called to initialise a new editor.\\
+When the factory is used, widgets options are passed around between the editor and the operations as Python dictionaries. This is the reason why methods \texttt{getOptions} and \texttt{setOptions} of classes \texttt{AbsOperationEditor} and \texttt{Operation} also accept key-value pairs with the \texttt{**kwargs} argument. The key used for every option can be specified with the \texttt{key} argument when using the factory methods described below.
+\begin{itemize}
+	\item \texttt{withAttributeTable(key, options, checkbox, nameEditable, showTypes, types, *args)}: adds a table to show dataframe columns, with optional column of checkboxes for selection and any number of additional columns. For example the widget in \cref{fig:editor-sections} had a table with 1 additional column, named \textit{Fill value}, to specify the value that should be used to substitute NaNs. The \texttt{options} argument is a dictionary to specify the additional columns to show in the table: every entry consists of a column identifier and a tuple with the column name, a delegate for that column and a default value to show when nothing is set. \texttt{checkbox}, \texttt{nameEditable}, \texttt{showTypes} are boolean parameters to control whether to show a checkbox column, whether the name column should be editable and the type column should be showed. Argument \texttt{types} allows to filter only certain types, in case the operation does not support every type. For example the \textit{Fill NaN} editor table is configured with this method call:
+	\begin{python}[emph={withAttributeTable}]
+		factory.withAttributeTable(
+		key='selected', 
+		checkbox=True, 
+		nameEditable=False,
+		showTypes=True,
+		types=self.acceptedTypes(),
+		options={
+			'fill': (
+			'Fill value',
+			OptionValidatorDelegate(SingleStringValidator()),
+			None
+			)
+		})
+	\end{python}
+	The \textit{delegate} is Qt component that controls how column items are rendered inside the view. By defining a custom delegate, it is possible to change items appearance in any way: the checkbox in the first column of \cref{fig:editor-sections}, for instance, is created by defining a custom delegate for boolean values. The \texttt{OptionValidatorDelegate} was defined for convenience and only provides a customised validation the input, through the \texttt{QValidator} passed as its argument. If no delegate and no default value is needed, \texttt{None} can be used in their place. Definition of custom delegates will not be discussed here, since it is part of the Qt Framework and is explained in its official documentation;
+	\item \texttt{withTextField(key, label, validator)}: adds a \texttt{QLineEdit} setting a label above it and with an optional \texttt{QValidator} for its input. Some validators commonly used are defined in the \texttt{operation.utils} module. Widget marked with \textit{(T)} in \cref{fig:editor-detail-file} was created using this method; 
+	\item \texttt{withCheckBox(key, label)}: adds a \texttt{QCheckBox} with a label;
+	\item \texttt{withRadioGroup(key, label, values)} inserts a group of \texttt{QRadioButton}s with the specified label above it. the \texttt{values} argument is a list of pairs, that maps the label to show (as a string) with the combo box value (of any type). The radio buttons in \cref{fig:editor-sections} is created with the following options:
+	\begin{python}[emph={withRadioGroup}]
+		factory.withRadioGroup(
+		key='fillMode', 
+		label='Method',
+		values=[
+		('Backfill', 'bfill'),
+		('Pad', 'ffill'),
+		('Mean', 'mean'),
+		('Values', 'value')
+		])
+	\end{python}
+	\item \texttt{withComboBox(key, label, editable, model, strings)}: adds a \texttt{QComboBox} with a label. If \texttt{editable} is \textit{True} the combo box allows to enter arbitrary values, otherwise it only allows to choose between one of the predefined values. Arguments \texttt{model} and \texttt{strings} allow to set the values to show when the combo box is used. A Qt model class can be used or alternatively a list of strings can be provided;
+	\item \texttt{withAttributeNameOptionsForTable(key)}: using this method allows to add a widget like \cref{fig:editor-detail-name}. It adds an option to avoid overwriting attributes when transformations are applied by defining new ones with the specified suffix;
+	\item \texttt{withFileChooser(key, label, extensions, mode, **kwargs)}: used to create a window that allow to choose an existing file using a \texttt{QFileDialog}. Showed files can be filtered by their extension using the \texttt{extensions} argument. The \texttt{mode} string argument must be set to \texttt{"save"} or \texttt{"load"}, depending on whether the file dialog should allow to select non existing files (\textit{save} mode) or not (\textit{load} mode). An example of such widget is shown in \cref{fig:editor-detail-file}, marked with \textit{(F)}. Additional arguments can be passed to the \texttt{QFileDialog} by setting them as \texttt{**kwargs};
+	\item \texttt{initEditor(subclass)}: this method must be called before any factory method, and is used to initialise a new editor widget. The factory is a singleton, thus a call to this method resets its internal state and clean the parameters of widgets previously created. The \texttt{subclass} parameter accepts a \texttt{type} of a class that should be used as base class for the new widget. Of course it must be a subclass of \texttt{AbsOperationEditor};
+	\item \texttt{getEditor()}: assembles the new editor widget and returns it.
+\end{itemize}
+\begin{figure}[hb]
+	\centering
+	\includegraphics[width=0.6\textwidth]{editor-detail-file}
+	\caption{Widget to import \textit{pickle} dataframes created with factory methods}
+	\label{fig:editor-detail-file}
+\end{figure}
+\begin{figure}[hb]
+	\centering
+	\includegraphics[width=0.6\textwidth]{editor-detail-name}
+	\caption[Widget created with a factory method]{Widget created with factory method \texttt{withAttributeNameOptionsForTable}}
+	\label{fig:editor-detail-name}
+\end{figure}
+Using the factory, a typical \texttt{getEditor} implementation for an operation may look like this:
+\begin{python}[emph={initEditor, getEditor}]
+	def getEditor(self):
+	factory = OptionsEditorFactory()
+	factory.initEditor()
+	...
+	# Call factory methods
+	...
+	return factory.getEditor()
+\end{python}
+Finally it must be said that editor widgets defined using the factory do not support the customised error handling mechanism described in §\ref{sssec:custom-val-errors}.
+
+\clearpage
+\subsection{Creating worker operations}\label{ssec:worker-operation}
+Sometimes there is the necessity to do some background computation without freezing the user interface. Operations can also be defined for completing tasks that can be computed in background. For example the \texttt{operation.computations.statistics} module contains two operations used respectively to compute data for the \textit{statistics panel} and the \textit{histogram} when an attribute is clicked in the \textit{Attribute} tab.\\
+The \texttt{threads} module can then be exploited to run the operation in another thread. This module defines a \texttt{Worker} class (deriving from \texttt{QRunnable}) that can be scheduled for execution in a \texttt{QThreadPool}.\\
+After defining a worker operation by implementing the \texttt{Operation} interface, a background computation can be set up using this general pattern:
+\begin{python}
+	# Define a worker operation
+	class BackgroundComputation(Operation):
+	def __init__(*args):
+	# Initialise
+	...
+	
+	def execute(arg1, arg2, *args):
+	...
+	# Computation
+	...
+	return result
+	
+	# Initialise a new operation
+	comp = BackgroundComputation(*my_args)
+	# Set eventual options and define arguments for the execute() method
+	myArg1 = ...
+	myArg2 = ...
+	# Create a worker for the operation and set the execute() args
+	worker = Worker(comp, args=(myArg1, myArg2), identifier='comp1')
+	# Connect worker signals to appropriate handler slots
+	worker.signals.result.connect(self.onResult)
+	worker.signals.error.connect(self.onError)
+	worker.signals.finished.connect(self.onFinish)
+	# Start computation on the thread pool
+	QThreadPool.globalInstance().start(statWorker)
+\end{python}
+The \texttt{worker} needs an identifier that will be passed back as the first parameter of the emitted signals. This identifier can be of any type, and should be used to recognise which worker emitted a particular signal, but can be omitted if it is not relevant. The \texttt{args} parameter can be omitted as well if the operation \texttt{execute} method does not require arguments. In the above example \texttt{onResult}, \texttt{onError} and \texttt{onFinish} are methods marked as Qt \textit{slots} (which allow to connect them to signals) and are invoked when the worker status changes, through the following signals:
+\begin{itemize}
+	\item \texttt{result(id: object, result: object)}: this signal is emitted when the worker completes successfully (i.e. without runtime errors) and carries two arguments, the identifier passed to the worker constructor and the value returned by the \texttt{execute} method, which can be \texttt{None} if the operation does side effects with the result;
+	\item \texttt{error(id: object, err: tuple)}: it is emitted when the \texttt{execute} method fails with a runtime error. The second parameter is a tuple with the type of the exception, the exception object itself and the stack-trace as a string. This data can be used to create a log entry and to notify the user;
+	\item \texttt{finished(id: object)}: signal emitted after the worker stops executing, either because it failed (and the \texttt{error} signal was emitted) or because it completed successfully (and the \texttt{result} signal was fired).
+\end{itemize}
+
+\section{Extension of the \textit{View panel}}\label{sec:ext-view-panel}
+Currently the \textit{View panel} supports the creation of two type of charts, the line chart for time series and the scatterplot matrix, but it is possible to add customised visualisation features to this panel. The active widget can be switched by using the combo box shown in \cref{fig:view-panel-extend}. These widgets are dynamically discovered and loaded every time DataMole is started by looking at the configuration in file \texttt{config/dataviews.json}. This operation is done in the \texttt{\_\_init\_\_} file of the \texttt{gui.panels} package. The \textit{json} file contains the following lines:
+\begin{lstlisting}[language=json, frame=none, emph={config, classes}, emphstyle=\color{deepred}]
+	{
+		"config": {
+			"default": "Scatterplot",
+			"description": "Select a data view:"
+		},
+		"classes": {
+			"Scatterplot": "dataMole.gui.charts.scatterplot.ScatterPlotMatrix",
+			"Time series": "dataMole.gui.charts.timeseriesplot.TimeSeriesPlot"
+		}
+	}
+\end{lstlisting}
+The \texttt{classes} dictionary contains the fully qualified name of the widget class to show in the panel, with the label to show in the combo box as keys. The \texttt{config} dictionary contains the label to set as default one in the combo box, and the label to place before the combo box.\\
+Hence, in order to add widgets to this panel, one should:
+\begin{enumerate}
+	\item Define the new widget implementing the \texttt{DataView} interface; it requires the definition of a single \textit{slot}, namely \texttt{onFrameSelectionChanged},in order to react properly when the user changes the active dataframe;
+	\item Add the new class name to the \texttt{classes} dictionary in the \texttt{config/dataviews.json} file.
+\end{enumerate}
+\begin{figure}[hb]
+	\centering
+	\includegraphics[width=0.6\textwidth]{view-panel-extend}
+	\caption{Combo box used to switch active widget in the \textit{View panel}}
+	\label{fig:view-panel-extend}
+\end{figure}
+
+\section{Using the notification system}\label{sec:notifications}
+Small pop-ups are used to notify the user whenever an error occurs or some operation is completed. An example is shown in \cref{fig:notification-popup}. Notification messages are stacked vertically and can be closed by clicking on the small right button.\\
+These pop-ups are defined in the \texttt{gui.widgets.notifications} module, which contains 3 classes, outlined in diagram \cref{fig:notifications-uml}. An instance of the \texttt{Notifier} class is always available in the \textit{gui.notifier} global variable. Thus in order to add notifications, this global variable should be imported from the \texttt{gui} package. The \texttt{addMessage} method can be used to add messages, or they can be cleared invoking \texttt{clearMessages}.\\
+The \texttt{gui} package also exposes the \texttt{gui.statusBar} variable, which is the global access point to the DataMole status bar, placed at the bottom of the main window, shown in \cref{fig:notification-popup}. It inherits \texttt{QStatusBar}, so its methods can be used to show messages.
+\begin{figure}[p]
+	\centering
+	\includegraphics[width=0.75\textwidth]{../uml/notifications}
+	\caption{Class diagram of the \texttt{notifications} module}
+	\label{fig:notifications-uml}
+\end{figure}
+\begin{figure}[p]
+	\centering
+	\includegraphics[width=\textwidth]{notification-example}
+	\caption[The main window, with a message on the status bar and a pop-up used for notifications]{The main window, with a message on the status bar and a pop-up used for notifications. In this example the user tried to execute a pipeline with no input nodes.}
+	\label{fig:notification-popup}
+\end{figure}
+
+\clearpage
+\section{The logging package}\label{sec:flogging}
+DataMole defines a collections of logging utilities in the \texttt{flogging} package, which makes used of the Python \texttt{logging} module. Three loggers are defined:
+\begin{itemize}
+	\item \texttt{appLogger}: the \textit{application logger}, where debug messages are printed, and the standard error stream (\texttt{stderr}) is redirected. These log files are created in the \texttt{logs/app} folder;
+	\item \texttt{graphLogger}: when a pipeline is executed the \textit{DagHandler} creates a new log file in the \texttt{logs/graph} folder and uses this logger to log every operation. In order to be logged operations need to have implemented the \texttt{Loggable} interface, defined in the \texttt{flogging.loggable} module;
+	\item \texttt{opsLogger}: every operation applied singularly (i.e. outside of the pipeline) is logged through this object inside the \texttt{logs/operations} folder. Also in this case the operations need to implement the two methods of the \texttt{Loggable} interface.
+\end{itemize}
+Loggers are objects of type \texttt{logging.Logger} and can be imported directly from the \texttt{flogging} package. A simple example is the following:\\
+\begin{python}
+	from dataMole import flogging
+	
+	# Log to the application logger
+	flogging.appLogger.warning('A warning')
+	
+	# Log to the operation logger
+	flogging.opsLogger.error('An operation failed')
+\end{python}
+
+\subsection{Implementing the \textit{Loggable} interface}
+The two methods defined in \texttt{Loggable} interface, that must be implemented in order to log an operation, are the following:
+\begin{itemize}
+	\item \texttt{logOptions}: must return a formatted string with the configuration of the operation, like its options. This method is invoked before the operation is executed;
+	\item \texttt{logMessage}: returns a formatted string with additional info. Differently from the previous method, this one is invoked after the operation completes, but it is not called if the operation fails with an error. It may include details on what happened during execution. For instance, in the \texttt{BinsDiscretizer} class it is used to inform the user of which intervals were used for discretization.
+\end{itemize}
+
+
+\section{The resource system}\label{sec:resource-syst}
+The Qt resource system is a platform-independent mechanism for storing binary files in the application's executable. This is useful for applications that need to access a certain set of files like icons, translation files, etc. \cite{docs:qt-resources}. The \texttt{resource} directory groups every such file used in DataMole. It has the following structure:\\
+\dirtree{%
+	.1 dataMole/.
+	.2 resources.qrc\DTcomment{Qt resource file}.
+	.2 resources/.
+	.3 icons/\DTcomment{PNG icons}.
+	.3 descriptions.html\DTcomment{Operations descriptions}.
+	.3 style.css\DTcomment{Stylesheet}.
+}
+
+\subsection{The operation description file}
+File \texttt{descriptions.html} contains the formatted text that is returned by method \texttt{longDescription} of an operation. Since these descriptions can be quite long, and need to be formatted properly using HTML syntax, I decided to put them all in single file, instead of having them scattered inside the operation classes. It is possible to add new descriptions or edit the existing ones directly in this file. Every new description must be placed in a new section, with a \texttt{name} attribute set to the class name of the related operation, like in this example:
+\begin{lstlisting}[language=html,frame=none, backgroundcolor=\color{white}]
+	<section name="MyOperationClass">
+	<h2>Operation name</h2>
+	Very short description <br/>
+	<h3>Options description</h3>
+	...
+	Explain how the operation can be configured
+	...
+	</section>
+\end{lstlisting}
+There are no rules on how to write the long description, but it should include everything that is needed to understand the purpose of the operation and how it should be configured, if some options are required.\\
+The description file is read during initialisation of the \texttt{operation} package, inside the \texttt{\_\_init\_\_} file.
+
+\subsection{Adding new resources}
+Adding a new resource can be done by adding its path to the \texttt{resources.qrc} file, as explained in the official Qt documentation. After that, the resources must be converted to bytecode by using the Qt Resource Compiler, which, in Qt for Python, can be invoked with the \texttt{pyside2-rcc} command.\\
+For convenience DataMole comes with a makefile that include the command needed to do this: it is sufficient to run \texttt{"make resources"} from the main folder. This command will generate a file named \texttt{qt\_resources.py} with the bytecode for every resource.
+
+\input{sections/bibliography}
+\end{document}

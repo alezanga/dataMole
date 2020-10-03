@@ -1,0 +1,49 @@
+% !TEX encoding = UTF-8
+% !TEX TS-program = pdflatex
+% !TEX root = ../tesi.tex
+
+%**************************************************************
+% Indici
+%**************************************************************
+\cleardoublepage
+\pdfbookmark{\contentsname}{tableofcontents}
+\setcounter{tocdepth}{3}
+\tableofcontents
+%\markboth{\contentsname}{\contentsname} 
+%\clearpage
+
+\begingroup 
+    \let\clearpage\relax
+    \let\cleardoublepage\relax
+    \let\cleardoublepage\relax
+    %*******************************************************
+    % Elenco delle figure
+    %*******************************************************   
+    %\vspace*{8ex}
+     
+    \phantomsection
+    \pdfbookmark{\listfigurename}{lof}
+    \listoffigures
+
+    %\vspace*{8ex}
+%	\newpage
+    %*******************************************************
+    % Elenco delle tabelle
+    %*******************************************************
+%    \phantomsection
+%    \pdfbookmark{\listtablename}{lot}
+%    \listoftables
+        
+    %\vspace*{8ex}
+    
+    %*******************************************************
+    % Elenco di blocchi di codice
+    %*******************************************************
+%    \phantomsection
+%    \pdfbookmark{\listfloatcodename}{loc}
+%    \listoffloatcode
+    
+    %\vspace*{8ex}
+\endgroup
+
+\clearpage

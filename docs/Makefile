@@ -5,14 +5,19 @@
 # from the environment for the first two.
 SPHINXOPTS    ?=
 SPHINXBUILD   ?= sphinx-build
-SOURCEDIR     = source
-BUILDDIR      = build
+SOURCEDIR     = auto/source
+BUILDDIR      = auto/build
+
+# Manuals
+MANUALSRC		= ./manuals/source
+MANUALOUT		= ./manuals
+LATEXCOMMAND	= "/usr/bin/pdflatex"
 
 # Put it first so that "make" without argument is like "make help".
 help:
 	@$(SPHINXBUILD) -M help "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 
-.PHONY: help Makefile pdf
+.PHONY: help Makefile pdf manuals
 
 # Catch-all target: route all unknown targets to Sphinx using the new
 # "make mode" option.  $(O) is meant as a shortcut for $(SPHINXOPTS).
@@ -21,3 +26,7 @@ help:
 
 pdf:
 	@$(SPHINXBUILD) -b rinoh "$(SOURCEDIR)" _build/rinoh
+
+manuals:
+	@$(LATEXCOMMAND) -synctex=1 -output-directory="$(MANUALOUT)" -interaction=nonstopmode  \
+	"$(MANUALSRC)/dev-manual.tex" "$(MANUALSRC)/user-manual.tex"
