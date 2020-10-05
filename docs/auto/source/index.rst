@@ -23,8 +23,15 @@ Contents
 ********
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
    :caption: Contents:
+
+********
+Modules
+********
+.. automodule:: dataMole.data.Frame
+.. automodule:: dataMole.data.Shape
+.. automodule:: dataMole.data.types
 
 Indices and tables
 ==================

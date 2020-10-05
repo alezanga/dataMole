@@ -1,10 +1,10 @@
+""" Template header file """
 # -*- coding: utf-8 -*-
 #
-# Author:       Alessandro Zangari
-# Contact:      alessandro.zangari.code@outlook.com
+# Author:       Alessandro Zangari (alessandro.zangari.code@outlook.com)
 # Copyright:    © Copyright 2020 Alessandro Zangari, Università degli Studi di Padova
 # License:      GPL-3.0-or-later
-# Date:         2020-09-21
+# Date:         2020-10-04
 # Version:      1.0
 #
 # This file is part of DataMole.

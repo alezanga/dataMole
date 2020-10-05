@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import json
 
 with open('dataMole/config/dataviews.json', 'r') as config:

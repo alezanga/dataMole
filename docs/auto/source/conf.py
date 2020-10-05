@@ -18,7 +18,7 @@ sys.setrecursionlimit(1500)
 
 # -- Project information -----------------------------------------------------
 
-project = 'dataPreprocessor'
+project = 'dataMole'
 copyright = '2020, Alessandro Zangari'
 author = 'Alessandro Zangari'
 
@@ -31,12 +31,12 @@ release = '0.0.1'
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'autoapi.extension',
     'sphinx.ext.autodoc',
+    'sphinx.ext.autosummary'
     'rinoh.frontend.sphinx'
 ]
 
-autoapi_dirs = ['../../data_preprocessor']
+autoapi_dirs = ['../../dataMole']
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
