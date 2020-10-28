@@ -30,6 +30,7 @@ from PySide2.QtCore import Slot, QPointF, Qt, QModelIndex, QMargins
 from PySide2.QtGui import QFont, QPainter
 from PySide2.QtWidgets import QWidget, QVBoxLayout, QLabel, QGridLayout, QHBoxLayout, QPushButton, \
     QComboBox, QSplitter, QSizePolicy
+from profilehooks import profile
 
 from dataMole.data.types import Types
 from dataMole.gui.charts.views import SimpleChartView
@@ -94,6 +95,7 @@ class ScatterPlotMatrix(DataView):
         return df
 
     @staticmethod
+    @profile
     def __createSeriesFor2Columns(df: pd.DataFrame, xCol: str, yCol: str) -> \
             Tuple[QtCharts.QScatterSeries, QtCharts.QScatterSeries]:
         """ Create two scatter series, the second one with inverted x and y values
@@ -114,6 +116,7 @@ class ScatterPlotMatrix(DataView):
         return qSeries1, qSeries2
 
     @staticmethod
+    @profile
     def __createScatterSeries(df: Union[pd.DataFrame, pd.core.groupby.DataFrameGroupBy], xCol: str,
                               yCol: str, groupBy: bool) -> \
             Tuple[List[QtCharts.QScatterSeries], List[QtCharts.QScatterSeries]]:
@@ -135,6 +138,7 @@ class ScatterPlotMatrix(DataView):
         return allSeriesPlain, allSeriesInverted
 
     @staticmethod
+    @profile
     def __setupChartFromSeries(seriesList: List[QtCharts.QScatterSeries], xAxisName: str,
                                yAxisName: str) -> QtCharts.QChart:
         chart = QtCharts.QChart()
