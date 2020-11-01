@@ -1,5 +1,5 @@
 pytest
-PySide2==5.15.0
+PySide2==5.15.1
 numpy==1.19.1
 setuptools
 pandas==1.0.5

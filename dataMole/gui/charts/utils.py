@@ -29,15 +29,16 @@ from PySide2.QtCore import QDateTime
 from PySide2.QtGui import QColor
 
 from dataMole import flogging
+import random
 
 
 def randomColors(count: int) -> List[QColor]:
     colors = list()
-    current: float = 0.0
+    hue: int = random.randint(0, 359)
     for i in range(0, count):
-        colors.append(QColor.fromHslF(current, 1.0, 0.5))
-        current += 0.618033988749895
-        current = math.fmod(current, 1.0)
+        colors.append(QColor.fromHsl(hue, 255, 127))
+        hue += random.randint(360 // (count * 2), 360 // count)
+        hue = int(math.fmod(hue, 360))
     return colors
 
 

@@ -21,23 +21,21 @@
 # You should have received a copy of the GNU General Public License
 # along with DataMole.  If not, see <https://www.gnu.org/licenses/>.
 
-from typing import List, Optional, Union, Tuple, Set
+from typing import List, Optional, Union, Set
 
 import numpy as np
 import pandas as pd
-from PySide2.QtCharts import QtCharts
-from PySide2.QtCore import Slot, QPointF, Qt, QModelIndex, QMargins
-from PySide2.QtGui import QFont, QPainter
-from PySide2.QtWidgets import QWidget, QVBoxLayout, QLabel, QGridLayout, QHBoxLayout, QPushButton, \
+import pyqtgraph as pg
+from PySide2.QtCore import Slot, Qt, QModelIndex
+from PySide2.QtWidgets import QWidget, QVBoxLayout, QLabel, QHBoxLayout, QPushButton, \
     QComboBox, QSplitter, QSizePolicy
 
 from dataMole.data.types import Types
-from dataMole.gui.charts.views import SimpleChartView
+from dataMole.gui.charts.utils import randomColors
 from dataMole.gui.mainmodels import SearchableAttributeTableWidget, FrameModel, \
     AttributeTableModel, AttributeProxyModel
 from dataMole.gui.panels.dataview import DataView
 from dataMole.gui.workbench import WorkbenchModel
-from dataMole.utils import safeDelete
 
 
 class ScatterPlotMatrix(DataView):
@@ -59,7 +57,7 @@ class ScatterPlotMatrix(DataView):
         sideLayout.addWidget(self.__matrixAttributes)
         sideLayout.addWidget(self.__colorByBox, 0, Qt.AlignBottom)
         sideLayout.addWidget(createButton, 0, Qt.AlignBottom)
-        self.__matrixLayout: QGridLayout = None
+        self.__matrixLayout: pg.GraphicsLayoutWidget = pg.GraphicsLayoutWidget(self)
         self.__layout = QHBoxLayout(self)
         self.__comboModel = AttributeProxyModel([Types.String, Types.Ordinal, Types.Nominal], self)
 
@@ -70,11 +68,10 @@ class ScatterPlotMatrix(DataView):
         self.errorLabel.hide()
 
         self.__splitter = QSplitter(self)
-        chartWidget = QWidget(self)
         sideWidget = QWidget(self)
         sideWidget.setLayout(sideLayout)
-        chartWidget.setMinimumWidth(300)
-        self.__splitter.addWidget(chartWidget)
+        # chartWidget.setMinimumWidth(300)
+        self.__splitter.addWidget(self.__matrixLayout)
         self.__splitter.addWidget(sideWidget)
         self.__splitter.setSizes([600, 300])
         self.__layout.addWidget(self.__splitter)
@@ -94,70 +91,52 @@ class ScatterPlotMatrix(DataView):
         return df
 
     @staticmethod
-    def __createSeriesFor2Columns(df: pd.DataFrame, xCol: str, yCol: str) -> \
-            Tuple[QtCharts.QScatterSeries, QtCharts.QScatterSeries]:
-        """ Create two scatter series, the second one with inverted x and y values
-
-        :param df: a dataframe
-        :param xCol: the name of the column with X values for plain series
-        :param yCol: the name of the column with Y values for plain series
-        :return a tuple with the plain series as the first element, and the inverted one as second
-        """
-        qSeries1 = QtCharts.QScatterSeries()
-        points = list(map(lambda t: QPointF(*t), df[[xCol, yCol]].itertuples(index=False, name=None)))
-        qSeries1.append(points)
-
-        # Inverted series
-        qSeries2 = QtCharts.QScatterSeries()
-        points = list(map(lambda qp: QPointF(qp.y(), qp.x()), points))
-        qSeries2.append(points)
-        return qSeries1, qSeries2
-
-    @staticmethod
     def __createScatterSeries(df: Union[pd.DataFrame, pd.core.groupby.DataFrameGroupBy], xCol: str,
-                              yCol: str, groupBy: bool) -> \
-            Tuple[List[QtCharts.QScatterSeries], List[QtCharts.QScatterSeries]]:
+                              yCol: str, groupBy: bool) -> List[pg.PlotDataItem]:
         allSeriesPlain = list()
-        allSeriesInverted = list()
         if groupBy:
             df: pd.core.groupby.DataFrameGroupBy
+            n = len(df)
+            colours = randomColors(n)
+            i = 0
             for groupName, groupedDf in df:
-                plain, inverted = ScatterPlotMatrix.__createSeriesFor2Columns(groupedDf, xCol, yCol)
-                plain.setName(str(groupName))
-                inverted.setName(str(groupName))
-                allSeriesPlain.append(plain)
-                allSeriesInverted.append(inverted)
+                gdf = groupedDf.dropna()
+                qSeries1 = pg.PlotDataItem(x=gdf[xCol], y=gdf[yCol], autoDownsample=True,
+                                           name=str(groupName), symbolBrush=pg.mkBrush(colours[i]),
+                                           symbol='o', pen=None)
+                allSeriesPlain.append(qSeries1)
+                i += 1
         else:
             df: pd.DataFrame
-            plain, inverted = ScatterPlotMatrix.__createSeriesFor2Columns(df, xCol, yCol)
-            allSeriesPlain.append(plain)
-            allSeriesInverted.append(inverted)
-        return allSeriesPlain, allSeriesInverted
+            df = df.dropna()
+            series = pg.PlotDataItem(x=df[xCol], y=df[yCol], autoDownsample=True, symbol='o', pen=None)
+            allSeriesPlain.append(series)
+        return allSeriesPlain
 
-    @staticmethod
-    def __setupChartFromSeries(seriesList: List[QtCharts.QScatterSeries], xAxisName: str,
-                               yAxisName: str) -> QtCharts.QChart:
-        chart = QtCharts.QChart()
-        for series in seriesList:
-            series.setMarkerSize(8)
-            series.setUseOpenGL(True)
-            chart.addSeries(series)
-        chart.setDropShadowEnabled(False)
-        chart.legend().setVisible(False)
-        chart.createDefaultAxes()
-        # Add axes names but hide them
-        chart.axisX().setTitleText(xAxisName)
-        chart.axisY().setTitleText(yAxisName)
-        chart.axisX().setTitleVisible(False)
-        chart.axisY().setTitleVisible(False)
-        # Set font size for axis
-        font: QFont = chart.axisX().labelsFont()
-        font.setPointSize(9)
-        chart.axisX().setLabelsFont(font)
-        chart.axisY().setLabelsFont(font)
-        chart.setMargins(QMargins(5, 5, 5, 5))
-        chart.layout().setContentsMargins(2, 2, 2, 2)
-        return chart
+    # @staticmethod
+    # def __setupChartFromSeries(seriesList: List[pg.PlotDataItem], xAxisName: str,
+    #                            yAxisName: str) -> QtCharts.QChart:
+    #     chart = pg.PlotDataItem()
+    #     for series in seriesList:
+    #         series.setMarkerSize(8)
+    #         series.setUseOpenGL(True)
+    #         chart.addSeries(series)
+    #     # chart.setDropShadowEnabled(False)
+    #     chart.legend().setVisible(False)
+    #     chart.createDefaultAxes()
+    #     # Add axes names but hide them
+    #     chart.axisX().setTitleText(xAxisName)
+    #     chart.axisY().setTitleText(yAxisName)
+    #     chart.axisX().setTitleVisible(False)
+    #     chart.axisY().setTitleVisible(False)
+    #     # Set font size for axis
+    #     font: QFont = chart.axisX().labelsFont()
+    #     font.setPointSize(9)
+    #     chart.axisX().setLabelsFont(font)
+    #     chart.axisY().setLabelsFont(font)
+    #     chart.setMargins(QMargins(5, 5, 5, 5))
+    #     chart.layout().setContentsMargins(2, 2, 2, 2)
+    #     return chart
 
     @Slot()
     def showScatterPlots(self) -> None:
@@ -197,53 +176,51 @@ class ScatterPlotMatrix(DataView):
 
         # Populate the matrix
         for r in range(len(attributes)):
-            self.__matrixLayout.setRowStretch(r, 1)
-            self.__matrixLayout.setColumnStretch(r, 1)
+            # self.__matrixLayout.setRowStretch(r, 1)
+            # self.__matrixLayout.setColumnStretch(r, 1)
             for c in range(len(attributes)):
                 if r == c:
                     name: str = attributesColumnNames[r]
-                    self.__matrixLayout.addWidget(QLabel(name, self), r, c, Qt.AlignCenter)
-                elif r < c:
+                    # proxy = QGraphicsProxyWidget()
+                    # proxy.setWidget(QLabel(name, self))
+                    # self.__matrixLayout.addItem(proxy, row=r, col=c)
+                    # self.__matrixLayout.addWidget(QLabel(name, self), r, c, Qt.AlignCenter)
+                else:
                     xColName: str = attributesColumnNames[c]
                     yColName: str = attributesColumnNames[r]
-                    plainSeriesList, invertedSeriesList = \
-                        self.__createScatterSeries(df=df, xCol=xColName, yCol=yColName,
-                                                   groupBy=bool(groupName))
-                    plainChart = ScatterPlotMatrix.__setupChartFromSeries(plainSeriesList,
-                                                                          xAxisName=xColName,
-                                                                          yAxisName=yColName)
-                    invertedChart = ScatterPlotMatrix.__setupChartFromSeries(invertedSeriesList,
-                                                                             xAxisName=yColName,
-                                                                             yAxisName=xColName)
-                    view1 = SimpleChartView(plainChart, self)
-                    view2 = SimpleChartView(invertedChart, self)
-                    view1.setRenderHint(QPainter.Antialiasing)
-                    view2.setRenderHint(QPainter.Antialiasing)
-                    self.__matrixLayout.addWidget(view1, r, c)
-                    self.__matrixLayout.addWidget(view2, c, r)
-        self.__matrixLayout.setSpacing(2)
+                    plainSeriesList = self.__createScatterSeries(df=df, xCol=xColName, yCol=yColName,
+                                                                 groupBy=bool(groupName))
+                    # plainChart = ScatterPlotMatrix.__setupChartFromSeries(plainSeriesList,
+                    #                                                       xAxisName=xColName,
+                    #                                                       yAxisName=yColName)
+                    # invertedChart = ScatterPlotMatrix.__setupChartFromSeries(invertedSeriesList,
+                    #                                                          xAxisName=yColName,
+                    #                                                          yAxisName=xColName)
+                    # view1 = SimpleChartView(plainChart, self)
+                    # view2 = SimpleChartView(invertedChart, self)
+                    # view1.setRenderHint(QPainter.Antialiasing)
+                    # view2.setRenderHint(QPainter.Antialiasing)
+                    pc = self.__matrixLayout.addPlot(row=r, col=c)
+                    for series in plainSeriesList:
+                        pc.addItem(series)
+                    # # Inverted graph
+                    # ic = self.__matrixLayout.addPlot(row=c, col=r)
+                    #     pc.invertX()
+                    # self.__matrixLayout.addWidget(view2, c, r)
+        # self.__matrixLayout.setSpacing(2)
 
     def clearScatterPlotMatrix(self) -> None:
         # if self.__matrixLayout:
         #     # Delete every child widget
-        #     while self.__matrixLayout.count() > 0:
+        #     while self.__matrixLayout.sce
         #         child = self.__matrixLayout.itemAt(0).widget()
         #         if child:
         #             self.__matrixLayout.removeWidget(child)
         #             child.deleteLater()
         #     self.__matrixLayout.deleteLater()
         # Create a new widget for grid layout and add it to the splitter
-        chartWidget: QWidget = QWidget(self)
-        self.__matrixLayout = QGridLayout(chartWidget)
-        self.__splitter.widget(0).hide()
-        # Replace layout and delete the previous one
-        oldWidget = self.__splitter.replaceWidget(0, chartWidget)
-        chartWidget.setMinimumWidth(oldWidget.minimumWidth())
-        # Sometimes it's hidden by default
-        chartWidget.show()
-        # self.__splitter.setSizes([600, 300])
-        safeDelete(oldWidget)
-        print(chartWidget.size().toTuple())
+        # TODO: inspect for memory free
+        self.__matrixLayout.clear()
 
     @Slot(str, str)
     def onFrameSelectionChanged(self, frameName: str, *_) -> None:
