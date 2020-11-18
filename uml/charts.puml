@@ -17,7 +17,7 @@ package gui.charts {
     workbench: WorkbenchModel
     frameModel: FrameModel
     + showScatterPlots()
-    + clearScatterPlotMatrix()
+    + resetScatterPlotMatrix()
   }
 
   class TimeSeriesPlot {
