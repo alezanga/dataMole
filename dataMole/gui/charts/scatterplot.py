@@ -4,7 +4,7 @@
 # Copyright:    © Copyright 2020 Alessandro Zangari, Università degli Studi di Padova
 # License:      GPL-3.0-or-later
 # Date:         2020-10-04
-# Version:      1.0
+# Version:      1.1
 #
 # This file is part of DataMole.
 #
@@ -32,6 +32,7 @@ from PySide2.QtWidgets import QWidget, QVBoxLayout, QLabel, QHBoxLayout, QPushBu
 
 from dataMole.data.types import Types
 from dataMole.gui.charts.utils import randomColors
+from dataMole.gui.charts.views import GraphicsPlotLayout
 from dataMole.gui.mainmodels import SearchableAttributeTableWidget, FrameModel, \
     AttributeTableModel, AttributeProxyModel
 from dataMole.gui.panels.dataview import DataView
@@ -119,7 +120,7 @@ class ScatterPlotMatrix(DataView):
             group = index.row() if index.isValid() else None
 
         # Create a new matrix layout and delete the old one
-        matrix = pg.GraphicsLayoutWidget(parent=self)
+        matrix = GraphicsPlotLayout(parent=self)
         self.spinner = QtWaitingSpinner(matrix)
         oldM = self.__splitter.replaceWidget(0, matrix)
         self.__matrixLayout = matrix
@@ -168,6 +169,11 @@ class ScatterPlotMatrix(DataView):
                     plot = self.__matrixLayout.addPlot(row=r, col=c)
                     for series in seriesList:
                         plot.addItem(series)
+                    # Coordinates and data for later use
+                    plot.row = r
+                    plot.col = c
+                    plot.xName = xColName
+                    plot.yName = yColName
         # When all plot are created stop spinner and re-enable button
         self.spinner.stop()
         self.__createButton.setEnabled(True)
@@ -188,8 +194,7 @@ class ScatterPlotMatrix(DataView):
         allSeries = list()
         if groupBy:
             df: pd.core.groupby.DataFrameGroupBy
-            n = len(df)
-            colours = randomColors(n)
+            colours = randomColors(len(df))
             i = 0
             for groupName, groupedDf in df:
                 # Remove any row with nan values

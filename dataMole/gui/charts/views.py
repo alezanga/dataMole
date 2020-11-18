@@ -4,7 +4,7 @@
 # Copyright:    © Copyright 2020 Alessandro Zangari, Università degli Studi di Padova
 # License:      GPL-3.0-or-later
 # Date:         2020-10-04
-# Version:      1.0
+# Version:      1.1
 #
 # This file is part of DataMole.
 #
@@ -26,14 +26,15 @@ from typing import List, Tuple
 
 import numpy as np
 from PySide2.QtCharts import QtCharts
-from PySide2.QtCore import Qt, QPointF, QRectF, QRect, Slot, QSize
+from PySide2.QtCore import Qt, QPointF, QRectF, QRect, Slot, QSize, Signal
 from PySide2.QtGui import QFont, QFontMetrics, QPainterPath, QColor, QKeyEvent, QWheelEvent, \
-    QKeySequence, QMouseEvent, QCursor, QPixmap, QResizeEvent
+    QKeySequence, QMouseEvent, QCursor, QPixmap, QResizeEvent, QCloseEvent
 from PySide2.QtWidgets import QGraphicsSimpleTextItem, \
-    QGraphicsItem, QWidget, QMainWindow, QMenuBar, QAction, QGraphicsView, QApplication, QFileDialog
+    QGraphicsItem, QWidget, QMainWindow, QMenuBar, QAction, QGraphicsView, QApplication, QFileDialog, QHBoxLayout
 
 from dataMole import flogging
 from dataMole.gui.charts.utils import copyChart, computeAxisValue
+import pyqtgraph as pg
 
 
 class Callout(QGraphicsItem):
@@ -510,3 +511,63 @@ class InteractiveChartWindow(QMainWindow):
         f: str = name.strip() + '.' + ext.strip().split(' ')[0]
         saved: bool = p.save(f)
         flogging.appLogger.info('Image saved: {}'.format(saved))
+
+
+class ProxyWidget(QWidget):
+    """ This widget class is the container for all the PyQtGraphs plots opened in a single window """
+    plotClosedSig = Signal(pg.PlotItem)
+
+    def __init__(self, plot: pg.PlotItem, parent: QWidget):
+        super().__init__(parent)
+        self.setWindowTitle('Plot detail')
+        # Get all items in the plot
+        gItems = plot.listDataItems()
+        # Create a new plot and set its position in the scatterplot matrix (col and row parameters)
+        nPlot = pg.PlotItem()
+        nPlot.addLegend(pen=pg.mkPen(.8, width=1))
+        nPlot.row = plot.row
+        nPlot.col = plot.col
+        # Move all the items from the original plot to the new plot
+        for it in gItems:
+            nPlot.addItem(it)
+        nPlot.setLabel(axis='left', text=plot.yName)
+        nPlot.setLabel(axis='bottom', text=plot.xName)
+        # Make a plot widget to hold the PlotItem
+        self.plotWidget = pg.PlotWidget(parent=self, plotItem=nPlot)
+        self.plotWidget.setCentralItem(nPlot)
+        self.plotItem = nPlot
+        # Show the plot in a new window
+        self.setWindowFlag(Qt.Window)
+        # Layout is needed
+        QHBoxLayout(self).addWidget(self.plotWidget)
+
+    def closeEvent(self, e: QCloseEvent) -> None:
+        """ When the window is closed it passes the plot item to the layout manager to set it back in the matrix """
+        self.plotClosedSig.emit(self.plotItem)
+
+
+class GraphicsPlotLayout(pg.GraphicsLayoutWidget):
+    """
+    Custom graphic view that holds multiple plots in a grid and allows to open single plots in a window when
+    they are double-clicked. See PyQtGraphs docs for initialization of this class.
+    """
+
+    def mouseDoubleClickEvent(self, event: QMouseEvent) -> None:
+        # Get item under mouse
+        item = self.itemAt(event.pos())
+        # Search the clicked plot
+        while item and type(item) is not pg.PlotItem:
+            item = item.parentItem()
+        if item:
+            item: pg.PlotItem
+            window = ProxyWidget(item, self)
+            window.plotClosedSig.connect(self.onPlotClosed)
+            window.setAttribute(Qt.WA_DeleteOnClose)
+            window.resize(750, 700)
+            window.show()
+
+    @Slot(pg.PlotItem)
+    def onPlotClosed(self, plot: pg.PlotItem) -> None:
+        nPlot = self.getItem(plot.row, plot.col)
+        for item in plot.listDataItems():
+            nPlot.addItem(item)
