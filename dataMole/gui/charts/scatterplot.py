@@ -189,7 +189,9 @@ class ScatterPlotMatrix(DataView):
         :param yCol: name of the feature to use as y-axis
         :param groupBy: whether the feature dataframe is grouped by some attribute
         :param ds: whether to auto downsample the set of points during rendering
+
         :return:
+
         """
         allSeries = list()
         if groupBy:

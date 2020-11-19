@@ -28,7 +28,6 @@ from typing import Any, List, Optional
 from dataMole import data
 from dataMole.flogging.loggable import Loggable
 from dataMole.flogging.utils import logDataframeDiff, logDataframeInfo
-from dataMole.flow import dag
 
 
 class GraphOperationLogger:
@@ -36,7 +35,7 @@ class GraphOperationLogger:
         self._logHandle: logging.Logger = logger
         self._stringsToLog: List[str] = list()
 
-    def _operationHeader(self, node: dag.OperationNode) -> None:
+    def _operationHeader(self, node: 'OperationNode') -> None:
         # Log name id
         self._stringsToLog.append(
             '# {:s} (ID {:d})\nTimestamp: {}\n'.format(node.operation.name(), node.uid,
@@ -53,7 +52,7 @@ class GraphOperationLogger:
         options.extend(execution)
         self._stringsToLog.extend(options)
 
-    def _logNodeStuff(self, node: dag.OperationNode, result: Optional[data.Frame]) -> None:
+    def _logNodeStuff(self, node: 'OperationNode', result: Optional[data.Frame]) -> None:
         if result is not None:
             # Then do some standard logging of result
             if node.nInputs == 1:
@@ -62,7 +61,7 @@ class GraphOperationLogger:
             # In any case print some information of the resulting dataset
             self._stringsToLog.extend(['## RESULT INFO', logDataframeInfo(result)])
 
-    def log(self, node: dag.OperationNode, result: Optional[data.Frame], **kwargs) -> None:
+    def log(self, node: 'OperationNode', result: Optional[data.Frame], **kwargs) -> None:
         if not isinstance(node.operation, Loggable):
             return None
         self._operationHeader(node)

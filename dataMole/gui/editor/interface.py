@@ -130,8 +130,9 @@ class AbsOperationEditor(QWidget):
         """ Provide a list of readable errors to be shown in the widget
 
         :param errors: list of (errorName, errorMessage). If 'errorName' is available in
-        the widget errorHandlers field the corresponding callback will be fired with the 'errorMessage'
-        This is useful to show custom error messages in specific parts of the editor widget
+            the widget errorHandlers field the corresponding callback will be fired with the 'errorMessage'
+            This is useful to show custom error messages in specific parts of the editor widget
+
         """
         self.errorLabel.hide()
         text = ''
@@ -210,6 +211,7 @@ class AbsOperationEditor(QWidget):
         Useful to show an existing configuration. Does nothing by default
 
         :param args: any positional argument.
+
         """
         pass
 

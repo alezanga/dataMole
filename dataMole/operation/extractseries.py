@@ -297,7 +297,9 @@ class _ExtractSeriesWidget(QWidget):
         self.checkNoSeries()
 
     def setWorkbench(self, w: WorkbenchModel) -> None:
-        """ Sets the workbench and initialises every attribute model (one for each frame) """
+        """
+        Sets the workbench and initialises every attribute model (one for each frame)
+        """
         self.workbench = w
         self.workbenchView.setModel(w)
         # Set a default name for output
@@ -521,7 +523,7 @@ class CustomStringListModel(QStringListModel):
 
 class CustomSignalView(SignalTableView):
     def dragEnterEvent(self, event: QDragEnterEvent) -> None:
-        """ Reimplmented to tell the model the item which is dragged """
+        """ Reimplemented to tell the model the item which is dragged """
         if self.model():
             index = self.indexAt(event.pos())
             self.model().setDragStart(index)

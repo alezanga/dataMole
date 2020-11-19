@@ -227,6 +227,7 @@ class _RemoveNanEditor(AbsOperationEditor):
 
         :param mode: one of 'col' or 'row'
         :param parent: a parent widget
+
         """
         self.__mode: str = mode
         super().__init__(parent)

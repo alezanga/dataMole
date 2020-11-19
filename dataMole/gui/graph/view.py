@@ -45,7 +45,8 @@ class GraphView(QtWidgets.QGraphicsView):
     deleteSelected = QtCore.Signal()
 
     def __init__(self, scene, parent=None):
-        """Create an instance of this class
+        """
+        Create an instance of this class
 
         :param scene: GraphScene reference
         :type scene: :class:`nodegraph.nodegraphScene.GraphScene`
@@ -53,8 +54,8 @@ class GraphView(QtWidgets.QGraphicsView):
         :param parent: Parent widget
         :type parent: mixed
 
-        :returns: An instance of this class
-        :rtype: :class:`nodegraph.nodegraphView.GraphView`
+        :return: An instance of this class
+        :rtype :class:`nodegraph.nodegraphView.GraphView`
 
         """
         QtWidgets.QGraphicsView.__init__(self, scene, parent)
@@ -421,7 +422,7 @@ class GraphView(QtWidgets.QGraphicsView):
         :param selection: List of graphics item
         :type selection: List
 
-        :returns: A Qt rectangle
+        :return: A Qt rectangle
         :rtype: :class:`QtCore.QRectF`
 
         """

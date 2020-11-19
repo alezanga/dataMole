@@ -119,7 +119,9 @@ def setUpLogger(name: str, folder: str, fmt: str, level: int) -> logging.Logger:
     :param folder: the name of the folder (not path). Path will be "logs/{folder}"
     :param fmt: format as for logging
     :param level: level as for logging
+
     :return: the created logger
+
     """
     log_path = os.path.join(os.getcwd(), LOG_FOLDER, folder)
     if not os.path.exists(log_path):
@@ -143,6 +145,9 @@ def logDataframeDiff(df1, df2) -> str:
 
     :param df1: the original Frame
     :param df2: the transformed Frame
+
+    :return: a message as a formatted string
+
     """
 
     def diffNames(new: set, dropped: set, table: pt.PrettyTable):

@@ -38,13 +38,15 @@ class Operation(ABC):
 
     @property
     def workbench(self) -> 'WorkbenchModel':
+        """ Reference to the active workbench model """
         return self._workbench
 
     @abstractmethod
     def execute(self, *args, **kwargs) -> Any:
         """ Contains the logic of the operations
 
-        :return the result (any type)
+        :return: the result (any type)
+
         """
         pass
 
@@ -55,6 +57,7 @@ class Operation(ABC):
 
         :return: a list or tuple containing all the objects needed by the editor, which will be passed
             in the same order. By default returns an empty dictionary
+
         """
         return dict()
 
@@ -66,6 +69,7 @@ class Operation(ABC):
         :class:`~dataMole.operation.interface.exceptions.OptionValidationError`
 
         :raise OperationError: if options are not valid
+
         """
         pass
 
@@ -82,7 +86,8 @@ class Operation(ABC):
         Provide some information to show for a step. Should be short, since it is always shown in the
         editor widget
 
-        :return a string also with html formatting
+        :return: a string also with html formatting
+
         """
         pass
 
@@ -93,6 +98,7 @@ class Operation(ABC):
         tags
 
         :return: a string also with html formatting
+
         """
         return operation.descriptions.get(self.__class__.__name__, None)
 
@@ -108,6 +114,7 @@ class Operation(ABC):
         Note that a call to this function should not placed inside the 'execute' method.
 
         :return: True if computation can continue, False otherwise
+
         """
         pass
 
@@ -115,7 +122,8 @@ class Operation(ABC):
         """
         Returns whether the operation needs to be configured with options.
 
-        :return a boolean value, True if the operation needs to be configured, False otherwise
+        :return: a boolean value, True if the operation needs to be configured, False otherwise
+
         """
         pass
 
@@ -124,7 +132,8 @@ class Operation(ABC):
         Return the column types that this operation accepts. If not relevant may avoid
         reimplementation.
 
-        :return The list of types the operation can handle. Defaults to all types.
+        :return: The list of types the operation can handle. Defaults to all types.
+
         """
         return ALL_TYPES
 
@@ -133,6 +142,7 @@ class Operation(ABC):
         Return the editor panel to configure the step
 
         :return: the widget to be used as editor
+
         """
         pass
 

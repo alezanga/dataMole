@@ -37,7 +37,9 @@ def _build_item(name: str, data: type = None) -> QTreeWidgetItem:
     Build a tree item with a display name, and sets its data
 
     :param data: the class name. If specified it's set at column 1 on Qt.UserRole
+
     """
+
     item = QTreeWidgetItem([name])
     flags = Qt.ItemIsSelectable | Qt.ItemIsEnabled
     if data:

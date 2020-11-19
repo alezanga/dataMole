@@ -17,7 +17,7 @@ LATEXCOMMAND	= "/usr/bin/pdflatex"
 help:
 	@$(SPHINXBUILD) -M help "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 
-.PHONY: help Makefile pdf manuals
+.PHONY: help Makefile pdf manuals stubs
 
 # Catch-all target: route all unknown targets to Sphinx using the new
 # "make mode" option.  $(O) is meant as a shortcut for $(SPHINXOPTS).
@@ -25,7 +25,13 @@ help:
 	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 
 pdf:
-	@$(SPHINXBUILD) -b rinoh "$(SOURCEDIR)" _build/rinoh
+	@$(SPHINXBUILD) -b rinoh "$(SOURCEDIR)" auto/build/pdf
+
+stubs:
+	sphinx-apidoc -o auto/source/_stubs/ ../dataMole/ -f
+
+clean:
+	rm -rf auto/build
 
 manuals:
 	@$(LATEXCOMMAND) -synctex=1 -output-directory="$(MANUALOUT)" -interaction=nonstopmode  \

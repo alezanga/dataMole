@@ -377,6 +377,7 @@ class AttributeTableModel(AbstractAttributeModel, QAbstractTableModel,
         :param parent: parent widget
         :param checkable: whether an additional column with checkbox must be added
         :param editable: whether the model must support attribute renaming
+
         """
         super().__init__(parent)
         self._checkable: bool = checkable

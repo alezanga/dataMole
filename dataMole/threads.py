@@ -40,10 +40,9 @@ class Worker(QRunnable):
         Wraps Worker signals used to communicate with other Qt widgets.
 
         - finished(id): signal emitted when no the worker is closed
-        - error(id, tuple): emitted when worker caught an exception. It includes 3 values: the exception
-        type, the exception object and the stacktrace as string
-        - result(id, Frame): emitted when the worker exited successfully and carries the result of the
-        computation
+        - error(id, tuple): emitted when worker caught an exception. It includes 3 values: the exception type, the exception object and the stacktrace as string
+        - result(id, Frame): emitted when the worker exited successfully and carries the result of the computation
+
         """
         finished = Signal(object)
         error = Signal(object, tuple)
