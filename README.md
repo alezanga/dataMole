@@ -12,8 +12,10 @@ Note that `DataMole` is still experimental and under development.
 - [Software usage](#software-usage)
 - [Developer info](#developer-info)
   - [Building documentation with Sphinx](#building-documentation-with-sphinx)
+- [Credits](#credits)
 
 ## Features
+
 - Import and export CSV dataset
 - Apply transformations using the graphical interface:
     - Fill missing values
@@ -31,6 +33,7 @@ Note that `DataMole` is still experimental and under development.
 - Import and export pipelines (in `pickle`)
 
 ### Screenshots
+
 ![DataMole main window](screenshots/explore.png)
 ![Scatterplot matrix on iris dataset](screenshots/scattermatrix.png)
 ![Preprocessing pipeline](screenshots/pipeline.png)
@@ -77,3 +80,10 @@ Manuals `.tex` source files are in `docs/manuals/source` folder.
 The output will be found in the `auto/build` directory.
 
 Use `make clean` to remove the build directory.
+
+## Credits
+
+Here is a list of third party software used within this project.
+
+- [dsideb/nodegraph-pyqt](https://github.com/dsideb/nodegraph-pyqt): an interactive DAG visualization tool built in PySide/PyQt, licensed under GNU GPL-3.0;
+- [z3ntu/QtWaitingSpinner](https://github.com/z3ntu/QtWaitingSpinner): configurable Qt widget for showing a waiting spinner, with MIT license.
