@@ -52,7 +52,8 @@ class GraphEdge(QtWidgets.QGraphicsItem):
     ARROW_SLIM = 2
 
     def __init__(self, source_slot: NodeSlot, target_slot: NodeSlot, outline=2, arrow=None):
-        """Creates an instance of this class
+        """
+        Creates an instance of this class
 
         :param source: Source slot (should be a output one)
         :type source: :class:`nodegraph.node.NodeSlot`
@@ -69,8 +70,8 @@ class GraphEdge(QtWidgets.QGraphicsItem):
         :param arrow: Define type of arrow. By default, no arrow is drawn
         :type arrow: int
 
-        :returns: An instance of this class
-        :rtype: :class:`nodegraph.edge.GraphEdge`
+        :return: An instance of this class
+        :rtype :class:`nodegraph.edge.GraphEdge`
 
         """
         QtWidgets.QGraphicsItem.__init__(self, parent=None)
@@ -123,7 +124,7 @@ class GraphEdge(QtWidgets.QGraphicsItem):
     def _update_line(self):
         """Resolve start and end point from current source and target position
 
-        :returns: A Qt line object
+        :return:s: A Qt line object
         :rtype: :class:`QtCore.QLineF`
 
         """
@@ -135,7 +136,7 @@ class GraphEdge(QtWidgets.QGraphicsItem):
     def _update_path(self):
         """Build path which drives shape and bounding box
 
-        :returns: A Qt path object
+        :return:s: A Qt path object
         :rtype: :class:`QtGui.QPainterPath`
 
         """
@@ -325,8 +326,8 @@ class InteractiveGraphEdge(GraphEdge):
         :param arrow: Define type of arrow. By default, no arrow is drawn
         :type arrow: int
 
-        :returns: An instance of this class
-        :rtype: :class:`nodegraph.edge.InteractiveGraphEdge`
+        :return: An instance of this class
+        :rtype :class:`nodegraph.edge.InteractiveGraphEdge`
 
         """
         QtWidgets.QGraphicsItem.__init__(self, parent=None)

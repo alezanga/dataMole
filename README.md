@@ -1,9 +1,9 @@
-# dataMole
+# DataMole
 
 A Qt-based graphical tool for processing and exploring tabular datasets (CSV) in machine learning and
  data analysis projects.
  
-Note that `dataMole` is still experimental and under development.
+Note that `DataMole` is still experimental and under development.
 
 ## Features
 - Import and export CSV dataset
@@ -51,13 +51,22 @@ This will generate a new file `qt_resources.py`.
 Refer to the user manual in `docs/manuals`
 
 ## Developer info
-In addition to the packages listed in `requirements.txt` you may want to install the following ones
- for development:
- - pytest
- - sphinx
+In addition to the packages listed in `requirements.txt` you may want to install the ones 
+listed in `requirements.dev.txt`.
 
 Refer to the developer manual in `docs/manuals` for information about software architecture and
  on how to extend it.
  
 Manuals `.tex` source files are in `docs/manuals/source` folder.
- 
+
+### Building documentation with Sphinx
+
+1. Move into the `docs` folder
+2. Generate stubs (rst) if required: `make stubs`
+3. Generate documentation:
+    - `make html` for html documentation
+    - `make pdf` to convert the documentation in a single pdf file
+
+The output will be found in the `auto/build` directory.
+
+Use `make clean` to remove the build directory.

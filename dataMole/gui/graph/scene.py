@@ -420,6 +420,7 @@ class GraphScene(QtWidgets.QGraphicsScene):
 
         :param nodeId: the id of the node to update
         :param optionsSet: whether options are set or not
+
         """
         self._nodes_by_id[nodeId].setOptionsIndicator(optionsSet)
 
@@ -460,8 +461,9 @@ class GraphScene(QtWidgets.QGraphicsScene):
         :param visible_only: If true, only evaluate visible NodeSlot
         :type visible_only: bool
 
-        :returns: A bounding rectangle
-        :rtype: :class:`QtCore.QrectF`
+        :return: A bounding rectangle
+        :rtype :class:`QtCore.QrectF`
+
         """
         if not self._nodes_by_id:
             return QtCore.QRectF()

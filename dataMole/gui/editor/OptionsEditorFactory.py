@@ -188,6 +188,7 @@ class OptionsEditorFactory:
             The third argument is an optional default value to show on selected rows where no options
             has been set
         :param types: the list of accepted types to show. If None no filter will be applied
+
         """
         self.__hasTable = key
         tableWidget = SearchableAttributeTableWidget(self.__body)

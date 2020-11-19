@@ -56,6 +56,7 @@ class OperationAction(QAction):
         :param editorPosition: the point in which the options editor will be shown
         :param args: any arguments to pass to the operation constructor
         :param kwargs: any arguments to pass to the operation constructor
+
         """
         super().__init__(actionName, parent)
         self.__args = args
@@ -72,9 +73,11 @@ class OperationAction(QAction):
         self.__kwargs = kwargs
 
     def setSelectedFrame(self, name: str) -> None:
-        """ Set the frame to be used as input in the editor when it is shown. This is only relevant
+        """
+        Set the frame to be used as input in the editor when it is shown. This is only relevant
         for editors built with the factory. If it not the case you should provide your own parameters
-        as operation arguments """
+        as operation arguments
+        """
         self.__selectedFrame = name
 
     def getResult(self, key: int) -> Any:

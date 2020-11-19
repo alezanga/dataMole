@@ -1,9 +1,14 @@
 # -*- coding: utf-8 -*-
+"""
+Collection of classes to define every operation and related utilities
+"""
 
 import html
 import json
 import xml.etree.ElementTree as eTree
 from typing import Dict
+import os
+from dataMole import rootdir
 
 # 1 - Read operation description file
 from PySide2.QtCore import QFile
@@ -29,6 +34,6 @@ descriptions: Dict[str, str] = {
         .replace('\t', '').replace('\r', '') for e in list(root)}
 
 # 2 - Read operation modules (only names)
-with open('dataMole/config/operations.json', 'r') as config:
+with open(os.path.join(rootdir, 'dataMole/config/operations.json'), 'r') as config:
     d = json.load(config)
     __all_modules__ = d['modules']

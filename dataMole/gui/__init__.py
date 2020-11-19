@@ -1,3 +1,7 @@
+"""
+Classes and widgets used for the graphical interface
+"""
+
 from dataMole.gui import widgets, window
 from dataMole.gui.widgets.notifications import Notifier
 from dataMole.gui.widgets.statusbar import StatusBar

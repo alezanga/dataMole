@@ -1,3 +1,7 @@
+"""
+Collection of logging utilities
+"""
+
 from dataMole.flogging.loggable import Loggable
 from dataMole.flogging.operationlogger import GraphOperationLogger, OperationLogger
 from dataMole.flogging.utils import *

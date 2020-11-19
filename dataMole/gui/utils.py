@@ -83,7 +83,7 @@ class OptionWidget(QWidget, ABC, metaclass=QtABCMeta):
         """ Get current option value. Should provide it in the exact value that Options expect.
         If the value is not set return None.
 
-        :return the value currently set
+        :return: the value currently set
         """
         pass
 

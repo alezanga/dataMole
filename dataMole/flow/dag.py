@@ -48,7 +48,9 @@ class OperationDag:
         options if the input shape changed
 
         :param parent_id: the id of the parent node
-        :return the list of descendants that were updated (their id)
+
+        :return: the list of descendants that were updated (their id)
+
         """
         updated = set()
         for child_id in self.__G.successors(parent_id):  # Direct successors
@@ -70,8 +72,11 @@ class OperationDag:
         :param node_id: the id of the node to update
         :param options: any argument to pass to
             :func:`~dataMole.operation.interface.GraphOperation.setOptions`
-        :return The list of updated nodes if the options were set, empty list otherwise
+
+        :return: The list of updated nodes if the options were set, empty list otherwise
+
         :raise ValueError: if the node is not in the graph
+
         """
         if node_id not in self.__G:
             flogging.appLogger.error('Cannot update a node which does not belong to the graph')
@@ -88,7 +93,9 @@ class OperationDag:
         """ Adds a node to the graph. Must not be already in the graph
 
         :param node: the node to add
+
         :return: True if the node was inserted, False if not (e.g. if it was already in the graph)
+
         """
         if node.uid in self.__G:
             flogging.appLogger.error(
@@ -103,8 +110,11 @@ class OperationDag:
         :param source_id: id of the source
         :param target_id: id of target
         :param slot: the position of the input passed by the source operation
+
         :return: True if the connection was added, False otherwise
+
         :raise DagException: to signal specific errors
+
         """
         if source_id not in self.__G or target_id not in self.__G:
             flogging.appLogger.error('New edge "{:d}->{:d}" requires non existent node. Add the nodes '
@@ -167,7 +177,9 @@ class OperationDag:
 
         :param source_id: id of the source node
         :param target_id: id of the target node
+
         :return: the list of updated nodes if the edge was removed, empty list otherwise
+
         """
         if not self.__G.has_edge(source_id, target_id):
             flogging.appLogger.error('Removing non existent edge ({}->{})'.format(source_id, target_id))
@@ -189,7 +201,9 @@ class OperationDag:
         """ Removes a node from the graph, also all its edges
 
         :param op_id: the id of the node to remove
+
         :return: a list of all nodes that were updated if the node was removed, empty list otherwise
+
         """
         # Remove all incoming edges
         updated = set()
@@ -313,9 +327,10 @@ class OperationNode:
         at a specified position when the execute method is called
 
         :param op_id: the unique id of the operation
-        :param pos: the position, which means that input is passed as the argument at position 'pos'
-        to 'execute' method. Must be non-negative
+        :param pos: the position, which means that input is passed as the argument at position 'pos' to 'execute' method. Must be non-negative
+
         :raise ValueError: if 'pos' is negative
+
         """
         if pos < 0:
             raise ValueError('Position argument \'pos\' must be non-negative')
@@ -325,6 +340,7 @@ class OperationNode:
         """ Delete the entry for specified operation in the input mapper
 
         :param op_id: the unique id of the operation
+
         """
         del self.__input_order[op_id]
 
@@ -334,6 +350,7 @@ class OperationNode:
         :param arg: the input to add
         :param op_id: the unique id of the operation which generated the input. This argument is
             always required
+
         """
         pos = self.__input_order.get(op_id, None)
         self.__inputs[pos] = arg
@@ -342,7 +359,9 @@ class OperationNode:
         """ Adds the input shape coming from operation with specified id
 
         :param shape: the shape
+
         :param op_id: the id of the operation which generated the shape
+
         """
         pos = self.__input_order.get(op_id, None)
         self.operation.addInputShape(shape, pos)
@@ -351,6 +370,7 @@ class OperationNode:
         """ Remove the input shape coming from specified operation
 
         :param op_id: the unique identifier of the operation whose input shape should be removed
+
         """
         pos = self.__input_order.get(op_id)
         self.operation.removeInputShape(pos)

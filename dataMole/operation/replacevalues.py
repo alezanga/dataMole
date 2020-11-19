@@ -47,8 +47,10 @@ def floatList(values: List, invalid: str) -> List:
         - 'drop': invalid float values are dropped
         - 'nan': invalid floats are set to np.nan
         - 'ignore': invalid values are left untouched. May results in a list of mixed type
+
     :return: if invalid is 'drop' or 'nan' returns a list of floats, otherwise it may return a
         list of mixed type
+
     """
     floatValues = list()
     for el in values:

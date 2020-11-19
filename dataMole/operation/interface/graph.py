@@ -56,7 +56,9 @@ class GraphOperation(Operation):
         :param shape: the shape to add
         :param pos: an integer index being the position to add the shape at. Must be non-negative and
             consistent with :func:`~dataMole.operation.interface.GraphOperation.maxInputNumber`
+
         :raise ValueError: if 'pos' is negative
+
         """
         if pos < 0:
             raise ValueError('Position must be non-negative')
@@ -67,7 +69,9 @@ class GraphOperation(Operation):
 
         :param pos: index of the shape to remove. Must be non-negative and consistent with
             :func:`~dataMole.operation.interface.GraphOperation.maxInputNumber`
+
         :raise ValueError: if 'pos' is negative
+
         """
         if pos < 0:
             raise ValueError('Position must be non-negative')
@@ -103,7 +107,8 @@ class GraphOperation(Operation):
         'getOutputShape'. Thus if this function returns False, then
         :func:`~dataMole.operation.interface.GraphOperation.getOutputShape` must always return None
 
-        :return True if the output shape cannot be predicted, False otherwise. Defaults to True
+        :return: True if the output shape cannot be predicted, False otherwise. Defaults to True
+
         """
         return True
 
@@ -118,7 +123,8 @@ class GraphOperation(Operation):
         regardless of the result of this method, which is only used when determining if a graph
         connection can be added.
 
-        :return True if the operation needs the input shape, otherwise False. Defaults to True
+        :return: True if the operation needs the input shape, otherwise False. Defaults to True
+
         """
         return True
 
@@ -137,7 +143,9 @@ class GraphOperation(Operation):
         This method should avoid checking options or input shapes.
 
         :param df: input dataframe
+
         :return: the new dataframe modified as specified by the operation
+
         """
         pass
 
@@ -162,6 +170,7 @@ class GraphOperation(Operation):
         Note that a call to this function should not placed inside the 'execute' method.
 
         :return: True if computation can continue, False otherwise
+
         """
         pass
 
@@ -186,7 +195,8 @@ class GraphOperation(Operation):
             - :func:`~dataMole.operation.interface.GraphOperation.getOptions`
             - :func:`~dataMole.operation.interface.GraphOperation.setOptions`
 
-        :return a boolean value, True if the operation needs to be configured, False otherwise
+        :return: a boolean value, True if the operation needs to be configured, False otherwise
+
         """
         pass
 
@@ -198,6 +208,7 @@ class GraphOperation(Operation):
 
         :return: a list or tuple containing all the objects needed by the editor, which will be passed
             in the same order
+
         """
         pass
 
@@ -216,6 +227,7 @@ class GraphOperation(Operation):
         """ Yields the minimum number of inputs required by the operation
 
         :return: a non-negative integer
+
         """
         pass
 
@@ -226,6 +238,7 @@ class GraphOperation(Operation):
             Use -1 to indicate an infinite number
 
         :return: a non-negative integer >= to minInputNumber or -1
+
         """
         pass
 
@@ -235,6 +248,7 @@ class GraphOperation(Operation):
         """ Yields the minimum number of operations that must receive the output by the current one
 
         :return: a non-negative integer
+
         """
         pass
 
@@ -245,6 +259,7 @@ class GraphOperation(Operation):
             Use -1 to indicate an infinite number
 
         :return: a non-negative integer >= to minOutputNumber or -1
+
         """
         pass
 

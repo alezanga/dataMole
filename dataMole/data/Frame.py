@@ -143,7 +143,9 @@ class Frame:
         """ Set new names for columns
 
         :param new_values: a list of names if all columns should be renamed or a dict
+
         :return: a frame with renamed columns
+
         """
         if isinstance(new_values, dict):
             return Frame(self.__df.rename(columns=new_values, inplace=False))
@@ -164,7 +166,9 @@ class Frame:
         Sets index of the dataframe
 
         :param col: the column number or name
+
         :return: a new frame with the new index
+
         """
         d = self.__df.set_index(col, drop=True, inplace=False)
         return Frame(d)

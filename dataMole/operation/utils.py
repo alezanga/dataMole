@@ -42,7 +42,9 @@ def splitString(string: str, sep: str) -> List[str]:
 
     :param string: string to split
     :param sep: the separator string (or single char)
+
     :return: the list resulting from split
+
     """
     string = string.strip(' ')
     sepPattern = '\\s*{}\\s*'.format(sep)
@@ -60,7 +62,9 @@ def joinList(values: List, sep: str) -> str:
 
     :param values: values to join in a string
     :param sep: the string separator
+
     :return: the string representation of the list of values, with 'sep' as separator
+
     """
     result = list()
     for v in values:
@@ -80,8 +84,10 @@ def parseNan(values: List):
     """
     Converts string values 'nan' as actual pandas nan values
 
-    :param values:
+    :param values: list-like object
+
     :return: new list with nan values
+
     """
     newValues = list()
     for el in values:
@@ -92,6 +98,14 @@ def parseNan(values: List):
 
 
 def isFloat(text: str) -> bool:
+    """
+    Return whether the provided text is a valid float
+
+    :param text: the number as string
+
+    :return:: True or False
+
+    """
     try:
         float(text)
     except ValueError:
@@ -101,7 +115,9 @@ def isFloat(text: str) -> bool:
 
 
 class NumericListValidator(QValidator):
-    """ QValidator for space-separated list of numbers. Works with float or ints """
+    """
+    QValidator for space-separated list of numbers. Works with float or ints
+    """
 
     def __init__(self, float_int: type, parent=None):
         super().__init__(parent)
@@ -145,8 +161,10 @@ class MixedListValidator(QValidator):
 
 
 class ManyMixedListsValidator(QValidator):
-    """ Validates a list of lists, where each value in a list is space separated and every list is
-    semicolon separated """
+    """
+    Validates a list of lists, where each value in a list is space separated and every list is
+    semicolon separated
+    """
 
     def validate(self, inputString: str, pos: int) -> QValidator.State:
         inputString = inputString.strip(' ')

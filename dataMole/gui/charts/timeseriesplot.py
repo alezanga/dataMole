@@ -298,7 +298,7 @@ class TimeSeriesPlot(DataView):
         """ Creates a QLineSeries for every column in the dataframe. 'timeIndex' column is used for
         xAxis
 
-        :return tuple as (list of series, yMin, yMax)
+        :return: tuple as (list of series, yMin, yMax)
         """
         timeIndexName: str = dataframe.columns[timeIndex]
 
@@ -389,6 +389,7 @@ class TimeSeriesPlot(DataView):
         :param timeIndex: the index of the column in 'dataframe' which should be considered the time axis
         :param timeIndexType: the type of column specified in 'timeIndex'. Can be Ordinal or Datetime
         :param indexMean: ignored for now
+
         """
         columns = dataframe.columns
         timeIndexName: str = columns[timeIndex]

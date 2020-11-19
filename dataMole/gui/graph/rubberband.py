@@ -61,8 +61,8 @@ class RubberBand(QtWidgets.QGraphicsItem):
         :param outline: Width of the edge and arrow outline
         :type outline: int
 
-        :returns: An instance of this class
-        :rtype: :class:`nodegraph.rubberband.RubberBand`
+        :return: An instance of this class
+        :rtype :class:`nodegraph.rubberband.RubberBand`
 
         """
         QtWidgets.QGraphicsItem.__init__(self, parent=None)
