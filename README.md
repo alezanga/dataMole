@@ -1,9 +1,17 @@
-# DataMole
+# DataMole <!-- omit in toc -->
 
 A Qt-based graphical tool for processing and exploring tabular datasets (CSV) in machine learning and
  data analysis projects.
  
 Note that `DataMole` is still experimental and under development.
+
+## Table of Contents <!-- omit in toc -->
+- [Features](#features)
+  - [Screenshots](#screenshots)
+- [Installation](#installation)
+- [Software usage](#software-usage)
+- [Developer info](#developer-info)
+  - [Building documentation with Sphinx](#building-documentation-with-sphinx)
 
 ## Features
 - Import and export CSV dataset
@@ -22,8 +30,10 @@ Note that `DataMole` is still experimental and under development.
 - Create pipelines of transformations and execute them
 - Import and export pipelines (in `pickle`)
 
-### Screenshot
-![DataMole main window](docs/manuals/source/images/main-screenshot.png)
+### Screenshots
+![DataMole main window](screenshots/explore.png)
+![Scatterplot matrix on iris dataset](screenshots/scattermatrix.png)
+![Preprocessing pipeline](screenshots/pipeline.png)
 
 ## Installation
 
@@ -41,8 +51,7 @@ Note that `DataMole` is still experimental and under development.
 <hr/>
 (*) Of course you can just use the global Python installation if you are ok with that (not recommended)
 
-(**) On Windows `make` command does not work, so the command to give at step 5 is: 
-
+(**) On Windows `make` command does not work, so the command to give at step 5 is:
 - `pyside2-rcc dataMole/resources.qrc -o dataMole/qt_resources.py`
 
 This will generate a new file `qt_resources.py`.
@@ -51,11 +60,9 @@ This will generate a new file `qt_resources.py`.
 Refer to the user manual in `docs/manuals`
 
 ## Developer info
-In addition to the packages listed in `requirements.txt` you may want to install the ones 
-listed in `requirements.dev.txt`.
+In addition to the packages listed in `requirements.txt` you may want to install the ones listed in `requirements.dev.txt`.
 
-Refer to the developer manual in `docs/manuals` for information about software architecture and
- on how to extend it.
+Refer to the developer manual in `docs/manuals` for information about software architecture and on how to extend it.
  
 Manuals `.tex` source files are in `docs/manuals/source` folder.
 
