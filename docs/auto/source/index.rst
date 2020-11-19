@@ -25,6 +25,7 @@ Requirements
 The following packages must be installed in order to run DataMole:
 
 - PySide2 5.15.1
+- PyQtGraph 0.11.0
 - numpy 1.19.1
 - pandas 1.0.5
 - networkx 2.4
