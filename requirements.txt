@@ -4,5 +4,5 @@ numpy==1.19.1
 setuptools
 pandas==1.0.5
 networkx==2.4
-scikit-learn==0.23.1
+scikit-learn==1.5.0
 prettytable
